@@ -219,6 +219,7 @@ class IntfWireless(Intf):
 
     def get_freq(self, channel):
         "Gets frequency based on channel number"
+        chan_list_1ghz = [4]
         chan_list_2ghz = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
         chan_list_5ghz = [36, 40, 44, 48, 52, 56, 60, 64, 100,
                           104, 108, 112, 116, 120, 124, 128, 132,
@@ -235,6 +236,7 @@ class IntfWireless(Intf):
                           217, 221, 225, 229, 233]
         chan_list_60ghz = [1, 2, 3, 4]
 
+        freq_list_1ghz = [906500]
         freq_list_2ghz = [2.412, 2.417, 2.422, 2.427, 2.432, 2.437,
                           2.442, 2.447, 2.452, 2.457, 2.462]
         freq_list_5ghz = [5.18, 5.2, 5.22, 5.24, 5.26, 5.28, 5.30, 5.32,
@@ -252,12 +254,12 @@ class IntfWireless(Intf):
                           6.855, 6.875, 6.895, 6.915, 6.935, 6.955, 6.975,
                           6.995, 7.015, 7.035, 7.055, 7.075, 7.095, 7.115]
         freq_list_60ghz = [58.320, 60.480, 62.640, 64.800]
-        all_chan = chan_list_2ghz + chan_list_5ghz + chan_list_6ghz + chan_list_60ghz
-        all_freq = freq_list_2ghz + freq_list_5ghz + freq_list_6ghz + freq_list_60ghz
+        all_chan = chan_list_1ghz + chan_list_2ghz + chan_list_5ghz + chan_list_6ghz + chan_list_60ghz
+        all_freq = freq_list_1ghz + freq_list_2ghz + freq_list_5ghz + freq_list_6ghz + freq_list_60ghz
         if int(channel) in all_chan:
             idx = all_chan.index(int(channel))
             return all_freq[idx]
-        return '2.412'
+        return 2.412
 
     def setFreq(self, freq, intf=None):
         return self.iwdev_cmd('{} set freq {}'.format(intf, freq))
@@ -315,7 +317,7 @@ class IntfWireless(Intf):
                     self.cmd('ip addr flush ', self.name)
                     cmd = 'ip addr add {} brd + dev {}'.format(args[0], self.name)
                     if self.ip6:
-                        cmd += ' && ip -6 addr add {} dev {}'.format\
+                        cmd += ' && ip -6 addr add {} dev {}'.format \
                             (self.ip6, self.name)
                     return self.cmd(cmd)
                 else:
@@ -341,7 +343,7 @@ class IntfWireless(Intf):
                      'for more information\n')
         else:
             info('*** {}: signal range of {}m requires tx power equals '
-                 'to {}dBm.\n'.format(self.name, self.range, (int(txpower)+1)))
+                 'to {}dBm.\n'.format(self.name, self.range, (int(txpower) + 1)))
 
     def setDefaultRange(self):
         if not self.static_range:
@@ -358,7 +360,7 @@ class IntfWireless(Intf):
         self.setDefaultRange()
         self.setHeightWmediumd(height)
         self.node.configLinks()
-    
+
     def getAntennaHeight(self):
         return self.antennaHeight
 
@@ -422,7 +424,7 @@ class IntfWireless(Intf):
         else:
             if prefixLen is None:
                 raise Exception('No prefix length set for IP address {}'.format
-                                (ipstr,))
+                                (ipstr, ))
             self.ip, self.prefixLen = ipstr, prefixLen
             return self.ipAddr('{}/{}'.format(ipstr, prefixLen))
 
@@ -436,7 +438,7 @@ class IntfWireless(Intf):
         else:
             if prefixLen6 is None:
                 raise Exception('No prefix length set for IP address {}'.format
-                                (ipstr,))
+                                (ipstr, ))
             self.ip6, self.prefixLen6 = ipstr, prefixLen6
             return self.ipAddr('{}/{}'.format(ipstr, prefixLen6))
 
@@ -493,8 +495,8 @@ class IntfWireless(Intf):
                 cmd += '   key_mgmt={}\n'.format(wpa_key_mgmt)
                 if self.bgscan_module:
                     cmd += '   bgscan=\"%s:%d:%d:%d\"\n' % \
-                             (self.bgscan_module, self.s_inverval,
-                              self.bgscan_threshold, self.l_interval)
+                           (self.bgscan_module, self.s_inverval,
+                            self.bgscan_threshold, self.l_interval)
                 if ap_intf.authmode == '8021x':
                     cmd += '   eap=PEAP\n'
                     cmd += '   identity=\"{}\"\n'.format(self.radius_identity)
@@ -715,7 +717,6 @@ class IntfWireless(Intf):
 
 
 class HostapdConfig(IntfWireless):
-
     write_mac = False
     nm_conf_file = '/etc/NetworkManager/conf.d/unmanaged.conf'
 
@@ -912,7 +913,8 @@ class HostapdConfig(IntfWireless):
                         # cmd += ("\nown_ip_addr=127.0.0.1")
                         cmd += '\nnas_identifier={}.example.com'.format(intf.node.name)
                         for apref in intf.bssid_list:
-                            cmd += '\nr0kh={} r0kh-{}.example.com 000102030405060708090a0b0c0d0e0f'.format(intf.mac, apref)
+                            cmd += '\nr0kh={} r0kh-{}.example.com 000102030405060708090a0b0c0d0e0f'.format(intf.mac,
+                                                                                                           apref)
                             cmd += '\nr1kh={} {} 000102030405060708090a0b0c0d0e0f'.format(intf.mac, intf.mac)
                         cmd += '\nrsn_preauth=1'
                         cmd += '\npmk_r1_push=1'
@@ -946,7 +948,7 @@ class HostapdConfig(IntfWireless):
             info('Mac address(es) added into {}\n'.format(cls.nm_conf_file))
             info('Restarting {}...\n'.format(nms))
             os.system('sudo service network-manager restart')
-            #os.system('nmcli general reload')
+            # os.system('nmcli general reload')
             sleep(2)
 
     def checkNetworkManager(self, intf):
@@ -987,7 +989,7 @@ class HostapdConfig(IntfWireless):
             intf_ = intf.node.params['phywlan']
             intf.cmd('ip link set {} down'.format(intf_))
             intf.cmd('ip link set {} up'.format(intf_))
-        apconfname = 'mn{}_{}-wlan{}.apconf'.format(os.getpid(), intf.node.name, intf.id+1)
+        apconfname = 'mn{}_{}-wlan{}.apconf'.format(os.getpid(), intf.node.name, intf.id + 1)
         content = cmd + "\' > {}".format(apconfname)
         intf.cmd(content)
         cmd = self.get_hostapd_cmd(intf)
@@ -1004,7 +1006,7 @@ class HostapdConfig(IntfWireless):
 
     @staticmethod
     def get_hostapd_cmd(intf):
-        apconfname = "mn{}_{}-wlan{}.apconf".format(os.getpid(), intf.node.name, intf.id+1)
+        apconfname = "mn{}_{}-wlan{}.apconf".format(os.getpid(), intf.node.name, intf.id + 1)
         hostapd_flags = intf.node.params.get('hostapd_flags', '')
         cmd = "hostapd -B {} {}".format(apconfname, hostapd_flags)
         return cmd
@@ -1260,7 +1262,7 @@ class WirelessIntf(object):
 
     def status(self):
         "Return link status as a string"
-        return "({} {})".format(self.intf1.status(), self.intf2)
+        return "(use iw/iwconfig to check connectivity)".format(self.intf1.status(), self.intf2)
 
     def __str__(self):
         return '{}<->{}'.format(self.intf1, self.intf2)

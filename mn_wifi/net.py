@@ -1336,6 +1336,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
             self.configure6LowPANLink()
 
         if self.nwwans:
+            if self.alt_module: self.wwan_module = self.alt_module
             self.modems = self.init_wwan_module(self.wwan_module)
             self.addModems()
             self.configureWWANLink()
