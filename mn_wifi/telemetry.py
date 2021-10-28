@@ -9,10 +9,8 @@ telemetry(nodes, **params)
             - other data_types: rssi - gets the rssi value
 """
 
-import os
-import os.path
 import time
-import subprocess
+from subprocess import check_output as co, PIPE
 import numpy
 
 import matplotlib
@@ -22,7 +20,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 from matplotlib import style
-from os import path
+from os import path, system as sh
 from threading import Thread as thread
 from datetime import date
 from mn_wifi.node import AP
@@ -31,7 +29,7 @@ from mn_wifi.node import AP
 today = date.today()
 style.use('fivethirtyeight')
 start = time.time()
-util_dir = str(os.path.realpath(__file__))[:-21] + '/util/m'
+util_dir = str(path.realpath(__file__))[:-21] + '/util/m'
 
 
 class telemetry(object):
@@ -91,12 +89,11 @@ class telemetry(object):
         phys.sort(key=len, reverse=False)
         for phy in phys:
             try:
-                ifaces_ = subprocess.check_output(cmd.format(phy), stderr=subprocess.PIPE,
-                                                  shell=True).decode().split('\n')
+                ifaces_ = co(cmd.format(phy), stderr=PIPE, shell=True).decode().split('\n')
             except:
                 node = inNamespaceNodes[j]
-                ifaces_ = subprocess.check_output('{} {} {}'.format(util_dir, node, cmd.format(phy)),
-                                                  shell=True).decode().split('\n')
+                ifaces_ = co('{} {} {}'.format(util_dir, node, cmd.format(phy)),
+                             shell=True).decode().split('\n')
             ifaces_.pop()
             if nodes[j] not in ifaces:
                 ifaces[nodes[j]] = []
@@ -117,12 +114,12 @@ class telemetry(object):
         phys = []
         for node in nodes:
             if isinstance(node, AP) and not isAP:
-                phys += subprocess.check_output(cmd, shell=True).decode().split('\n')
+                phys += co(cmd, shell=True).decode().split('\n')
                 isAP = True
             else:
                 if not isinstance(node, AP):
-                    phys += subprocess.check_output('{} {} {}'.format(util_dir, node, cmd),
-                                                    shell=True).decode().split('\n')
+                    phys += co('{} {} {}'.format(util_dir, node, cmd),
+                               shell=True).decode().split('\n')
         phy_list = []
         phys = sorted(phys)
         for phy in phys:
@@ -145,8 +142,8 @@ def get_rssi(node, iface):
         rssi = 0
     else:
         cmd = "{} {} iw dev {} link | grep signal | tr -d signal: | awk '{{print $1 $3}}'"
-        rssi = subprocess.check_output('{}'.format(cmd.format(util_dir, node, iface)),
-                                       shell=True).decode().split("\n")
+        rssi = co('{}'.format(cmd.format(util_dir, node, iface)),
+                  shell=True).decode().split("\n")
 
         rssi = 0 if not rssi[0] else rssi[0]
     return rssi
@@ -154,7 +151,7 @@ def get_rssi(node, iface):
 
 def get_values_from_statistics(tx_bytes, time, node, filename):
     tx = telemetry.calc(float(tx_bytes[0]), node)
-    os.system(parseData.echo_cmd.format(time, tx, filename.format(node)))
+    sh(parseData.echo_cmd.format(time, tx, filename.format(node)))
 
 
 class parseData(object):
@@ -186,7 +183,7 @@ class parseData(object):
         return plt.fignum_exists(2)
 
     def pub_msg(self, topic, msg):
-        os.system('mosquitto_pub -t {} -m \'{}\''.format(topic, msg))
+        sh('mosquitto_pub -t {} -m \'{}\''.format(topic, msg))
 
     def run_dojot(self, topic):
         for node in self.nodes:
@@ -245,7 +242,7 @@ class parseData(object):
                 if node.name not in names:
                     names.append(node.name)
                 x, y, z = get_position(node)
-                os.system(self.echo_cmd.format(x, y, self.filename.format(node)))
+                sh(self.echo_cmd.format(x, y, self.filename.format(node)))
 
                 x = node.position[0]
                 y = node.position[1]
@@ -259,7 +256,7 @@ class parseData(object):
                     names.append(self.ifaces[node][wlan])
                     nodes_x[node], nodes_y[node] = [], []
                     rssi = get_rssi(node, self.ifaces[node][wlan])
-                    os.system(self.echo_cmd.format(time_, rssi, self.filename.format(node)))
+                    sh(self.echo_cmd.format(time_, rssi, self.filename.format(node)))
                     graph_data = open('{}'.format(self.filename.format(node)), 'r').read()
                     lines = graph_data.split('\n')
                     for line in lines:
@@ -277,11 +274,10 @@ class parseData(object):
                     cmd = 'cat {}{}{}'.format(self.ieee80211_dir, self.net_dir, self.stats_dir)
                     if not isinstance(node, AP):
                         cmd = '{} {} '.format(util_dir, node) + cmd
-                    tx_bytes = subprocess.check_output(
-                        ('{}'.format(cmd)).format(self.phys[arr],
-                                                  self.ifaces[node][wlan],
-                                                  self.data_type),
-                        shell=True).decode().split("\n")
+                    tx_bytes = co(('{}'.format(cmd)).format(self.phys[arr],
+                                                            self.ifaces[node][wlan],
+                                                            self.data_type),
+                                  shell=True).decode().split("\n")
                     get_values_from_statistics(tx_bytes, time_, node, self.filename)
                     graph_data = open('{}'.format(self.filename.format(node)), 'r').read()
                     lines = graph_data.split('\n')
@@ -328,7 +324,7 @@ class parseData(object):
         else:
             for node in nodes:
                 if path.exists('{}'.format(self.filename.format(node))):
-                    os.system('rm {}'.format(self.filename.format(node)))
+                    sh('rm {}'.format(self.filename.format(node)))
             self.ani = animation.FuncAnimation(fig, self.animate, interval=interval)
             fig.canvas.mpl_connect('close_event', self.close)
             plt.show()

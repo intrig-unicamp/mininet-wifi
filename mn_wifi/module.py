@@ -1,10 +1,10 @@
 # author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 
-import os
-import re
-import subprocess
-import logging
+from os import system as sh, path, getpid
+from re import search
+from subprocess import check_output as co, PIPE, Popen
+from logging import basicConfig, exception, DEBUG
 from mininet.log import debug, info, error
 
 
@@ -34,7 +34,7 @@ class Mac80211Hwsim(object):
 
     def get_hwsim_list(self):
         return 'find /sys/kernel/debug/ieee80211 -name hwsim | grep %05d ' \
-               '| cut -d/ -f 6 | sort' % os.getpid()
+               '| cut -d/ -f 6 | sort' % getpid()
 
     def configPhys(self, node, **params):
         phys = self.get_intf_list(self.get_hwsim_list())  # gets virtual and phy interfaces
@@ -64,9 +64,9 @@ class Mac80211Hwsim(object):
         # Useful for kernel <= 3.13.x
         if nradios == 0: nradios = 1
         if alt_module:
-            os.system('insmod {} radios={}'.format(alt_module, nradios))
+            sh('insmod {} radios={}'.format(alt_module, nradios))
         else:
-            os.system('{}={}'.format(modprobe, nradios))
+            sh('{}={}'.format(modprobe, nradios))
 
     def load_module(self, nradios, nodes, alt_module, **params):
         """Load WiFi Module
@@ -78,9 +78,9 @@ class Mac80211Hwsim(object):
         if not self.externally_managed:
             modprobe = 'modprobe mac80211_hwsim radios'
             if alt_module:
-                output = os.system('insmod {} radios=0 >/dev/null 2>&1'.format(alt_module))
+                output = sh('insmod {} radios=0 >/dev/null 2>&1'.format(alt_module))
             else:
-                output = os.system('{}=0 >/dev/null 2>&1'.format(modprobe))
+                output = sh('{}=0 >/dev/null 2>&1'.format(modprobe))
 
             if output == 0:
                 self.__create_hwsim_mgmt_devices(nradios, nodes, **params)
@@ -100,11 +100,10 @@ class Mac80211Hwsim(object):
         num = 0
         numokay = False
         self.prefix = ""
-        phys = subprocess.check_output(self.get_hwsim_list(),
-                                       shell=True).decode('utf-8').split("\n")
+        phys = co(self.get_hwsim_list(), shell=True).decode('utf-8').split("\n")
 
         while not numokay:
-            self.prefix = "mn%05dp%02ds" % (os.getpid(), num)  # Add PID to mn-devicenames
+            self.prefix = "mn%05dp%02ds" % (getpid(), num)  # Add PID to mn-devicenames
             numokay = True
             for phy in phys:
                 if phy.startswith(self.prefix):
@@ -115,14 +114,11 @@ class Mac80211Hwsim(object):
 
     def create_hwsim(self, n):
         self.get_phys()
-        p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix +
-                              ("%02d" % n)], stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             bufsize=-1)
+        p = Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % n)],
+                  stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=-1)
         output, err_out = p.communicate()
         if p.returncode == 0:
-            m = re.search("ID (\d+)", output.decode())
+            m = search("ID (\d+)", output.decode())
             debug("Created mac80211_hwsim device with ID %s\n" % m.group(1))
             Mac80211Hwsim.hwsim_ids.append(m.group(1))
         else:
@@ -146,7 +142,7 @@ class Mac80211Hwsim(object):
     @staticmethod
     def get_intf_list(cmd):
         'Gets all phys after starting the wireless module'
-        phy = subprocess.check_output(cmd, shell=True).decode('utf-8').split("\n")
+        phy = co(cmd, shell=True).decode('utf-8').split("\n")
         phy.pop()
         phy.sort(key=len, reverse=False)
         return phy
@@ -157,48 +153,47 @@ class Mac80211Hwsim(object):
         :param wlans: Number of wireless interfaces
         """
         debug('\nLoading IFB: modprobe ifb numifbs={}'.format(wlans))
-        os.system('modprobe ifb numifbs={}'.format(wlans))
+        sh('modprobe ifb numifbs={}'.format(wlans))
 
     def docker_config(self, nradios=0, nodes=None, dir='~/',
                       ip='172.17.0.1', num=0, **params):
 
         file = self.prefix + 'docker_mn-wifi.sh'
-        if os.path.isfile(file):
-            os.system('rm {}'.format(file))
-        os.system("echo '#!/bin/bash' >> {}".format(file))
-        os.system("echo 'pid=$(sudo -S docker inspect -f '{{.State.Pid}}' "
-                  "{})' >> {}".format(params['container'], file))
-        os.system("echo 'sudo -S mkdir -p /var/run/netns' >> {}".format(file))
-        os.system("echo 'sudo -S ln -s /proc/$pid/ns/net/ /var/run/netns/$pid'"
-                  " >> {}".format(file))
+        if path.isfile(file):
+            sh('rm {}'.format(file))
+        sh("echo '#!/bin/bash' >> {}".format(file))
+        sh("echo 'pid=$(sudo -S docker inspect -f '{{.State.Pid}}' "
+           "{})' >> {}".format(params['container'], file))
+        sh("echo 'sudo -S mkdir -p /var/run/netns' >> {}".format(file))
+        sh("echo 'sudo -S ln -s /proc/$pid/ns/net/ /var/run/netns/$pid' >> {}".format(file))
 
         radios = []
         nodes_ = ''
         phys_ = ''
         for node in nodes:
-            nodes_ = nodes_ + node.name + ' '
+            nodes_ += node.name + ' '
             radios.append(nodes.index(node))
 
         for radio in range(nradios):
-            os.system("echo 'sudo -S hwsim_mgmt -c -n %s%s' >> %s"
-                      % (self.prefix, "%02d" % radio, file))
+            sh("echo 'sudo -S hwsim_mgmt -c -n %s%s' >> %s" %
+               (self.prefix, "%02d" % radio, file))
             if radio in radios:
                 radio_id = self.prefix + "%02d" % radio
-                phys_ = phys_ + radio_id + ' '
-        os.system("echo 'nodes=(%s)' >> %s" % (nodes_, file))
-        os.system("echo 'phys=(%s)' >> %s" % (phys_, file))
-        os.system("echo 'j=0' >> %s" % file)
-        os.system("echo 'for i in ${phys[@]}' >> %s" % file)
-        os.system("echo 'do' >> %s" % file)
-        os.system("echo '    pid=$(ps -aux | grep \"${nodes[$j]}\" "
-                  "| grep -v 'hostapd' | awk \"{print \$2}\" "
-                  "| awk \"NR>=%s&&NR<=%s\")' >> %s" % (num+1, num+1, file))
-        os.system("echo '    sudo iw phy $i set netns $pid' >> %s" % file)
-        os.system("echo '    j=$((j+1))' >> %s" % file)
-        os.system("echo 'done' >> %s" % file)
-        os.system("scp %s %s@%s:%s" % (file, params['ssh_user'], ip, dir))
-        os.system("ssh %s@%s \'chmod +x %s%s; %s%s\'"
-                  % (params['ssh_user'], ip, dir, file, dir, file))
+                phys_ += radio_id + ' '
+        sh("echo 'nodes=(%s)' >> %s" % (nodes_, file))
+        sh("echo 'phys=(%s)' >> %s" % (phys_, file))
+        sh("echo 'j=0' >> %s" % file)
+        sh("echo 'for i in ${phys[@]}' >> %s" % file)
+        sh("echo 'do' >> %s" % file)
+        sh("echo '    pid=$(ps -aux | grep \"${nodes[$j]}\" | grep -v 'hostapd' "
+           "| awk \"{print \$2}\" | awk \"NR>=%s&&NR<=%s\")' "
+           ">> %s" % (num+1, num+1, file))
+        sh("echo '    sudo iw phy $i set netns $pid' >> %s" % file)
+        sh("echo '    j=$((j+1))' >> %s" % file)
+        sh("echo 'done' >> %s" % file)
+        sh("scp %s %s@%s:%s" % (file, params['ssh_user'], ip, dir))
+        sh("ssh %s@%s \'chmod +x %s%s; %s%s\'" %
+           (params['ssh_user'], ip, dir, file, dir, file))
 
     @staticmethod
     def rename(node, wintf, newname):
@@ -229,38 +224,34 @@ class Mac80211Hwsim(object):
                     self.rename(node, wlan_list[0], node.params['wlan'][wlan])
                 else:
                     if 'docker' not in params:
-                        rfkill = subprocess.check_output(
+                        rfkill = co(
                             'rfkill list | grep %s | awk \'{print $1}\''
                             '| tr -d ":"' % phys[0],
                             shell=True).decode('utf-8').split('\n')
                         debug('rfkill unblock {}\n'.format(rfkill[0]))
-                        os.system('rfkill unblock {}'.format(rfkill[0]))
-                        os.system('iw phy {} set netns {}'.format(phys[id], node.pid))
+                        sh('rfkill unblock {}'.format(rfkill[0]))
+                        sh('iw phy {} set netns {}'.format(phys[id], node.pid))
                     node.cmd('ip link set {} down'.format(wlan_list[0]))
                     node.cmd('ip link set {} name {}'.format(wlan_list[0], node.params['wlan'][wlan]))
                 wlan_list.pop(0)
                 phys.pop(0)
         except:
-            logging.exception("Warning:")
+            exception("Warning:")
             info("Warning! Error when loading mac80211_hwsim. "
                  "Please run sudo 'mn -c' before running your code.\n")
             info("Further information available at {}.\n".format(log_filename))
             exit(1)
 
     def logging_to_file(self, filename):
-        logging.basicConfig(filename=filename,
-                            filemode='a',
-                            level=logging.DEBUG,
-                            format='%(asctime)s - %(levelname)s - %(message)s',
-                           )
+        basicConfig(filename=filename, filemode='a', level=DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s',)
 
     @staticmethod
     def get_wlan_iface():
         "Build a new wlan list removing the physical wlan"
         wlan_list = []
-        iface_list = subprocess.check_output("iw dev 2>&1 | grep Interface | "
-                                             "awk '{print $2}'",
-                                             shell=True).decode('utf-8').split('\n')
+        iface_list = co("iw dev 2>&1 | grep Interface | awk '{print $2}'",
+                        shell=True).decode('utf-8').split('\n')
         for iface in iface_list:
             if iface and iface not in Mac80211Hwsim.phyWlans:
                 wlan_list.append(iface)

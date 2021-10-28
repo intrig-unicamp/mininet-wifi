@@ -4,7 +4,7 @@
    @Contributor: Joaquin Alvarez (j.alvarez@uah.es)
 """
 
-import os
+from os import system as sh, getpid, path
 import re
 import glob
 import subprocess
@@ -142,7 +142,7 @@ class IntfWireless(Intf):
         return self.iwdev_cmd('{} mesh join'.format(self.name), ssid, 'freq', *args)
 
     def get_pid_filename(self):
-        pidfile = 'mn{}_{}_{}_wpa.pid'.format(os.getpid(), self.node.name, self.id)
+        pidfile = 'mn{}_{}_{}_wpa.pid'.format(getpid(), self.node.name, self.id)
         return pidfile
 
     def get_wpa_cmd(self):
@@ -159,7 +159,7 @@ class IntfWireless(Intf):
         return self.node.pexec(self.get_wpa_cmd())
 
     def kill_hostapd_process(self):
-        pattern = "mn{}_{}.apconf".format(os.getpid(), self.name)
+        pattern = "mn{}_{}.apconf".format(getpid(), self.name)
         while True:
             try:
                 pids = co(['pgrep', '-f', pattern])
@@ -505,7 +505,7 @@ class IntfWireless(Intf):
             cmd += '}'
 
         pattern = '{}_{}.staconf'.format(self.name, self.id)
-        os.system('echo \'{}\' > {}'.format(cmd, pattern))
+        sh('echo \'{}\' > {}'.format(cmd, pattern))
 
     def wpa(self, ap_intf):
         self.wpaFile(ap_intf)
@@ -942,13 +942,13 @@ class HostapdConfig(IntfWireless):
         """Restart network manager if the mac address of the AP
         is not included at /etc/NetworkManager/conf.d/unmanaged.conf"""
         nms = 'network-manager'
-        nm_is_running = os.system('service {} status 2>&1 | grep '
+        nm_is_running = sh('service {} status 2>&1 | grep '
                                   '-ic running >/dev/null 2>&1'.format(nms))
         if nm_is_running != 256:
             info('Mac address(es) added into {}\n'.format(cls.nm_conf_file))
             info('Restarting {}...\n'.format(nms))
-            os.system('sudo service network-manager restart')
-            # os.system('nmcli general reload')
+            sh('sudo service network-manager restart')
+            # sh('nmcli general reload')
             sleep(2)
 
     def checkNetworkManager(self, intf):
@@ -957,10 +957,10 @@ class HostapdConfig(IntfWireless):
         nmdir = '/etc/NetworkManager'
         old_content = ''
 
-        if os.path.isdir(nmdir) and not os.path.isfile(self.nm_conf_file):
+        if path.isdir(nmdir) and not path.isfile(self.nm_conf_file):
             open(self.nm_conf_file, 'w').close()
 
-        if os.path.isdir(nmdir):
+        if path.isdir(nmdir):
             file = open(self.nm_conf_file, 'rt')
             data = file.read()
             isNew = True
@@ -970,7 +970,7 @@ class HostapdConfig(IntfWireless):
                     new_content = old_content
                     isNew = False
             if isNew:
-                os.system('echo \'#\' >> {}'.format(self.nm_conf_file))
+                sh('echo \'#\' >> {}'.format(self.nm_conf_file))
                 new_content = "[keyfile]\n{}=".format(unmanaged)
 
             name = intf.node.name + '*'
@@ -989,7 +989,7 @@ class HostapdConfig(IntfWireless):
             intf_ = intf.node.params['phywlan']
             intf.cmd('ip link set {} down'.format(intf_))
             intf.cmd('ip link set {} up'.format(intf_))
-        apconfname = 'mn{}_{}-wlan{}.apconf'.format(os.getpid(), intf.node.name, intf.id + 1)
+        apconfname = 'mn{}_{}-wlan{}.apconf'.format(getpid(), intf.node.name, intf.id + 1)
         content = cmd + "\' > {}".format(apconfname)
         intf.cmd(content)
         cmd = self.get_hostapd_cmd(intf)
@@ -1006,7 +1006,7 @@ class HostapdConfig(IntfWireless):
 
     @staticmethod
     def get_hostapd_cmd(intf):
-        apconfname = "mn{}_{}-wlan{}.apconf".format(os.getpid(), intf.node.name, intf.id + 1)
+        apconfname = "mn{}_{}-wlan{}.apconf".format(getpid(), intf.node.name, intf.id + 1)
         hostapd_flags = intf.node.params.get('hostapd_flags', '')
         cmd = "hostapd -B {} {}".format(apconfname, hostapd_flags)
         return cmd
@@ -1723,7 +1723,7 @@ class WifiDirectLink(LinkAttrs):
 
     def get_filename(self):
         suffix = 'wifiDirect.conf'
-        pattern = "mn{}_{}_{}".format(os.getpid(), self.name, suffix)
+        pattern = "mn{}_{}_{}".format(getpid(), self.name, suffix)
         return pattern
 
     def get_wpa_cmd(self):
@@ -1773,7 +1773,7 @@ class PhysicalWifiDirectLink(WifiDirectLink):
 
         self.config_()
         cmd = self.get_wpa_cmd()
-        os.system(cmd)
+        sh(cmd)
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
@@ -1864,7 +1864,7 @@ class adhoc(LinkAttrs):
         cmd += '}'
 
         pattern = self.get_sta_confname()
-        os.system('echo \'{}\' > {}'.format(cmd, pattern))
+        sh('echo \'{}\' > {}'.format(cmd, pattern))
         self.cmd(self.get_wpa_cmd())
 
 
@@ -1985,7 +1985,7 @@ class mesh(LinkAttrs):
         cmd += '}'
 
         pattern = self.get_sta_confname()
-        os.system('echo \'{}\' > {}'.format(cmd, pattern))
+        sh('echo \'{}\' > {}'.format(cmd, pattern))
 
 
 class physicalMesh(IntfWireless):
@@ -2019,7 +2019,7 @@ class physicalMesh(IntfWireless):
 
     def ipLink(self, state=None):
         "Configure ourselves using ip link"
-        os.system('ip link set {} {}'.format(self.name, state))
+        sh('ip link set {} {}'.format(self.name, state))
 
     def setPhysicalMeshIface(self, node, wlan, intf):
         iface = 'phy{}-mp{}'.format(node, wlan)

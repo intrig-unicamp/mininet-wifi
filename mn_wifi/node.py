@@ -19,7 +19,7 @@ OVSAP: a AP using the Open vSwitch OpenFlow-compatible switch
     implementation (openvswitch.org).
 """
 
-import os
+from os import system as sh, getpid
 import re
 import math
 
@@ -144,7 +144,7 @@ class Node_wifi(Node):
     def configIFB(self, wlan, ifbID):
         "Support to Intermediate Functional Block (IFB) Devices"
         intf = self.params['wlan'][wlan]
-        os.system('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
+        sh('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
         self.cmd('ip link set ifb%s name ifb%s' % (ifbID, wlan+1))
         self.cmd('ip link set ifb%s up' % (wlan+1))
         self.handle_ingress_data(intf, wlan)
@@ -417,14 +417,14 @@ class Node_wifi(Node):
 
     def stop_(self):
         "Stops hostapd"
-        process = 'mn%d_%s' % (os.getpid(), self.name)
-        os.system('pkill -f \'hostapd -B %s\'' % process)
+        process = 'mn%d_%s' % (getpid(), self.name)
+        sh('pkill -f \'hostapd -B %s\'' % process)
         self.set_circle_color('w')
 
     def start_(self):
         "Starts hostapd"
-        process = 'mn%d_%s' % (os.getpid(), self.name)
-        os.system('hostapd -B %s-wlan1.apconf' % process)
+        process = 'mn%d_%s' % (getpid(), self.name)
+        sh('hostapd -B %s-wlan1.apconf' % process)
         color = self.get_circle_color()
         self.set_circle_color(color)
 

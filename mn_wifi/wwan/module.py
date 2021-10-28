@@ -1,8 +1,8 @@
 # author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 
-import os
-import subprocess
+from os import system as sh
+from subprocess import check_output as co, PIPE, Popen
 import logging
 from mininet.log import debug, info
 
@@ -32,22 +32,21 @@ class module(object):
         :param wwan_module: dir of a wwan_hwsim alternative module"""
         debug('Loading %s virtual interfaces\n' % nwwan)
         if wwan_module == 'wwan_hwsim':
-            os.system('modprobe wwan_hwsim devices={}'.format(nwwan))
+            sh('modprobe wwan_hwsim devices={}'.format(nwwan))
         else:
-            os.system('insmod %s devices={}'.format(wwan_module, nwwan))
+            sh('insmod %s devices={}'.format(wwan_module, nwwan))
 
     @classmethod
     def kill_mod(cls, module):
         if cls.module_loaded(module):
             info("*** Killing %s\n" % module)
-            os.system('rmmod %s' % module)
+            sh('rmmod %s' % module)
 
     @classmethod
     def module_loaded(cls, module_name):
         "Checks whether module is running"
-        lsmod_proc = subprocess.Popen(['lsmod'], stdout=subprocess.PIPE)
-        grep_proc = subprocess.Popen(['grep', module_name],
-                                     stdin=lsmod_proc.stdout, stdout=subprocess.PIPE)
+        lsmod_proc = Popen(['lsmod'], stdout=PIPE)
+        grep_proc = Popen(['grep', module_name], stdin=lsmod_proc.stdout, stdout=PIPE)
         grep_proc.communicate()  # Block until finished
         return grep_proc.returncode == 0
 
@@ -59,7 +58,7 @@ class module(object):
     def get_virtual_wwan(self):
         'Gets the list of virtual wlans that already exist'
         cmd = "ip link 2>&1 | grep POINTOPOINT | awk '{print $2}' | tr -d \':\'"
-        wwans = subprocess.check_output(cmd, shell=True).decode('utf-8').split("\n")
+        wwans = co(cmd, shell=True).decode('utf-8').split("\n")
 
         wwans.pop()
         wwan_list = sorted(wwans)
@@ -76,7 +75,7 @@ class module(object):
         wwan_list = self.get_virtual_wwan()
         for node in nodes:
             for wlan in range(0, len(node.params['wwan'])):
-                os.system('ip link set {} netns {}'.format(wwan_list[0], node.pid))
+                sh('ip link set {} netns {}'.format(wwan_list[0], node.pid))
                 node.cmd('ip link set {} down'.format(wwan_list[0]))
                 node.cmd('ip link set {} name {}'.format(wwan_list[0], node.params['wwan'][wlan]))
                 wwan_list.pop(0)

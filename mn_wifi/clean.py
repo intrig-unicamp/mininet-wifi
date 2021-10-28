@@ -5,10 +5,9 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 from subprocess import ( Popen, PIPE, check_output as co,
                          CalledProcessError )
-import subprocess
 from time import sleep
-import os
-import glob
+from os import system as sh
+from glob import glob
 
 from mininet.log import info
 from mininet.util import decode
@@ -47,9 +46,8 @@ class Cleanup(object):
     @classmethod
     def module_loaded(cls, module):
         "Checks if module is loaded"
-        lsmod_proc = subprocess.Popen(['lsmod'], stdout=subprocess.PIPE)
-        grep_proc = subprocess.Popen(['grep', module],
-                                     stdin=lsmod_proc.stdout, stdout=subprocess.PIPE)
+        lsmod_proc = Popen(['lsmod'], stdout=PIPE)
+        grep_proc = Popen(['grep', module], stdin=lsmod_proc.stdout, stdout=PIPE)
         grep_proc.communicate()  # Block until finished
         return grep_proc.returncode == 0
 
@@ -57,7 +55,7 @@ class Cleanup(object):
     def kill_mod(cls, module):
         if cls.module_loaded(module):
             info("*** Killing {}\n".format(module))
-            os.system('rmmod {}'.format(module))
+            sh('rmmod {}'.format(module))
 
     @classmethod
     def kill_mod_proc(cls):
@@ -77,36 +75,33 @@ class Cleanup(object):
         sleep(0.1)
 
         info("\n*** Removing WiFi module and Configurations\n")        
-        phy = subprocess.check_output('find /sys/kernel/debug/ieee80211 '
-                                      '-name hwsim | cut -d/ -f 6 | sort',
-                                      shell=True).decode('utf-8').split("\n")
+        phy = co('find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort',
+                 shell=True).decode('utf-8').split("\n")
         phy.pop()
         phy.sort(key=len, reverse=False)
 
         for phydev in phy:
             if str(os.getpid()) in phydev:                
-                p = subprocess.Popen(["hwsim_mgmt", "-x", phydev], stdin=subprocess.PIPE,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
-                                     bufsize=-1)
+                p = Popen(["hwsim_mgmt", "-x", phydev], stdin=PIPE,
+                                     stdout=PIPE, stderr=PIPE, bufsize=-1)
                 output, err_out = p.communicate()
 
         cls.kill_mod('mac80211_hwsim')
         cls.kill_mod('ifb')
 
         try:
-            os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
+            sh('pkill -f \'wpa_supplicant -B -Dnl80211\'')
         except:
             pass
 
-        if glob.glob('*.apconf'):
-            os.system('rm *.apconf')
-        if glob.glob('*.staconf'):
-            os.system('rm *.staconf')
-        if glob.glob('*wifiDirect.conf'):
-            os.system('rm *wifiDirect.conf')
-        if glob.glob('*.nodeParams'):
-            os.system('rm *.nodeParams')
+        if glob('*.apconf'):
+            sh('rm *.apconf')
+        if glob('*.staconf'):
+            sh('rm *.staconf')
+        if glob('*wifiDirect.conf'):
+            sh('rm *wifiDirect.conf')
+        if glob('*.nodeParams'):
+            sh('rm *.nodeParams')
 
         if cls.socket_port:
             info('\n*** Done\n')
@@ -122,8 +117,8 @@ class Cleanup(object):
 
         cls.kill_mod_proc()
 
-        if glob.glob('*-mn-telemetry.txt'):
-            os.system('rm *-mn-telemetry.txt')
+        if glob('*-mn-telemetry.txt'):
+            sh('rm *-mn-telemetry.txt')
 
 
 cleanup_wifi = Cleanup.cleanup_wifi

@@ -1,6 +1,5 @@
 "author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"
 
-import re
 
 from mininet.link import Intf, TCIntf, Link
 from mininet.log import error, debug

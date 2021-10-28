@@ -5,8 +5,8 @@
 
 from threading import Thread as thread
 from time import sleep, time
-import os
-import glob
+from os import system as sh, getpid
+from glob import glob
 import numpy as np
 from numpy.random import rand
 
@@ -71,19 +71,19 @@ class Mobility(object):
             thread_.start()
 
     def remove_staconf(self, intf):
-        os.system('rm %s_%s.staconf >/dev/null 2>&1' % (intf.node, intf.id))
+        sh('rm %s_%s.staconf >/dev/null 2>&1' % (intf.node, intf.id))
 
     def get_pidfile(self, intf):
-        pid = "mn%d_%s_%s_wpa.pid" % (os.getpid(), intf.node, intf.id)
+        pid = "mn%d_%s_%s_wpa.pid" % (getpid(), intf.node, intf.id)
         return pid
 
     def kill_wpasupprocess(self, intf):
         pid = self.get_pidfile(intf)
-        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pid, intf.name))
+        sh('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pid, intf.name))
 
     def check_if_wpafile_exist(self, intf):
         file = '%s_%s.staconf' % (intf.name, intf.id)
-        if glob.glob(file):
+        if glob(file):
             self.remove_staconf(intf)
 
     @staticmethod
