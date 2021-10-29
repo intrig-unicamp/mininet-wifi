@@ -6,7 +6,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 from subprocess import ( Popen, PIPE, check_output as co,
                          CalledProcessError )
 from time import sleep
-from os import system as sh
+from os import system as sh, getpid
 from glob import glob
 
 from mininet.log import info
@@ -81,9 +81,9 @@ class Cleanup(object):
         phy.sort(key=len, reverse=False)
 
         for phydev in phy:
-            if str(os.getpid()) in phydev:                
+            if str(getpid()) in phydev:
                 p = Popen(["hwsim_mgmt", "-x", phydev], stdin=PIPE,
-                                     stdout=PIPE, stderr=PIPE, bufsize=-1)
+                          stdout=PIPE, stderr=PIPE, bufsize=-1)
                 output, err_out = p.communicate()
 
         cls.kill_mod('mac80211_hwsim')
