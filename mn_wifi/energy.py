@@ -12,6 +12,7 @@ from mininet.log import error
 class Energy(object):
 
     thread_ = None
+    cat_dev = 'cat /proc/net/dev | grep {} |  awk \'{}\''
 
     def __init__(self, nodes):
         self.start_simulation = 0
@@ -43,16 +44,18 @@ class Energy(object):
     def get_duration(self):
         return self.get_time() - self.start_simulation
 
-    @staticmethod
-    def get_rx_packet(intf):
-        rx = int(intf.cmd("cat /proc/net/dev | grep %s |  awk \'{print $3}\'" % intf.name))
+    def get_cat_dev(self, intf, col):
+        p = '{print $%s}' % col
+        return int(intf.cmd(Energy.cat_dev.format(intf.name, p)))
+
+    def get_rx_packet(self, intf):
+        rx = self.get_cat_dev(intf, 3)
         if rx != intf.rx:
             intf.rx = rx
             return True
 
-    @staticmethod
-    def get_tx_packet(intf):
-        tx = int(intf.cmd("cat /proc/net/dev | grep %s |  awk \'{print $11}\'" % intf.name))
+    def get_tx_packet(self, intf):
+        tx = self.get_cat_dev(intf, 11)
         if tx != intf.tx:
             intf.tx = tx
             return True
@@ -65,20 +68,21 @@ class Energy(object):
         else:
             return 'idle'
 
+    def get_energy(self, intf, factor):
+        return self.get_duration() * factor * intf.voltage
+
     def getTotalEnergyConsumption(self, intf):
         state = self.getState(intf)
         # energy to decrease = time * voltage (mA) * current
         if state == 'idle':
-            energy_to_decrease = self.get_duration() * 0.273 * intf.voltage
+            return self.get_energy(intf, 0.273)
         elif state == 'tx':
-            energy_to_decrease = self.get_duration() * 0.380 * intf.voltage
+            return self.get_energy(intf, 0.380)
         elif state == 'rx':
-            energy_to_decrease = self.get_duration() * 0.313 * intf.voltage
+            return self.get_energy(intf, 0.313)
         elif state == 'sleep':
-            energy_to_decrease = self.get_duration() * 0.033 * intf.voltage
-        elif state == 'off':
-            energy_to_decrease = 0
-        return energy_to_decrease
+            return self.get_energy(intf, 0.033)
+        return 0
 
     def shutdown_intfs(self, node):
         # passing through all the interfaces
@@ -88,4 +92,4 @@ class Energy(object):
 
     def ipLink(self, intf):
         "Configure ourselves using ip link"
-        self.cmd('ip link set %s down' % intf.name)
+        self.cmd('ip link set {} down'.format(intf.name))
