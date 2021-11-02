@@ -12,7 +12,7 @@ Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using o
 
 ### Network Troubleshooting
 
-![](https://github.com/intrig-unicamp/mininet-wifi/blob/master/doc/diagram.png)
+![](https://github.com/intrig-unicamp/mininet-wifi/blob/master/doc/diagram.jpg)
 
 
 ### Mailing List  
