@@ -41,7 +41,7 @@ _optional_:
 
 ![](https://github.com/ramonfontes/vnd/blob/master/miniedit.png)
 
-I'm a beginner, I do not know Python and I would like to create a customized topology. In this case, both [MiniEdit](https://github.com/intrig-unicamp/mininet-wifi/blob/master/examples/miniedit.py) and [VND](https://github.com/ramonfontes/vnd) can serve as support since they provide a GUI to generate Python scripts. 
+I'm a beginner, I do not know Python and I would like to create a customized topology with a GUI. In this case, [MiniEdit](https://github.com/intrig-unicamp/mininet-wifi/blob/master/examples/miniedit.py) can serve as support since it provides a GUI to generate Python scripts. 
 
 
 ### Development
