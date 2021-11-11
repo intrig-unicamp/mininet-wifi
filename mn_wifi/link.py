@@ -181,10 +181,10 @@ class IntfWireless(Intf):
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             w_server.update_height(w_height(self.wmIface, int(height)))
 
-    def setTXPowerWmediumd(self, txpower):
+    def setTXPowerWmediumd(self):
         "Sends TxPower to wmediumd"
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            w_server.update_txpower(w_txpower(self.wmIface, int(txpower)))
+            w_server.update_txpower(w_txpower(self.wmIface, self.txpower))
 
     def setSNRWmediumd(self, ap_intf, snr):
         "Send SNR to wmediumd"
@@ -370,11 +370,11 @@ class IntfWireless(Intf):
         self.node.configLinks()
 
     def setTxPower(self, txpower):
-        self.iwdev_cmd('{} set txpower fixed {}'.format(self.name, txpower * 100))
+        self.txpower = int(txpower)
+        self.iwdev_cmd('{} set txpower fixed {}'.format(self.name, self.txpower * 100))
         debug('\n')
-        self.txpower = txpower
         self.setDefaultRange()
-        self.setTXPowerWmediumd(txpower)
+        self.setTXPowerWmediumd()
         self.node.configLinks()
 
     def setManagedMode(self):
