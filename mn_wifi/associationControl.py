@@ -12,7 +12,11 @@ class AssociationControl(object):
             self.__getattribute__(ac)(intf, ap_intf)
 
     def llf(self, intf, ap_intf):
-        'LLF: Least Loaded First'
+        """
+        LLF: Least Loaded First
+        :params intf: intf of the station
+        :params intf: ap_intf: intf of the ap
+        """
         apref = intf.associatedTo
         if apref:
             ref_llf = len(apref.associatedStations)
@@ -24,9 +28,15 @@ class AssociationControl(object):
         return self.changeAP
 
     def ssf(self, intf, ap_intf):
-        'SSF: Strongest Signal First'
+        """
+        SSF: Strongest Signal First
+        :params intf: intf of the station
+        :params intf: ap_intf: intf of the ap
+        """
+        # distance between sta and ap
         dist = intf.node.get_distance_to(intf.associatedTo.node)
         rssi = intf.get_rssi(ap_intf, dist)
+        # distance between sta and candidate ap
         ref_dist = intf.node.get_distance_to(ap_intf.node)
         ref_rssi = intf.get_rssi(ap_intf, ref_dist)
         if float(ref_rssi) > float(rssi + 0.1):
