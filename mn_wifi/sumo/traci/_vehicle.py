@@ -25,7 +25,7 @@ import warnings
 from .domain import Domain
 from .storage import Storage
 from . import constants as tc
-from . import exceptions
+from .exceptions import TraCIException
 
 
 def _readBestLanes(result):
@@ -824,14 +824,14 @@ class VehicleDomain(Domain):
         """setMaxSpeed(string, double) -> None
         Sets the maximum speed in m/s for this vehicle.
         """
-        self._connection._sendDoubleCmd(
+        self._setCmd(
             tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MAXSPEED, vehID, speed)
 
     def setMaxSpeedLat(self, vehID, speed):
         """setMaxSpeedLat(string, double) -> None
         Sets the maximum lateral speed in m/s for this vehicle.
         """
-        self._connection._sendDoubleCmd(
+        self._setCmd(
             tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MAXSPEED_LAT, vehID, speed)
 
     def rerouteParkingArea(self, vehID, parkingAreaID):
@@ -943,7 +943,7 @@ class VehicleDomain(Domain):
         to the left). This will override any other lane change motivations but conform to
         safety-constraints as configured by laneChangeMode.
         """
-        self._connection._sendDoubleCmd(
+        self._setCmd(
             tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_CHANGESUBLANE, vehID, latDist)
 
     def slowDown(self, vehID, speed, duration):
@@ -1006,22 +1006,20 @@ class VehicleDomain(Domain):
         """changeTarget(string, string) -> None
         The vehicle's destination edge is set to the given edge id. The route is rebuilt.
         """
-        self._connection._sendStringCmd(
+        self._setCmd(
             tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_CHANGETARGET, vehID, edgeID)
 
     def setType(self, vehID, typeID):
         """setType(string, string) -> None
         Sets the id of the type for the named vehicle.
         """
-        self._connection._sendStringCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_TYPE, vehID, typeID)
+        self._setCmd(tc.VAR_TYPE, vehID, 's', typeID)
 
     def setRouteID(self, vehID, routeID):
         """setRouteID(string, string) -> None
         Changes the vehicles route to the route with the given id.
         """
-        self._connection._sendStringCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ROUTE_ID, vehID, routeID)
+        self._setCmd(tc.VAR_ROUTE_ID, vehID, 's', routeID)
 
     def setRoute(self, vehID, edgeList):
         """
@@ -1034,7 +1032,7 @@ class VehicleDomain(Domain):
         """
         if isinstance(edgeList, str):
             edgeList = [edgeList]
-        self._connection._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ROUTE, vehID,
+        self._connection._beginMessage(tc.VAR_ROUTE, vehID, 'l',
                                        1 + 4 + sum(map(len, edgeList)) + 4 * len(edgeList))
         self._connection._packStringList(edgeList)
         self._connection._sendExact()
@@ -1133,7 +1131,7 @@ class VehicleDomain(Domain):
         tc.ROUTING_MODE_DEFAULT    : use weight storages and fall-back to edge speeds (default)
         tc.ROUTING_MODE_AGGREGATED : use global smoothed travel times from device.rerouting
         """
-        self._connection._sendIntCmd(
+        self._setCmd(
             tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ROUTING_MODE, vehID, routingMode)
 
     def rerouteTraveltime(self, vehID, currentTravelTimes=True):
@@ -1168,7 +1166,7 @@ class VehicleDomain(Domain):
         """setSignals(string, integer) -> None
         Sets an integer encoding the state of the vehicle's signals.
         """
-        self._connection._sendIntCmd(
+        self._setCmd(
             tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SIGNALS, vehID, signals)
 
     def moveTo(self, vehID, laneID, pos):
@@ -1184,68 +1182,63 @@ class VehicleDomain(Domain):
         Sets the speed in m/s for the named vehicle within the last step.
         Calling with speed=-1 hands the vehicle control back to SUMO.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SPEED, vehID, speed)
+        self._setCmd(tc.VAR_SPEED, vehID, "d", speed)
+
+    def setPreviousSpeed(self, vehID, speed):
+        """setPreviousSpeed(string, double) -> None
+        Sets the previous speed in m/s for the named vehicle wich will be used for
+        calculations in the current step.
+        """
+        self._setCmd(tc.VAR_PREV_SPEED, vehID, "d", speed)
 
     def setColor(self, vehID, color):
-        """setColor(string, (integer, integer, integer, integer))
+        """setColor(string, (integer, integer, integer, integer)) -> None
         Sets the color for the vehicle with the given ID, i.e. (255,0,0) for the color red.
         The fourth component (alpha) is optional.
         """
-        self._connection._beginMessage(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_COLOR, vehID, 1 + 1 + 1 + 1 + 1)
-        self._connection._string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]),
-                                                int(color[3]) if len(color) > 3 else 255)
-        self._connection._sendExact()
+        self._setCmd(tc.VAR_COLOR, vehID, "c", color)
 
     def setLength(self, vehID, length):
         """setLength(string, double) -> None
         Sets the length in m for the given vehicle.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_LENGTH, vehID, length)
+        self._setCmd(tc.VAR_LENGTH, vehID, "d", length)
 
     def setVehicleClass(self, vehID, clazz):
         """setVehicleClass(string, string) -> None
         Sets the vehicle class for this vehicle.
         """
-        self._connection._sendStringCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_VEHICLECLASS, vehID, clazz)
+        self._setCmd(tc.VAR_VEHICLECLASS, vehID, "s", clazz)
 
     def setSpeedFactor(self, vehID, factor):
         """setSpeedFactor(string, double) -> None
-        .
+        Sets the speed factor (tendency to drive faster or slower than).
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SPEED_FACTOR, vehID, factor)
+        self._setCmd(tc.VAR_SPEED_FACTOR, vehID, "d", factor)
 
     def setEmissionClass(self, vehID, clazz):
         """setEmissionClass(string, string) -> None
         Sets the emission class for this vehicle.
         """
-        self._connection._sendStringCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_EMISSIONCLASS, vehID, clazz)
+        self._setCmd(tc.VAR_EMISSIONCLASS, vehID, "s", clazz)
 
     def setWidth(self, vehID, width):
         """setWidth(string, double) -> None
         Sets the width in m for this vehicle.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_WIDTH, vehID, width)
+        self._setCmd(tc.VAR_WIDTH, vehID, "d", width)
 
     def setHeight(self, vehID, height):
         """setHeight(string, double) -> None
         Sets the height in m for this vehicle.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_HEIGHT, vehID, height)
+        self._setCmd(tc.VAR_HEIGHT, vehID, "d", height)
 
     def setLine(self, vehID, line):
-        """setHeight(string, string) -> None
+        """setLine(string, string) -> None
         Sets the line information for this vehicle.
         """
-        self._connection._sendStringCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_LINE, vehID, line)
+        self._setCmd(tc.VAR_LINE, vehID, "s", line)
 
     def setVia(self, vehID, edgeList):
         """
@@ -1256,66 +1249,55 @@ class VehicleDomain(Domain):
         """
         if isinstance(edgeList, str):
             edgeList = [edgeList]
-        self._connection._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_VIA, vehID,
-                                       1 + 4 + sum(map(len, edgeList)) + 4 * len(edgeList))
-        self._connection._packStringList(edgeList)
-        self._connection._sendExact()
+        self._setCmd(tc.VAR_VIA, vehID, "l", edgeList)
 
     def setMinGap(self, vehID, minGap):
         """setMinGap(string, double) -> None
         Sets the offset (gap to front vehicle if halting) for this vehicle.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MINGAP, vehID, minGap)
+        self._setCmd(tc.VAR_MINGAP, vehID, "d", minGap)
 
     def setMinGapLat(self, vehID, minGapLat):
         """setMinGapLat(string, double) -> None
         Sets the minimum lateral gap of the vehicle at 50km/h in m
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MINGAP_LAT, vehID, minGapLat)
+        self._setCmd(tc.VAR_MINGAP_LAT, vehID, "d", minGapLat)
 
     def setLateralAlignment(self, vehID, align):
         """setLateralAlignment(string, string) -> None
         Sets the preferred lateral alignment for this vehicle.
         """
-        self._connection._sendStringCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_LATALIGNMENT, vehID, align)
+        self._setCmd(tc.VAR_LATALIGNMENT, vehID, "s", align)
 
     def setShapeClass(self, vehID, clazz):
         """setShapeClass(string, string) -> None
         Sets the shape class for this vehicle.
         """
-        self._connection._sendStringCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SHAPECLASS, vehID, clazz)
+        self._setCmd(tc.VAR_SHAPECLASS, vehID, "s", clazz)
 
     def setAccel(self, vehID, accel):
         """setAccel(string, double) -> None
         Sets the maximum acceleration in m/s^2 for this vehicle.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ACCEL, vehID, accel)
+        self._setCmd(tc.VAR_ACCEL, vehID, "d", accel)
 
     def setDecel(self, vehID, decel):
         """setDecel(string, double) -> None
         Sets the preferred maximal deceleration in m/s^2 for this vehicle.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_DECEL, vehID, decel)
+        self._setCmd(tc.VAR_DECEL, vehID, "d", decel)
 
     def setEmergencyDecel(self, vehID, decel):
         """setEmergencyDecel(string, double) -> None
         Sets the maximal physically possible deceleration in m/s^2 for this vehicle.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_EMERGENCY_DECEL, vehID, decel)
+        self._setCmd(tc.VAR_EMERGENCY_DECEL, vehID, "d", decel)
 
     def setApparentDecel(self, vehID, decel):
         """setApparentDecel(string, double) -> None
         Sets the apparent deceleration in m/s^2 for this vehicle.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_APPARENT_DECEL, vehID, decel)
+        self._setCmd(tc.VAR_APPARENT_DECEL, vehID, "d", decel)
 
     def setActionStepLength(self, vehID, actionStepLength, resetActionOffset=True):
         """setActionStepLength(string, double, bool) -> None
@@ -1325,41 +1307,58 @@ class VehicleDomain(Domain):
         is smaller than the time since the last action point, the next action follows immediately.
         """
         if actionStepLength < 0:
-            raise exceptions.TraCIException("Invalid value for actionStepLength. Given value must be non-negative.")
+            raise TraCIException("Invalid value for actionStepLength. Given value must be non-negative.")
         # Use negative value to indicate resetActionOffset == False
         if not resetActionOffset:
             actionStepLength *= -1
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ACTIONSTEPLENGTH, vehID, actionStepLength)
+        self._setCmd(tc.VAR_ACTIONSTEPLENGTH, vehID, "d", actionStepLength)
+
+    def highlight(self, vehID, color=(255, 0, 0, 255), size=-1, alphaMax=-1, duration=-1, type=0):
+        """ highlight(string, color, float, ubyte, float, ubyte) -> None
+            Adds a circle of the given color tracking the vehicle.
+            If a positive size [in m] is given the size of the highlight is chosen accordingly,
+            otherwise the length of the vehicle is used as reference.
+            If alphaMax and duration are positive, the circle fades in and out within the given duration,
+            otherwise it permanently follows the vehicle.
+        """
+        if type > 255:
+            raise TraCIException("vehicle.highlight(): maximal value for type is 255")
+        if alphaMax > 255:
+            raise TraCIException("vehicle.highlight(): maximal value for alphaMax is 255")
+        if alphaMax <= 0 and duration > 0:
+            raise TraCIException("vehicle.highlight(): duration>0 requires alphaMax>0")
+        if alphaMax > 0 and duration <= 0:
+            raise TraCIException("vehicle.highlight(): alphaMax>0 requires duration>0")
+
+        if alphaMax > 0:
+            self._setCmd(tc.VAR_HIGHLIGHT, vehID, "tcdBdB", 5, color, size, alphaMax, duration, type)
+        else:
+            self._setCmd(tc.VAR_HIGHLIGHT, vehID, "tcd", 2, color, size)
 
     def setImperfection(self, vehID, imperfection):
         """setImperfection(string, double) -> None
         Sets the driver imperfection sigma.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_IMPERFECTION, vehID, imperfection)
+        self._setCmd(tc.VAR_IMPERFECTION, vehID, "d", imperfection)
 
     def setTau(self, vehID, tau):
         """setTau(string, double) -> None
         Sets the driver's tau-parameter (reaction time or anticipation time depending on the car-following model) in s
         for this vehicle.
         """
-        self._connection._sendDoubleCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_TAU, vehID, tau)
+        self._setCmd(tc.VAR_TAU, vehID, "d", tau)
 
     def setLaneChangeMode(self, vehID, lcm):
         """setLaneChangeMode(string, integer) -> None
         Sets the vehicle's lane change mode as a bitset.
         """
-        self._connection._sendIntCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_LANECHANGE_MODE, vehID, lcm)
+        self._setCmd(tc.VAR_LANECHANGE_MODE, vehID, "i", lcm)
 
     def setSpeedMode(self, vehID, sm):
         """setSpeedMode(string, integer) -> None
         Sets the vehicle's speed mode as a bitset.
         """
-        self._connection._sendIntCmd(
-            tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SPEEDSETMODE, vehID, sm)
+        self._setCmd(tc.VAR_SPEEDSETMODE, vehID, "i", sm)
 
     def addLegacy(self, vehID, routeID, depart=tc.DEPARTFLAG_NOW, pos=0, speed=0,
                   lane=tc.DEPARTFLAG_LANE_FIRST_ALLOWED, typeID="DEFAULT_VEHTYPE"):
