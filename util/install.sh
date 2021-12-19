@@ -62,6 +62,9 @@ if which lsb_release &> /dev/null; then
 fi
 echo "Detected Linux distribution: $DIST $RELEASE $CODENAME $ARCH"
 
+if [ "$DIST" = "Pop" ]; then
+    DIST="Ubuntu"
+fi
 # Kernel params
 
 KERNEL_NAME=`uname -r`
