@@ -181,6 +181,11 @@ class Node_wifi(Node):
         self.getNameToWintf(intf).setTxPower(txpower)
         self.update_graph()
 
+    def setMediumId(self, medium_id, intf=None):
+        """Set medium id to create isolated interface groups"""
+        self.getNameToWintf(intf).setMediumId(medium_id)
+
+
     def get_txpower(self, intf):
         connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % intf)
         cmd = 'iw dev %s info | grep txpower | awk \'{print $2}\'' % intf

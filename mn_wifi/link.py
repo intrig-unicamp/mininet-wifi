@@ -18,7 +18,7 @@ from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.propagationModels import SetSignalRange, GetPowerGivenRange
 from mn_wifi.wmediumdConnector import DynamicIntfRef, \
     WStarter, SNRLink, w_pos, w_cst, w_server, ERRPROBLink, \
-    wmediumd_mode, w_txpower, w_gain, w_height
+    wmediumd_mode, w_txpower, w_gain, w_height, w_medium
 
 
 class IntfWireless(Intf):
@@ -26,6 +26,7 @@ class IntfWireless(Intf):
 
     dist = 0
     noise = 0
+    medium_id = 0
     eqLoss = '(dist * 2) / 1000'
     eqDelay = '(dist / 10) + 1'
     eqLatency = '(dist / 10)/2'
@@ -190,6 +191,10 @@ class IntfWireless(Intf):
         "Send SNR to wmediumd"
         w_server.send_snr_update(SNRLink(self.wmIface, ap_intf.wmIface, snr))
         w_server.send_snr_update(SNRLink(ap_intf.wmIface, self.wmIface, snr))
+
+    def setMediumIdWmediumd(self, medium_id):
+        "Sends MediumId to wmediumd"
+        w_server.update_medium(w_medium(self.wmIface, int(medium_id)))
 
     def sendIntfTowmediumd(self):
         "Dynamically sending nodes to wmediumd"
@@ -441,6 +446,11 @@ class IntfWireless(Intf):
                                 (ipstr, ))
             self.ip6, self.prefixLen6 = ipstr, prefixLen6
             return self.ipAddr('{}/{}'.format(ipstr, prefixLen6))
+
+    def setMediumId(self, medium_id):
+        """Set medium id to create isolated interface groups"""
+        self.medium_id = int(medium_id)
+        self.setMediumIdWmediumd(medium_id)
 
     def check_if_wpafile_exist(self):
         file = '{}_{}.staconf'.format(self.name, self.id)
@@ -1501,12 +1511,14 @@ class wmediumd(object):
         self.configWmediumd(**kwargs)
 
     def configWmediumd(self, wlinks, fading_cof, noise_th, stations,
-                       aps, cars, ppm):
+                       aps, cars, ppm, mediums):
         "Configure wmediumd"
         intfrefs = []
         isnodeaps = []
-
+        intfs = {}
+        intf_ids = {}
         nodes = stations + aps + cars
+        intf_id = 0
         for node in nodes:
             node.wmIfaces = []
 
@@ -1529,7 +1541,9 @@ class wmediumd(object):
                     intf.wmIface = DynamicIntfRef(node, intf=intf.name)
                     intfrefs.append(intf.wmIface)
                     node.wmIfaces.append(intf.wmIface)
-
+                    intfs[intf.name] = intf
+                    intf_ids[intf.name] = intf_id
+                    intf_id += 1
                     if isinstance(intf, master) or \
                             (node in aps and (not isinstance(intf, (managed, adhoc)))):
                         isnodeaps.append(1)
@@ -1545,9 +1559,24 @@ class wmediumd(object):
             self.error_prob(wlinks)
         else:
             self.snr(wlinks, noise_th)
+        mediums_id_list = []
+        for medium_index, medium_elements in enumerate(mediums):
+            medium_id = medium_index + 1  # Default one is 0
+            medium_intf_ids = []
+            for node in medium_elements:
+                if isinstance(node, str):
+                    # Node is a interface
+                    medium_intf_ids.append(intf_ids[node])
+                    intfs[node].medium_id = medium_id
+                else:
+                    # Node is station or AP
+                    for interface in node.wintfs.values():
+                        medium_intf_ids.append(intf_ids[interface.name])
+                        interface.medium_id = medium_id
+            mediums_id_list.append(medium_intf_ids)
         WStarter(intfrefs=intfrefs, links=self.links, pos=self.positions,
                  fading_cof=fading_cof, noise_th=noise_th, txpowers=self.txpowers,
-                 isnodeaps=isnodeaps, ppm=ppm)
+                 isnodeaps=isnodeaps, ppm=ppm, mediums=mediums_id_list)
 
     @staticmethod
     def get_position(pos=None):
