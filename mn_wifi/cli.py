@@ -15,6 +15,7 @@ class CLI(MN_CLI):
             MN_CLI.mn = mn_wifi
             MN_CLI.stdin = stdin
             MN_CLI.inPoller = poll()
+            MN_CLI.locals = { 'net': mn_wifi }
             self.do_cmd(self.cmd)
             return
         MN_CLI.__init__(self, mn_wifi, stdin=stdin, script=script)
