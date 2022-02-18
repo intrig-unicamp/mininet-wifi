@@ -25,8 +25,6 @@ import math
 
 from time import sleep
 
-import matplotlib
-
 import matplotlib.pyplot as plt
 
 from mininet.log import info, debug, error

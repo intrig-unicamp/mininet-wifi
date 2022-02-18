@@ -13,8 +13,6 @@ import time
 from subprocess import check_output as co, PIPE
 import numpy
 
-import matplotlib
-
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
