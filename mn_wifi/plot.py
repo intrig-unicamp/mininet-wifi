@@ -4,7 +4,6 @@
 """
 
 import matplotlib
-matplotlib.use('TkAgg')
 
 import numpy as np
 import matplotlib.patches as patches
