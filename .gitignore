@@ -8,6 +8,7 @@ mnexec
 *.swp
 \#*\#
 mininet.egg-info
+mininet_wifi.egg-info
 build
 dist
 doc/html
