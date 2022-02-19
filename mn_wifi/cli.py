@@ -1,4 +1,5 @@
 import sys
+from select import poll
 
 from mininet.cli import CLI as MN_CLI
 from mininet.log import output, error
@@ -8,8 +9,22 @@ class CLI(MN_CLI):
     "Simple command-line interface to talk to nodes."
     MN_CLI.prompt = 'mininet-wifi> '
 
-    def __init__(self, mn_wifi, stdin=sys.stdin, script=None):
-        MN_CLI.__init__(self, mn_wifi, stdin=sys.stdin, script=script)
+    def __init__(self, mn_wifi, stdin=sys.stdin, script=None, cmd=None):
+        self.cmd = cmd
+        if self.cmd:
+            MN_CLI.mn = mn_wifi
+            MN_CLI.stdin = stdin
+            MN_CLI.inPoller = poll()
+            MN_CLI.locals = { 'net': mn_wifi }
+            self.do_cmd(self.cmd)
+            return
+        MN_CLI.__init__(self, mn_wifi, stdin=stdin, script=script)
+
+    def do_cmd(self, cmd):
+        """Read commands from an input file.
+           Usage: source <file>"""
+        MN_CLI.onecmd(self, line=cmd)
+        self.cmd = None
 
     def do_stop(self, line):
         "stop mobility for a while"

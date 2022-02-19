@@ -3,9 +3,6 @@
     author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
-import matplotlib
-matplotlib.use('TkAgg')
-
 import numpy as np
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt

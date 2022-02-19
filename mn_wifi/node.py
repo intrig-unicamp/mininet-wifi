@@ -25,9 +25,6 @@ import math
 
 from time import sleep
 
-import matplotlib
-matplotlib.use('TkAgg')
-
 import matplotlib.pyplot as plt
 
 from mininet.log import info, debug, error
