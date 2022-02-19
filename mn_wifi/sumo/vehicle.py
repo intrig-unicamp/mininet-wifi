@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Tuple
 from math import sqrt
-from . import traci
+import traci
 
 class SumoVehicle(object): 
 

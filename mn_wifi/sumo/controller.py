@@ -5,7 +5,7 @@ from threading import Thread
 import traceback
 from typing import Callable, List, Optional
 
-from . import traci
+import traci
 from traci.exceptions import TraCIException
 
 

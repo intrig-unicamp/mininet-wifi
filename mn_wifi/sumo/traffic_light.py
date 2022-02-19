@@ -1,11 +1,6 @@
 from traci import trafficlight
 from typing import Optional, List, Tuple
 
-'''
-THE CLASS CURRENTLY DID NOT SUPPORT THE TRACIT IN MININET WIFI, 
-PLEASE UPDATE THE TRACIT IN THERE.
-'''
-
 class SumoTrafficLight(object): 
 
     def __init__(self, tfl_id: str, states: List[str]):
