@@ -27,6 +27,7 @@ class sumo(Mobility):
                      clients=1, port=8813, exec_order=0, extra_params=None):
         if extra_params is None:
             extra_params = []
+
         try:
             Mobility.cars = cars
             Mobility.aps = aps
@@ -43,7 +44,10 @@ class sumo(Mobility):
     def start(self, cars, config_file, clients, port,
               exec_order, extra_params):
         sumoBinary = checkBinary('sumo-gui')
-        sumoConfig = os.path.join(os.path.dirname(__file__), "data/{}".format(config_file))
+        if '/' in config_file:
+            sumoConfig = config_file
+        else:
+            sumoConfig = os.path.join(os.path.dirname(__file__), "data/{}".format(config_file))
 
         command = ' {} -c {} --num-clients {} --remote-port {} ' \
                   '--time-to-teleport -1'.format(sumoBinary, sumoConfig, clients, port)
@@ -74,3 +78,4 @@ class sumo(Mobility):
                             args = [cars[int(vehID1)].sumoargs]
                             cars[int(vehID1)].sumo(vehID1, vehCmds, *args)
                             del cars[int(vehID1)].sumo
+
