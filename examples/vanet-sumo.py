@@ -60,7 +60,7 @@ def topology():
     # We may have to change it from 0 to 1 if we want to
     # load/reload the current simulation from a 2nd client
     net.useExternalProgram(program=sumo, port=8813,
-                           config_file='map.sumocfg',
+                           #config_file='map.sumocfg', # optional
                            extra_params=["--start --delay 1000"],
                            clients=1, exec_order=0)
 

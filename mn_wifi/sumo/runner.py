@@ -23,7 +23,7 @@ class sumo(Mobility):
     def getVehCmd(cls):
         return cls.vehCmds
 
-    def configureApp(self, cars, aps, config_file='map.sumocfg',
+    def configureApp(self, cars, aps, config_file='',
                      clients=1, port=8813, exec_order=0, extra_params=None):
         if extra_params is None:
             extra_params = []
@@ -44,10 +44,10 @@ class sumo(Mobility):
     def start(self, cars, config_file, clients, port,
               exec_order, extra_params):
         sumoBinary = checkBinary('sumo-gui')
-        if '/' in config_file:
-            sumoConfig = config_file
+        if config_file == '':
+            sumoConfig = os.path.join(os.path.dirname(__file__), "data/map.sumocfg")
         else:
-            sumoConfig = os.path.join(os.path.dirname(__file__), "data/{}".format(config_file))
+            sumoConfig = config_file
 
         command = ' {} -c {} --num-clients {} --remote-port {} ' \
                   '--time-to-teleport -1'.format(sumoBinary, sumoConfig, clients, port)
