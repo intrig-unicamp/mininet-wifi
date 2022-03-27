@@ -69,13 +69,14 @@ class sumo(Mobility):
                 x1 = vehCmds.getPosition(vehID1)[0]
                 y1 = vehCmds.getPosition(vehID1)[1]
 
-                if int(vehID1) < len(cars):
-                    cars[int(vehID1)].position = x1, y1, 0
-                    cars[int(vehID1)].set_pos_wmediumd(cars[int(vehID1)].position)
+                vehID = int(vehID1.replace('.0',''))
+                if vehID < len(cars):
+                    cars[vehID].position = x1, y1, 0
+                    cars[vehID].set_pos_wmediumd(cars[vehID].position)
 
-                    if hasattr(cars[int(vehID1)], 'sumo'):
-                        if cars[int(vehID1)].sumo:
-                            args = [cars[int(vehID1)].sumoargs]
-                            cars[int(vehID1)].sumo(vehID1, vehCmds, *args)
-                            del cars[int(vehID1)].sumo
+                    if hasattr(cars[vehID], 'sumo'):
+                        if cars[vehID].sumo:
+                            args = [cars[vehID].sumoargs]
+                            cars[vehID].sumo(vehID, vehCmds, *args)
+                            del cars[vehID].sumo
 
