@@ -199,12 +199,12 @@ class IntfWireless(Intf):
 
     def getCustomRate(self):
         mode_rate = {'a': 11, 'b': 3, 'g': 11, 'n': 600, 'n5': 600,
-                     'ac': 1000, 'ax': 2000, 'ad': 1000}
+                     'ac': 1000, 'ax': 1000, 'ad': 1000}
         return mode_rate.get(self.mode)
 
     def getRate(self):
         mode_rate = {'a': 54, 'b': 11, 'g': 54, 'n': 300, 'n5': 300,
-                     'ac': 600, 'ax': 1200, 'ad': 4600}
+                     'ac': 600, 'ax': 1000, 'ad': 1000}
         return mode_rate.get(self.mode)
 
     def rec_rssi(self):
