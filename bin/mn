@@ -303,6 +303,10 @@ class MininetRunner(object):
                         default="g", help='wireless mode configuration')
         opts.add_option('--ssid', type='string',
                         default="my-ssid", help='wireless ssid configuration')
+        opts.add_option('--encrypt', type='string',
+                        default="", help='wireless encryption protocol')
+        opts.add_option('--passwd', type='string',
+                        default="", help='passphrase')
         opts.add_option('--clean', '-c', action='store_true',
                         default=False, help='clean and exit')
         opts.add_option('--custom', action='callback',
@@ -461,6 +465,8 @@ class MininetRunner(object):
         band = opts.band
         mode = opts.mode
         ssid = opts.ssid
+        encrypt = opts.encrypt
+        passwd = opts.passwd
         docker = opts.docker
         json_file = opts.json_file
         ssh_user = opts.ssh_user
@@ -508,6 +514,8 @@ class MininetRunner(object):
                      band=band,
                      mode=mode,
                      ssid=ssid,
+                     encrypt=encrypt,
+                     passwd=passwd,
                      client_isolation=client_isolation,
                      docker=docker,
                      container=container,
