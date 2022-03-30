@@ -372,7 +372,6 @@ class IntfWireless(Intf):
     def setTxPower(self, txpower):
         self.txpower = int(txpower)
         self.iwdev_cmd('{} set txpower fixed {}'.format(self.name, self.txpower * 100))
-        debug('\n')
         self.setDefaultRange()
         self.setTXPowerWmediumd()
         self.node.configLinks()
@@ -473,7 +472,6 @@ class IntfWireless(Intf):
                         cmd += "   " + conf + "\n"
             else:
                 cmd += '   ssid=\"{}\"\n'.format(ap_intf.ssid)
-
                 if not ap_intf.authmode:
                     cmd += '   psk=\"{}\"\n'.format(passwd)
                     encrypt = ap_intf.encrypt
@@ -797,7 +795,7 @@ class HostapdConfig(IntfWireless):
 
     @staticmethod
     def get_mode_config(intf, cmd=''):
-        if intf.mode == 'ax':
+        if intf.mode == 'ax' and intf.channel > 13:
             intf.country_code = 'DE'
         if 'n' in intf.mode:
             cmd += "\nhw_mode=a" if intf.mode == 'n5' else "\nhw_mode=g"
@@ -806,7 +804,10 @@ class HostapdConfig(IntfWireless):
             cmd += "\nhw_mode={}".format(intf.mode)
         elif intf.mode == 'ac' or intf.mode == 'ax':
             cmd += "\ncountry_code={}".format(intf.country_code)
-            cmd += "\nhw_mode=a"
+            if intf.channel <= 13:
+                cmd += "\nhw_mode=g"
+            else:
+                cmd += "\nhw_mode=a"
         else:
             cmd += "\nhw_mode={}".format(intf.mode)
         return cmd
@@ -905,7 +906,8 @@ class HostapdConfig(IntfWireless):
                     if intf.mode == 'ac': cmd += '\nieee80211ac=1'
                     if intf.mode == 'ax':
                         cmd += '\nieee80211ax=1'
-                        cmd += '\nop_class=131'
+                        if intf.ieee80211w:
+                            cmd += '\nop_class=131'
 
                 if intf.ieee80211r:
                     if intf.mobility_domain:

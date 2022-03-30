@@ -283,6 +283,8 @@ class MininetRunner(object):
                                             'between associated stations in the BSS')
         opts.add_option('--wifi', '-w', action='store_true',
                         default=False, help='activate wifi')
+        opts.add_option('--ieee80211w', type='string',
+                        default=None, help='enable ieee80211w')
         opts.add_option('--docker', '-d', action='store_true',
                         default=False, help='for docker environment')
         opts.add_option('--container', type='string',
@@ -310,8 +312,7 @@ class MininetRunner(object):
         opts.add_option('--clean', '-c', action='store_true',
                         default=False, help='clean and exit')
         opts.add_option('--custom', action='callback',
-                        callback=self.custom,
-                        type='string',
+                        callback=self.custom, type='string',
                         help='read custom classes or params from .py file(s)')
         opts.add_option('--test', default=[], action='append',
                         dest='test', help='|'.join(TESTS.keys()))
@@ -465,6 +466,7 @@ class MininetRunner(object):
         band = opts.band
         mode = opts.mode
         ssid = opts.ssid
+        ieee80211w = opts.ieee80211w
         encrypt = opts.encrypt
         passwd = opts.passwd
         docker = opts.docker
@@ -514,6 +516,7 @@ class MininetRunner(object):
                      band=band,
                      mode=mode,
                      ssid=ssid,
+                     ieee80211w=ieee80211w,
                      encrypt=encrypt,
                      passwd=passwd,
                      client_isolation=client_isolation,
