@@ -19,6 +19,7 @@ from mn_wifi.propagationModels import SetSignalRange, GetPowerGivenRange
 from mn_wifi.wmediumdConnector import DynamicIntfRef, \
     WStarter, SNRLink, w_pos, w_cst, w_server, ERRPROBLink, \
     wmediumd_mode, w_txpower, w_gain, w_height
+from mn_wifi.frequency import Frequency as Getfreq
 
 
 class IntfWireless(Intf):
@@ -198,13 +199,13 @@ class IntfWireless(Intf):
         w_server.register_interface(self.mac)
 
     def getCustomRate(self):
-        mode_rate = {'a': 11, 'b': 3, 'g': 11, 'n': 600, 'n5': 600,
-                     'ac': 1000, 'ax': 1000, 'ad': 1000}
+        mode_rate = {'a': 11, 'b': 3, 'g': 11, 'n': 600, 'n2': 600,
+                     'ac': 1000, 'ax2': 500, 'ax5': 700, 'ax': 1000, 'ad': 1000}
         return mode_rate.get(self.mode)
 
     def getRate(self):
-        mode_rate = {'a': 54, 'b': 11, 'g': 54, 'n': 300, 'n5': 300,
-                     'ac': 600, 'ax': 1000, 'ad': 1000}
+        mode_rate = {'a': 54, 'b': 11, 'g': 54, 'n': 300, 'n2': 300,
+                     'ac': 600, 'ax2': 500, 'ax5': 700, 'ax': 1000, 'ad': 1000}
         return mode_rate.get(self.mode)
 
     def rec_rssi(self):
@@ -216,50 +217,6 @@ class IntfWireless(Intf):
     def get_rssi(self, ap_intf, dist):
         from mn_wifi.propagationModels import PropagationModel as ppm
         return float(ppm(self, ap_intf, dist).rssi)
-
-    def get_freq(self, channel):
-        "Gets frequency based on channel number"
-        chan_list_1ghz = [4]
-        chan_list_2ghz = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-        chan_list_5ghz = [36, 40, 44, 48, 52, 56, 60, 64, 100,
-                          104, 108, 112, 116, 120, 124, 128, 132,
-                          136, 140, 149, 153, 157, 161, 165,
-                          169, 171, 172, 173, 174, 175, 176,
-                          177, 178, 179, 180, 181, 182, 183, 184,
-                          185]
-        chan_list_6ghz = [1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41,
-                          45, 49, 53, 57, 61, 65, 69, 73, 77, 81,
-                          85, 89, 93, 97, 101, 105, 109, 113, 117,
-                          121, 125, 129, 133, 137, 141, 145, 149,
-                          153, 157, 161, 165, 169, 173, 177, 181,
-                          185, 189, 193, 197, 201, 205, 209, 213,
-                          217, 221, 225, 229, 233]
-        chan_list_60ghz = [1, 2, 3, 4]
-
-        freq_list_1ghz = [906500]
-        freq_list_2ghz = [2.412, 2.417, 2.422, 2.427, 2.432, 2.437,
-                          2.442, 2.447, 2.452, 2.457, 2.462]
-        freq_list_5ghz = [5.18, 5.2, 5.22, 5.24, 5.26, 5.28, 5.30, 5.32,
-                          5.50, 5.52, 5.54, 5.56, 5.58, 5.6, 5.62,
-                          5.64, 5.66, 5.68, 5.7, 5.745, 5.765, 5.785,
-                          5.805, 5.825, 5.845, 5.855, 5.86, 5.865, 5.87,
-                          5.875, 5.88, 5.885, 5.89, 5.895, 5.9, 5.905,
-                          5.91, 5.915, 5.92, 5.925]
-        freq_list_6ghz = [5.955, 5.975, 5.995, 6.015, 6.035, 6.055, 6.095,
-                          6.115, 6.135, 6.155, 6.175, 6.195, 6.215, 6.235,
-                          6.255, 6.275, 6.295, 6.315, 6.335, 6.375, 6.415,
-                          6.435, 6.455, 6.475, 6.495, 6.515, 6.535, 6.555,
-                          6.575, 6.595, 6.615, 6.635, 6.655, 6.675, 6.695,
-                          6.715, 6.735, 6.755, 6.775, 6.795, 6.815, 6.835,
-                          6.855, 6.875, 6.895, 6.915, 6.935, 6.955, 6.975,
-                          6.995, 7.015, 7.035, 7.055, 7.075, 7.095, 7.115]
-        freq_list_60ghz = [58.320, 60.480, 62.640, 64.800]
-        all_chan = chan_list_1ghz + chan_list_2ghz + chan_list_5ghz + chan_list_6ghz + chan_list_60ghz
-        all_freq = freq_list_1ghz + freq_list_2ghz + freq_list_5ghz + freq_list_6ghz + freq_list_60ghz
-        if int(channel) in all_chan:
-            idx = all_chan.index(int(channel))
-            return all_freq[idx]
-        return 2.412
 
     def setFreq(self, freq, intf=None):
         return self.iwdev_cmd('{} set freq {}'.format(intf, freq))
@@ -284,12 +241,12 @@ class IntfWireless(Intf):
         self.name = args[0]
 
     def setAPChannel(self, channel):
-        self.freq = self.get_freq(channel)
+        self.freq = Getfreq(self.mode, channel).freq
         self.pexec('hostapd_cli -i {} chan_switch {} {}'.format(
             self.name, channel, str(self.format_freq())))
 
     def setMeshChannel(self, channel):
-        self.freq = self.get_freq(channel)
+        self.freq = Getfreq(self.mode, channel).freq
         self.iwdev_cmd('{} set channel {}'.format(self.name, channel))
 
     def setChannel(self, channel):
@@ -768,7 +725,7 @@ class HostapdConfig(IntfWireless):
             if 'phywlan' in intf.node.params: intf.node.params.pop('phywlan', None)
 
             intf.set_tc_ap()
-            intf.freq = intf.get_freq(intf.channel)
+            intf.freq = Getfreq(intf.mode, intf.channel).freq
 
     def setConfig(self, intf):
         """Configure AP
@@ -795,16 +752,16 @@ class HostapdConfig(IntfWireless):
 
     @staticmethod
     def get_mode_config(intf, cmd=''):
-        if intf.mode == 'ax' and intf.channel > 13:
+        if intf.mode == 'ax':
             intf.country_code = 'DE'
         if 'n' in intf.mode:
-            cmd += "\nhw_mode=a" if intf.mode == 'n5' else "\nhw_mode=g"
+            cmd += "\nhw_mode=g" if intf.mode == 'n2' else "\nhw_mode=a"
         elif intf.mode == 'a':
             cmd += "\ncountry_code={}".format(intf.country_code)
             cmd += "\nhw_mode={}".format(intf.mode)
-        elif intf.mode == 'ac' or intf.mode == 'ax':
+        elif intf.mode == 'ac' or 'ax' in intf.mode:
             cmd += "\ncountry_code={}".format(intf.country_code)
-            if intf.channel <= 13:
+            if intf.mode == 'ax2':
                 cmd += "\nhw_mode=g"
             else:
                 cmd += "\nhw_mode=a"
@@ -900,11 +857,13 @@ class HostapdConfig(IntfWireless):
                     cmd += '\nwps_pin_requests=/var/run/hostapd.pin-req'
                     cmd += '\nap_setup_locked=0'
 
-                if intf.mode == 'ac' or intf.mode == 'ax' or 'n' in intf.mode:
+                if intf.mode == 'ac' or 'ax' in intf.mode or 'n' in intf.mode:
                     cmd += '\nwmm_enabled=1'
-                    cmd += '\nieee80211n=1'
-                    if intf.mode == 'ac': cmd += '\nieee80211ac=1'
-                    if intf.mode == 'ax':
+                    if intf.mode != 'ax2':
+                        cmd += '\nieee80211n=1'
+                    if intf.mode == 'ac':
+                        cmd += '\nieee80211ac=1'
+                    if 'ax' in intf.mode:
                         cmd += '\nieee80211ax=1'
                         if intf.ieee80211w:
                             cmd += '\nop_class=131'
@@ -1654,7 +1613,7 @@ class ITSLink(LinkAttrs):
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
 
-        self.freq = self.get_freq(self.channel)
+        self.freq = Getfreq(self.mode, self.channel).freq
 
         if isinstance(intf, master):
             self.name = '{}-ocb'.format(node.name)
@@ -1823,7 +1782,7 @@ class adhoc(LinkAttrs):
 
         node.addWAttr(self, port=wlan)
 
-        self.freq = self.get_freq(self.channel)
+        self.freq = Getfreq(self.mode, self.channel).freq
         self.setReg()
         self.configureAdhoc()
 
