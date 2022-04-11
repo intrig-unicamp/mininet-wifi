@@ -1604,6 +1604,7 @@ class ITSLink(LinkAttrs):
 
         self.node = node
         self.name = intf.name
+        self.mode = 'a'
         self.mac = intf.mac
         self.associatedTo = 'ITS'
 
