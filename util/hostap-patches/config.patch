@@ -1,9 +1,18 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index 666447e..be723c4 100644
+index 521d877..62eff91 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
-@@ -115,11 +115,11 @@ CONFIG_EAP_TTLS=y
- #CONFIG_EAP_TEAP=y
+@@ -31,7 +31,7 @@ CONFIG_DRIVER_NL80211=y
+ #CONFIG_LIBNL20=y
+ 
+ # Use libnl 3.2 libraries (if this is selected, CONFIG_LIBNL20 is ignored)
+-#CONFIG_LIBNL32=y
++CONFIG_LIBNL32=y
+ 
+ 
+ # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
+@@ -114,11 +114,11 @@ CONFIG_EAP_TTLS=y
+ #CONFIG_EAP_FAST=y
  
  # Wi-Fi Protected Setup (WPS)
 -#CONFIG_WPS=y
@@ -17,7 +26,7 @@ index 666447e..be723c4 100644
  
  # EAP-IKEv2
  #CONFIG_EAP_IKEV2=y
-@@ -136,13 +136,14 @@ CONFIG_PKCS12=y
+@@ -135,27 +135,27 @@ CONFIG_PKCS12=y
  
  # RADIUS authentication server. This provides access to the integrated EAP
  # server from external hosts using RADIUS.
@@ -30,16 +39,18 @@ index 666447e..be723c4 100644
  # IEEE Std 802.11r-2008 (Fast BSS Transition)
 -#CONFIG_IEEE80211R=y
 +CONFIG_IEEE80211R=y
-+CONFIG_IEEE80211R_AP=y
  
  # Use the hostapd's IEEE 802.11 authentication (ACL), but without
  # the IEEE 802.11 Management capability (e.g., FreeBSD/net80211)
-@@ -150,16 +151,16 @@ CONFIG_IPV6=y
+ #CONFIG_DRIVER_RADIUS_ACL=y
+ 
+ # IEEE 802.11n (High Throughput) support
+-#CONFIG_IEEE80211N=y
++CONFIG_IEEE80211N=y
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
--#CONFIG_WNM=y
-+CONFIG_WNM=y
+ #CONFIG_WNM=y
  
  # IEEE 802.11ac (Very High Throughput) support
 -#CONFIG_IEEE80211AC=y
@@ -47,52 +58,16 @@ index 666447e..be723c4 100644
  
  # IEEE 802.11ax HE support
  # Note: This is experimental and work in progress. The definitions are still
- # subject to change and this should not be expected to interoperate with the
- # final IEEE 802.11ax version.
--#CONFIG_IEEE80211AX=y
-+CONFIG_IEEE80211AX=y
- 
- # Remove debugging code that is printing out debug messages to stdout.
- # This can be used to reduce the size of the hostapd considerably if debugging
-@@ -168,7 +169,7 @@ CONFIG_IPV6=y
- 
- # Add support for writing debug log to a file: -f /tmp/hostapd.log
- # Disabled by default.
--#CONFIG_DEBUG_FILE=y
-+CONFIG_DEBUG_FILE=y
- 
- # Send debug messages to syslog instead of stdout
- #CONFIG_DEBUG_SYSLOG=y
-@@ -307,16 +308,16 @@ CONFIG_IPV6=y
- #CONFIG_INTERWORKING=y
- 
- # Hotspot 2.0
--#CONFIG_HS20=y
-+CONFIG_HS20=y
- 
- # Enable SQLite database support in hlr_auc_gw, EAP-SIM DB, and eap_user_file
- #CONFIG_SQLITE=y
- 
- # Enable Fast Session Transfer (FST)
--#CONFIG_FST=y
-+CONFIG_FST=y
- 
- # Enable CLI commands for FST testing
--#CONFIG_FST_TEST=y
-+CONFIG_FST_TEST=y
- 
- # Testing options
- # This can be used to enable some testing options (see also the example
-@@ -348,7 +349,7 @@ CONFIG_IPV6=y
+@@ -341,7 +341,7 @@ CONFIG_IPV6=y
  # For more details refer to:
- # https://wireless.wiki.kernel.org/en/users/documentation/acs
+ # http://wireless.kernel.org/en/users/Documentation/acs
  #
 -#CONFIG_ACS=y
 +CONFIG_ACS=y
  
  # Multiband Operation support
- # These extensions facilitate efficient use of multiple frequency bands
-@@ -368,7 +369,7 @@ CONFIG_IPV6=y
+ # These extentions facilitate efficient use of multiple frequency bands
+@@ -363,7 +363,7 @@ CONFIG_IPV6=y
  
  # Include internal line edit mode in hostapd_cli. This can be used to provide
  # limited command line editing and history support.
@@ -101,40 +76,25 @@ index 666447e..be723c4 100644
  
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
-@@ -387,7 +388,7 @@ CONFIG_IPV6=y
- # functionality needed to use WEP is available in the current hostapd
- # release under this optional build parameter. This functionality is subject to
- # be completely removed in a future release.
--#CONFIG_WEP=y
-+CONFIG_WEP=y
- 
- # Remove all TKIP functionality
- # TKIP is an old cryptographic data confidentiality algorithm that is not
-@@ -402,3 +403,4 @@ CONFIG_IPV6=y
- # production use.
- # This requires CONFIG_IEEE80211W=y to be enabled, too.
- #CONFIG_PASN=y
-+CONFIG_SAE=y
-diff --git wpa_supplicant/bgscan_learn.c wpa_supplicant/bgscan_learn.c
-index cb732f7..ebac73b 100644
---- wpa_supplicant/bgscan_learn.c
-+++ wpa_supplicant/bgscan_learn.c
-@@ -544,7 +544,7 @@ static int bgscan_learn_notify_scan(void *priv,
- 	 * done inside the bgscan module.
- 	 */
- 
--	return 0;
-+	return 1;
- }
- 
- 
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index 708a823..0bf8b4a 100644
+index 307f82d..7cf2fc6 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
-@@ -169,12 +169,12 @@ CONFIG_EAP_TNC=y
+@@ -44,7 +44,7 @@ CONFIG_DRIVER_NL80211=y
+ #CONFIG_LIBNL20=y
+ 
+ # Use libnl 3.2 libraries (if this is selected, CONFIG_LIBNL20 is ignored)
+-#CONFIG_LIBNL32=y
++CONFIG_LIBNL32=y
+ 
+ 
+ # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
+@@ -151,14 +151,14 @@ CONFIG_EAP_LEAP=y
+ #CONFIG_EAP_TNC=y
+ 
  # Wi-Fi Protected Setup (WPS)
- CONFIG_WPS=y
+-#CONFIG_WPS=y
++CONFIG_WPS=y
  # Enable WPS external registrar functionality
 -#CONFIG_WPS_ER=y
 +CONFIG_WPS_ER=y
@@ -147,8 +107,8 @@ index 708a823..0bf8b4a 100644
 +CONFIG_WPS_NFC=y
  
  # EAP-IKEv2
- CONFIG_EAP_IKEV2=y
-@@ -226,7 +226,7 @@ CONFIG_CTRL_IFACE=y
+ #CONFIG_EAP_IKEV2=y
+@@ -207,7 +207,7 @@ CONFIG_CTRL_IFACE=y
  
  # Include internal line edit mode in wpa_cli. This can be used as a replacement
  # for GNU Readline to provide limited command line editing and history support.
@@ -157,16 +117,50 @@ index 708a823..0bf8b4a 100644
  
  # Remove debugging code that is printing out debug message to stdout.
  # This can be used to reduce the size of the wpa_supplicant considerably
-@@ -476,7 +476,7 @@ CONFIG_IEEE80211AC=y
+@@ -372,11 +372,11 @@ CONFIG_PEERKEY=y
+ #CONFIG_DYNAMIC_EAP_METHODS=y
+ 
+ # IEEE Std 802.11r-2008 (Fast BSS Transition) for station mode
+-#CONFIG_IEEE80211R=y
++CONFIG_IEEE80211R=y
+ 
+ # IEEE Std 802.11r-2008 (Fast BSS Transition) for AP mode (implies
+ # CONFIG_IEEE80211R).
+-#CONFIG_IEEE80211R_AP=y
++CONFIG_IEEE80211R_AP=y
+ 
+ # Add support for writing debug log to a file (/tmp/wpa_supplicant-log-#.txt)
+ #CONFIG_DEBUG_FILE=y
+@@ -453,11 +453,11 @@ CONFIG_PEERKEY=y
+ #CONFIG_NO_RANDOM_POOL=y
+ 
+ # IEEE 802.11n (High Throughput) support (mainly for AP mode)
+-#CONFIG_IEEE80211N=y
++CONFIG_IEEE80211N=y
+ 
+ # IEEE 802.11ac (Very High Throughput) support (mainly for AP mode)
+ # (depends on CONFIG_IEEE80211N)
+-#CONFIG_IEEE80211AC=y
++CONFIG_IEEE80211AC=y
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
--#CONFIG_WNM=y
-+CONFIG_WNM=y
+@@ -483,12 +483,12 @@ CONFIG_PEERKEY=y
+ # should be noted that this is mainly aimed at simple cases like
+ # WPA2-Personal while more complex configurations like WPA2-Enterprise with an
+ # external RADIUS server can be supported with hostapd.
+-#CONFIG_AP=y
++CONFIG_AP=y
  
- # Interworking (IEEE 802.11u)
- # This can be used to enable functionality to improve interworking with
-@@ -566,7 +566,7 @@ CONFIG_WIFI_DISPLAY=y
+ # P2P (Wi-Fi Direct)
+ # This can be used to enable P2P support in wpa_supplicant. See README-P2P for
+ # more information on P2P operations.
+-#CONFIG_P2P=y
++CONFIG_P2P=y
+ 
+ # Enable TDLS support
+ #CONFIG_TDLS=y
+@@ -549,7 +549,7 @@ CONFIG_PEERKEY=y
  #
  # For more details refer to:
  # http://wireless.kernel.org/en/users/Documentation/acs
@@ -175,7 +169,7 @@ index 708a823..0bf8b4a 100644
  
  # Support Multi Band Operation
  #CONFIG_MBO=y
-@@ -587,7 +587,7 @@ CONFIG_IBSS_RSN=y
+@@ -572,17 +572,17 @@ CONFIG_PEERKEY=y
  #CONFIG_PMKSA_CACHE_EXTERNAL=y
  
  # Mesh Networking (IEEE 802.11s)
@@ -184,8 +178,11 @@ index 708a823..0bf8b4a 100644
  
  # Background scanning modules
  # These can be used to request wpa_supplicant to perform background scanning
-@@ -597,7 +597,7 @@ CONFIG_IBSS_RSN=y
- CONFIG_BGSCAN_SIMPLE=y
+ # operations for roaming within an ESS (same SSID). See the bgscan parameter in
+ # the wpa_supplicant.conf file for more details.
+ # Periodic background scans based on signal strength
+-#CONFIG_BGSCAN_SIMPLE=y
++CONFIG_BGSCAN_SIMPLE=y
  # Learn channels used by the network and try to avoid bgscans on other
  # channels (experimental)
 -#CONFIG_BGSCAN_LEARN=y
@@ -194,7 +191,7 @@ index 708a823..0bf8b4a 100644
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
 diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
-index 07e1101..32e1420 100644
+index 73bed57..cadd748 100644
 --- wpa_supplicant/p2p_supplicant.c
 +++ wpa_supplicant/p2p_supplicant.c
 @@ -96,7 +96,7 @@
