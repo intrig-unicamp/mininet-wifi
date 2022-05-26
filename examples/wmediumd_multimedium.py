@@ -87,5 +87,5 @@ def myNetwork():
 
 
 if __name__ == '__main__':
-    setLogLevel('debug')
+    setLogLevel('info')
     myNetwork()
