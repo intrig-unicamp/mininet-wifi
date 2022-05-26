@@ -6,18 +6,17 @@ authors:    Patrick Grosse (patrick.grosse@uni-muenster.de)
 import ctypes
 import os
 import socket
-import tempfile
-import subprocess
-from time import sleep
 import struct
-import pkg_resources
+import subprocess
+import tempfile
 from sys import version_info as py_version_info
+from time import sleep
 
+import pkg_resources
 from mininet.log import info, debug
 
 
 class wmediumd_mode(object):
-
     mode = 0
 
     @classmethod
@@ -81,6 +80,8 @@ class w_cst:
     WSERVER_HEIGHT_UPDATE_RESPONSE_TYPE = 20
     WSERVER_GAUSSIAN_RANDOM_UPDATE_REQUEST_TYPE = 21
     WSERVER_GAUSSIAN_RANDOM_UPDATE_RESPONSE_TYPE = 22
+    WSERVER_MEDIUM_UPDATE_REQUEST_TYPE = 23
+    WSERVER_MEDIUM_UPDATE_RESPONSE_TYPE = 24
 
     WUPDATE_SUCCESS = 0
     WUPDATE_INTF_NOTFOUND = 1
@@ -104,7 +105,7 @@ class set_interference(object):
 
     def interference(self, configstr, ppm, pos, txpowers,
                      fading_cof, noise_th, isnodeaps, **kwargs):
-        configstr += '\n\t];\n\tenable_interference = true;'
+        configstr += '\tenable_interference = true;'
         configstr += '\n};\nmodel:\n{\n'
         configstr += '\ttype = "path_loss";\n\tpositions = ('
         first_pos = True
@@ -275,12 +276,14 @@ class WStarter(object):
                 configstr += '\t\t"%s"' % grepped_mac
                 mappedintf[intfref.id()] = intfref_id
                 intfref_id += 1
-
+            configstr += '\n\t];\n'
+            if "mediums" in kwargs and kwargs['mediums']:
+                configstr += '\tmedium_array = ' + str(kwargs['mediums']).replace("[","(").replace("]",")") + ';\n'
             if wmediumd_mode.mode is w_cst.INTERFERENCE_MODE:
                 kwargs['configstr'] = configstr
                 configstr = set_interference(**kwargs).configstr
             else:
-                configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'
+                configstr += '};\nmodel:\n{\n\ttype = "'
                 if wmediumd_mode.mode == w_cst.ERRPROB_MODE:
                     configstr += 'prob'
                 else:
@@ -370,8 +373,22 @@ class w_gain(object):
         self.sta_gain = sta_gain
 
 
+class w_medium(object):
+    'Medium Selection'
+
+    def __init__(self, staintf, sta_medium_id):
+        """
+        Describes the Medium Selection of a station
+        :param sta_medium_id: Instance of MediumIdRef
+        :type sta_medium_id: MediumIdRef
+        """
+        self.staintf = staintf
+        self.sta_medium_id = sta_medium_id
+
+
 class WmediumdGRandom(object):
     'Gaussing Random'
+
     def __init__(self, staintf, sta_gaussian_random):
         """
         Describes the Gaussian Random of a node
@@ -602,6 +619,11 @@ class w_server(object):
     __station_add_request_struct = struct.Struct('!' + __station_add_request_fmt)
     __station_add_response_struct = struct.Struct('!' + __station_add_response_fmt)
 
+    __medium_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'i'
+    __medium_update_response_fmt = __base_struct_fmt + __medium_update_request_fmt + 'B'
+    __medium_update_request_struct = struct.Struct('!' + __medium_update_request_fmt)
+    __medium_update_response_struct = struct.Struct('!' + __medium_update_response_fmt)
+
     sock = None
     connected = False
 
@@ -774,6 +796,19 @@ class w_server(object):
         :type link: WmediumdLink
         """
         ret = w_server.send_specprob_update(link)
+        if ret != w_cst.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: "
+                                    "code %d" % ret)
+
+    @classmethod
+    def update_medium(cls, medium):
+        # type: (w_medium) -> None
+        """
+        Update the Medium of a connection at wmediumd
+        :param medium The medium to update
+        :type medium: w_medium
+        """
+        ret = w_server.send_medium_update(medium)
         if ret != w_cst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
@@ -958,6 +993,23 @@ class w_server(object):
         return resp[-1], resp[-2]
 
     @classmethod
+    def send_medium_update(cls, medium):
+        # type: (w_medium) -> int
+        """
+        Send an update to the wmediumd server
+        :param medium: The Medium to update
+        :return: A WUPDATE_* constant
+        """
+        medium_ = medium.sta_medium_id
+        debug("%s Updating Medium ID of %s to %d\n" % (
+           w_cst.LOG_PREFIX, medium.staintf.get_mac(),
+           medium_))
+        cls.sock.send(cls.__create_medium_update_request(medium))
+        return cls.__parse_response(
+            w_cst.WSERVER_MEDIUM_UPDATE_REQUEST_TYPE,
+            cls.__medium_update_response_struct)[-1]
+
+    @classmethod
     def __create_snr_update_request(cls, link):
         "snr update request"
         # type: (SNRLink) -> str
@@ -1093,6 +1145,18 @@ class w_server(object):
         else:
             macparsed = bytes.fromhex(mac.replace(':', ''))
         return cls.__station_add_request_struct.pack(msgtype, macparsed)
+
+    @classmethod
+    def __create_medium_update_request(cls, medium):
+        "medium update request"
+        # type: (w_medium) -> str
+        msgtype = w_cst.WSERVER_MEDIUM_UPDATE_REQUEST_TYPE
+        if py_version_info < (3, 0):
+            mac = medium.staintf.get_mac().replace(':', '').decode('hex')
+        else:
+            mac = bytes.fromhex((medium.staintf.get_mac().replace(':', '')))
+        mediumid_ = medium.sta_medium_id
+        return cls.__medium_update_request_struct.pack(msgtype, mac, mediumid_)
 
     @classmethod
     def __parse_response(cls, expected_type, resp_struct):

@@ -3,46 +3,46 @@
     author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
-import socket
 import re
+import socket
+from itertools import chain, groupby
 from threading import Thread as thread
 from time import sleep
-from itertools import chain, groupby
-from six import string_types
 
 from mininet.cli import CLI
-from mininet.term import makeTerms
+from mininet.link import Link, TCLink, TCULink
+from mininet.log import info, error, debug, output, warn
 from mininet.net import Mininet
-from mininet.node import Node, Controller
+from mininet.node import Node
+from mininet.nodelib import NAT
+from mininet.term import makeTerms
 from mininet.util import (macColonHex, ipStr, ipParse, ipAdd,
                           waitListening, BaseString)
-from mininet.link import Link, TCLink, TCULink
-from mininet.nodelib import NAT
-from mininet.log import info, error, debug, output, warn
+from six import string_types
 
-from mn_wifi.node import AP, Station, Car, \
-    OVSKernelAP, physicalAP
-from mn_wifi.wmediumdConnector import error_prob, snr, interference
+from mn_wifi.clean import Cleanup as CleanupWifi
+from mn_wifi.energy import Energy
 from mn_wifi.link import IntfWireless, wmediumd, _4address, HostapdConfig, \
     WirelessLink, TCLinkWireless, ITSLink, WifiDirectLink, adhoc, mesh, \
     master, managed, physicalMesh, PhysicalWifiDirectLink, _4addrClient, \
     _4addrAP, phyAP
-from mn_wifi.clean import Cleanup as CleanupWifi
-from mn_wifi.energy import Energy
-from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.mobility import Tracked as TrackedMob, model as MobModel, \
     Mobility as mob, ConfigMobility, ConfigMobLinks
-from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.module import Mac80211Hwsim
+from mn_wifi.node import AP, Station, Car, \
+    OVSKernelAP, physicalAP, Node_wifi
+from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.propagationModels import PropagationModel as ppm
-from mn_wifi.vanet import vanet
+from mn_wifi.sixLoWPAN.link import LowPANLink
 from mn_wifi.sixLoWPAN.net import Mininet_IoT
 from mn_wifi.sixLoWPAN.node import OVSSensor, LowPANNode
-from mn_wifi.sixLoWPAN.link import LowPANLink
 from mn_wifi.sixLoWPAN.util import ipAdd6
+from mn_wifi.telemetry import parseData, telemetry as run_telemetry
+from mn_wifi.vanet import vanet
+from mn_wifi.wmediumdConnector import error_prob, snr, interference, w_server, w_medium
+from mn_wifi.wwan.link import WWANLink
 from mn_wifi.wwan.net import Mininet_WWAN
 from mn_wifi.wwan.node import WWANNode
-from mn_wifi.wwan.link import WWANLink
 
 VERSION = "2.6"
 
@@ -157,6 +157,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         self.n_groups = 1
         self.wlinks = []
         self.pointlist = []
+        self.initial_mediums = []
 
         if autoSetPositions and link == wmediumd:
             self.wmediumd_mode = interference
@@ -1084,6 +1085,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
     def setPropagationModel(self, **kwargs):
         ppm.set_attr(self.noise_th, self.cca_th, **kwargs)
 
+    def setInitialMediums(self, mediums):
+        self.initial_mediums = mediums
+
     def configNodesStatus(self, src, dst, status):
         sta = self.nameToNode[dst]
         ap = self.nameToNode[src]
@@ -1272,7 +1276,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
     def start_wmediumd(self):
         wmediumd(wlinks=self.wlinks, fading_cof=self.fading_cof,
                  noise_th=self.noise_th, stations=self.stations,
-                 aps=self.aps, cars=self.cars, ppm=ppm)
+                 aps=self.aps, cars=self.cars, ppm=ppm, mediums=self.initial_mediums)
 
     def init_wmediumd(self):
         self.start_wmediumd()
