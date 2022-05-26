@@ -460,7 +460,7 @@ class IntfWireless(Intf):
             cmd += '}'
 
         pattern = '{}_{}.staconf'.format(self.name, self.id)
-        sh('echo \'{}\' > {}'.format(cmd, pattern))
+        self.cmd('echo \'{}\' > {}'.format(cmd, pattern))
 
     def wpa(self, ap_intf):
         self.wpaFile(ap_intf)
