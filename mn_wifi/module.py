@@ -149,9 +149,6 @@ class Mac80211Hwsim(object):
 
     @classmethod
     def load_ifb(cls, wlans):
-        """ Loads IFB
-        :param wlans: Number of wireless interfaces
-        """
         debug('\nLoading IFB: modprobe ifb numifbs={}'.format(wlans))
         sh('modprobe ifb numifbs={}'.format(wlans))
 

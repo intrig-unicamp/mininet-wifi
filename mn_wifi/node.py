@@ -25,9 +25,6 @@ import math
 
 from time import sleep
 
-import matplotlib
-matplotlib.use('TkAgg')
-
 import matplotlib.pyplot as plt
 
 from mininet.log import info, debug, error
@@ -248,9 +245,15 @@ class Node_wifi(Node):
                 else:
                     self.lines[line].set_data([pos_[0][0], pos[0]], [pos_[1][0], pos[1]])
 
-    def getxyz(self):
-        pos = self.position
-        x, y, z = round(pos[0], 2), round(pos[1], 2), round(pos[2], 2)
+    def getxyz(self): 
+        pos = self.position 
+        x,y = round(pos[0], 2), round(pos[1], 2)
+        #only access third element if it exists 
+        if len(pos) == 3:
+            z = round(pos[2], 2) 
+        #otherwise, set z to 0 
+        else: 
+            z = 0 
         return x, y, z
 
     def update_3d(self):

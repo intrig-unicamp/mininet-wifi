@@ -23,10 +23,11 @@ class sumo(Mobility):
     def getVehCmd(cls):
         return cls.vehCmds
 
-    def configureApp(self, cars, aps, config_file='map.sumocfg',
+    def configureApp(self, cars, aps, config_file='',
                      clients=1, port=8813, exec_order=0, extra_params=None):
         if extra_params is None:
             extra_params = []
+
         try:
             Mobility.cars = cars
             Mobility.aps = aps
@@ -43,7 +44,10 @@ class sumo(Mobility):
     def start(self, cars, config_file, clients, port,
               exec_order, extra_params):
         sumoBinary = checkBinary('sumo-gui')
-        sumoConfig = os.path.join(os.path.dirname(__file__), "data/{}".format(config_file))
+        if config_file == '':
+            sumoConfig = os.path.join(os.path.dirname(__file__), "data/map.sumocfg")
+        else:
+            sumoConfig = config_file
 
         command = ' {} -c {} --num-clients {} --remote-port {} ' \
                   '--time-to-teleport -1'.format(sumoBinary, sumoConfig, clients, port)
@@ -65,12 +69,14 @@ class sumo(Mobility):
                 x1 = vehCmds.getPosition(vehID1)[0]
                 y1 = vehCmds.getPosition(vehID1)[1]
 
-                if int(vehID1) < len(cars):
-                    cars[int(vehID1)].position = x1, y1, 0
-                    cars[int(vehID1)].set_pos_wmediumd(cars[int(vehID1)].position)
+                vehID = int(vehID1.replace('.0',''))
+                if vehID < len(cars):
+                    cars[vehID].position = x1, y1, 0
+                    cars[vehID].set_pos_wmediumd(cars[vehID].position)
 
-                    if hasattr(cars[int(vehID1)], 'sumo'):
-                        if cars[int(vehID1)].sumo:
-                            args = [cars[int(vehID1)].sumoargs]
-                            cars[int(vehID1)].sumo(vehID1, vehCmds, *args)
-                            del cars[int(vehID1)].sumo
+                    if hasattr(cars[vehID], 'sumo'):
+                        if cars[vehID].sumo:
+                            args = [cars[vehID].sumoargs]
+                            cars[vehID].sumo(vehID, vehCmds, *args)
+                            del cars[vehID].sumo
+

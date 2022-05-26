@@ -13,9 +13,6 @@ import time
 from subprocess import check_output as co, PIPE
 import numpy
 
-import matplotlib
-matplotlib.use('TkAgg')
-
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 

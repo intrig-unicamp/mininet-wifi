@@ -208,17 +208,7 @@ function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill ${PYPKG}-numpy pkg-config libnl-route-3-dev \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
-             libdbus-1-dev ${PYPKG}-psutil
-
-    if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "14.04" ]; then
-        sudo pip install matplotlib==2.1.1 --ignore-installed six
-    else
-        if [ "$PYTHON_VERSION" == 3 ]; then
-            $install python3-matplotlib
-        else
-            sudo pip install matplotlib==2.1.1 --ignore-installed six
-        fi
-    fi
+             libdbus-1-dev ${PYPKG}-psutil ${PYPKG}-matplotlib
 
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive

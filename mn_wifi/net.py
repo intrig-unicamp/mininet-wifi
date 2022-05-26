@@ -50,9 +50,9 @@ VERSION = "2.6"
 class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
 
     def __init__(self, accessPoint=OVSKernelAP, station=Station, car=Car,
-                 sensor=LowPANNode, apsensor=OVSSensor, modem=WWANNode,
-                 link=WirelessLink, ssid="new-ssid", mode="g", channel=1,
-                 freq=2.4, band=20, wmediumd_mode=snr, roads=0, fading_cof=0,
+                 sensor=LowPANNode, apsensor=OVSSensor, modem=WWANNode, link=WirelessLink,
+                 ssid="new-ssid", mode="g", encrypt="", passwd=None, ieee80211w=None,
+                 channel=1, freq=2.4, band=20, wmediumd_mode=snr, roads=0, fading_cof=0,
                  autoAssociation=True, allAutoAssociation=True, autoSetPositions=False,
                  configWiFiDirect=False, config4addr=False, noise_th=-91, cca_th=-90,
                  disable_tcp_checksum=False, ifb=False, client_isolation=False,
@@ -68,8 +68,11 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
            apsensor: default AP Sensor class/constructor
            modem: default Modem class/constructor
            link: default Link class/constructor
+           ieee80211w: enable ieee80211w
            ssid: wifi ssid
            mode: wifi mode
+           encrypt: wifi encrypt protocol
+           passwd: passphrase
            channel: wifi channel
            freq: wifi freq
            band: bandwidth channel
@@ -98,6 +101,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         self.autoSetPositions = autoSetPositions
         self.ssid = ssid
         self.mode = mode
+        self.encrypt = encrypt
+        self.passwd = passwd
+        self.ieee80211w = ieee80211w
         self.channel = channel
         self.freq = freq
         self.band = band
@@ -367,7 +373,10 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
                     'channel': self.channel,
                     'band': self.band,
                     'freq': self.freq,
-                    'mode': self.mode
+                    'mode': self.mode,
+                    'encrypt': self.encrypt,
+                    'passwd': self.passwd,
+                    'ieee80211w': self.ieee80211w
                    }
         defaults.update(params)
 
@@ -445,7 +454,10 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
                     'channel': self.channel,
                     'band': self.band,
                     'freq': self.freq,
-                    'mode': self.mode
+                    'mode': self.mode,
+                    'encrypt': self.encrypt,
+                    'passwd': self.passwd,
+                    'ieee80211w': self.ieee80211w
                     }
         if self.client_isolation:
             defaults['client_isolation'] = True
