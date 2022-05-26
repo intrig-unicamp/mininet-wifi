@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 NOTE: you have to install wireless-regdb and CRDA

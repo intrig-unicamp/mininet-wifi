@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 Setting the position of Nodes (only for Stations and Access Points)

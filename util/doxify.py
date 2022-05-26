@@ -1,10 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 Convert simple documentation to epydoc/pydoctor-compatible markup
 """
 
-from sys import stdin, stdout, argv
+from sys import argv
 import os
 from tempfile import mkstemp
 from subprocess import call

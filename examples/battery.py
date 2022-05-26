@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """This example creates a simple network topology in which
    stations are equipped with batteries"""

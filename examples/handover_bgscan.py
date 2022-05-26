@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """ Handover example supported by bgscan (Background scanning) and wmediumd.
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 'This example creates a simple network topology with 2 APs working in mesh mode'
 

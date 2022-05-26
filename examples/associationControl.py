@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 'Setting mechanism to optimize the use of APs'
 

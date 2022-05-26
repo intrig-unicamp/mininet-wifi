@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 'Setting the position of Nodes and providing mobility using mobility models'
 import sys

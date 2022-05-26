@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
-'This uses telemetry() to enable a graph with live statistics'
+"Setting the position of Nodes with wmediumd to calculate the interference"
 
-from mininet.node import Controller
+#https://github.com/droidifi/newracom-s1g
+
+import sys
+
 from mininet.log import setLogLevel, info
 from mn_wifi.link import wmediumd
 from mn_wifi.cli import CLI
@@ -10,14 +13,12 @@ from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import interference
 
 
-def topology():
+def topology(args):
     "Create a network."
-    net = Mininet_wifi(controller=Controller, link=wmediumd,
-                       wmediumd_mode=interference,
-                       noise_th=-91, fading_cof=3)
+    net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
-    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',
+    ap1 = net.addAccessPoint('ap1', ssid='s1g', mode='ah', channel='4',
                              position='15,30,0')
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8',
                    position='10,20,0')
@@ -33,8 +34,8 @@ def topology():
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    nodes = net.stations
-    net.telemetry(nodes=nodes, single=True, data_type='rssi')
+    if '-p' not in args:
+        net.plotGraph(max_x=100, max_y=100)
 
     info("*** Starting network\n")
     net.build()
@@ -49,5 +50,5 @@ def topology():
 
 
 if __name__ == '__main__':
-    setLogLevel('info')
-    topology()
+    setLogLevel('debug')
+    topology(sys.argv)

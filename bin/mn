@@ -7,9 +7,6 @@ Modified by: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 To see options:
   sudo mn -h
-
-Example to pull custom params (topo, switch, etc.) from a file:
-  sudo mn --custom ~/mininet/custom/custom_example.py
 """
 
 from optparse import OptionParser
