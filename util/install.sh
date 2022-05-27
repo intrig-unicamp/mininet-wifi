@@ -92,12 +92,12 @@ function version_ge {
 PYTHON=${PYTHON:-python}
 PRINTVERSION='import sys; print(sys.version_info)'
 PYTHON_VERSION=unknown
-for python in $PYTHON python2 python3; do
-    if $python -c "$PRINTVERSION" |& grep 'major=2'; then
-        PYTHON=$python; PYTHON_VERSION=2; PYPKG=python
-        break
-    elif $python -c "$PRINTVERSION" |& grep 'major=3'; then
+for python in $PYTHON python3 python2; do
+    if $python -c "$PRINTVERSION" |& grep 'major=3'; then
         PYTHON=$python; PYTHON_VERSION=3; PYPKG=python3
+        break
+    elif $python -c "$PRINTVERSION" |& grep 'major=2'; then
+        PYTHON=$python; PYTHON_VERSION=2; PYPKG=python
         break
     fi
 done
@@ -181,6 +181,9 @@ function wifi_deps {
                             python-pep8 ${PYPKG}-pexpect ${PYPKG}-tk
     else
         pf=pyflakes
+        if [ $PYTHON_VERSION == 3 ]; then
+            $install python-is-python3
+        fi
         # Starting around 20.04, installing pyflakes instead of pyflakes3
         # causes Python 2 to be installed, which is exactly NOT what we want.
         if [ `expr $RELEASE '>=' 20.04` = "1" ]; then
