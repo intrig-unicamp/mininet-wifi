@@ -44,8 +44,12 @@ if [ "$DIST" = "Ubuntu" ] || [ "$DIST" = "Debian" ]; then
         $install lsb-release
     fi
 fi
+
 test -e /etc/fedora-release && DIST="Fedora"
-if [ "$DIST" = "Fedora" ]; then
+test -e /etc/redhat-release && DIST="RedHatEnterpriseServer"
+test -e /etc/centos-release && DIST="CentOS"
+
+if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "CentOS" ]; then
     install='sudo yum -y install'
     remove='sudo yum -y erase'
     pkginst='sudo rpm -ivh'
@@ -70,7 +74,7 @@ fi
 KERNEL_NAME=`uname -r`
 KERNEL_HEADERS=kernel-headers-${KERNEL_NAME}
 
-if ! echo $DIST | egrep 'Ubuntu|Debian|Fedora'; then
+if ! echo $DIST | egrep 'Ubuntu|Debian|Fedora|RedHatEnterpriseServer|CentOS'; then
     echo "Install.sh currently only supports Ubuntu, Debian and Fedora."
     exit 1
 fi
@@ -170,10 +174,11 @@ function p4_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet dependencies"
-    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
-        $install gcc make socat psmisc xterm openssh-clients iperf \
-            iproute telnet python-setuptools libcgroup-tools \
-            ethtool help2man pyflakes pylint python-pep8 python-pexpect
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "CentOS" ]; then
+        $install gcc make socat psmisc xterm openssh-clients iperf libnl3-devel \
+            iproute telnet python-setuptools libcgroup-tools openssl-devel \
+            ethtool help2man pyflakes pylint python-pep8 python-pexpect libevent-devel \
+            dbus-devel libconfig-devel epel-release ${PYPKG}-six
     elif [ "$DIST" = "SUSE LINUX"  ]; then
         $install gcc make socat psmisc xterm openssh iperf \
           iproute telnet ${PYPKG}-setuptools libcgroup-tools \
@@ -186,7 +191,7 @@ function wifi_deps {
         fi
         # Starting around 20.04, installing pyflakes instead of pyflakes3
         # causes Python 2 to be installed, which is exactly NOT what we want.
-        if [ `expr $RELEASE '>=' 20.04` = "1" ]; then
+        if [ "$DIST" = "Ubuntu" ] &&  [ `expr $RELEASE '>=' 20.04` = "1" ]; then
                 pf=pyflakes3
         fi
         $install gcc make socat psmisc xterm ssh iperf telnet \
@@ -500,7 +505,7 @@ function of {
     echo "Installing OpenFlow reference implementation..."
     cd $BUILD_DIR
     $install autoconf automake libtool make gcc patch
-    if [ "$DIST" = "Fedora" ]; then
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "CentOS" ]; then
         $install git pkgconfig glibc-devel
     else
         $install git-core autotools-dev pkg-config libc6-dev
@@ -569,8 +574,11 @@ function of13 {
 function ovs {
     echo "Installing Open vSwitch..."
 
-    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
-        $install openvswitch openvswitch-controller
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "CentOS" ]; then
+        $install openvswitch
+        if ! $install openvswitch-controller; then
+            echo "openvswitch-controller not installed"
+        fi
         return
     fi
 
