@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
-"""Sample file for SUMO
+"""Sample file for VANET
 
 ***Requirements***:
-
 Kernel version: 5.8+ (due to the 802.11p support)
 sumo 1.5.0 or higher
-sumo-gui"""
+sumo-gui
+
+Please consider reading https://mininet-wifi.github.io/80211p/ for 802.11p support
+"""
 
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI
