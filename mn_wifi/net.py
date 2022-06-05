@@ -5,9 +5,11 @@
 
 import re
 import socket
+
 from itertools import chain, groupby
 from threading import Thread as thread
 from time import sleep
+from sys import exit
 
 from mininet.cli import CLI
 from mininet.link import Link, TCLink, TCULink
@@ -29,8 +31,7 @@ from mn_wifi.link import IntfWireless, wmediumd, _4address, HostapdConfig, \
 from mn_wifi.mobility import Tracked as TrackedMob, model as MobModel, \
     Mobility as mob, ConfigMobility, ConfigMobLinks
 from mn_wifi.module import Mac80211Hwsim
-from mn_wifi.node import AP, Station, Car, \
-    OVSKernelAP, physicalAP, Node_wifi
+from mn_wifi.node import AP, Station, Car, OVSKernelAP, physicalAP
 from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.propagationModels import PropagationModel as ppm
 from mn_wifi.sixLoWPAN.link import LowPANLink
@@ -39,7 +40,7 @@ from mn_wifi.sixLoWPAN.node import OVSSensor, LowPANNode
 from mn_wifi.sixLoWPAN.util import ipAdd6
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.vanet import vanet
-from mn_wifi.wmediumdConnector import error_prob, snr, interference, w_server, w_medium
+from mn_wifi.wmediumdConnector import error_prob, snr, interference
 from mn_wifi.wwan.link import WWANLink
 from mn_wifi.wwan.net import Mininet_WWAN
 from mn_wifi.wwan.node import WWANNode
@@ -648,11 +649,11 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
                 link = cls(node1, node2, port1, port2, **params)
                 self.links.append(link)
                 return link
-            else:
-                if self.do_association(node1.wintfs[0], node2.wintfs[0]):
-                    link = cls(node1, node2, **params)
-                    self.links.append(link)
-                    return link
+
+            if self.do_association(node1.wintfs[0], node2.wintfs[0]):
+                link = cls(node1, node2, **params)
+                self.links.append(link)
+                return link
         elif ((node1 in self.stations and node2 in self.aps)
               or (node2 in self.stations and node1 in self.aps)) and cls != TCLink:
             if cls == wmediumd:
@@ -709,7 +710,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         info('\n*** Configuring wifi nodes...\n')
         self.configureWifiNodes()
 
-        super(Mininet_wifi, self).buildFromTopo(topo);
+        super(Mininet_wifi, self).buildFromTopo(topo)
 
     def check_if_mob(self):
         if self.mob_model or self.mob_stop_time or self.roads:
@@ -1245,7 +1246,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
 
     def get_mobility_params(self):
         "Set Mobility Parameters"
-        mob_params = dict()
+        mob_params = {}
         float_args = ['min_x', 'min_y', 'min_z',
                       'max_x', 'max_y', 'max_z',
                       'min_v', 'max_v', 'min_wt', 'max_wt']
@@ -1400,7 +1401,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
     def restore_links(self):
         # restore link params when it is manually set
         for link in self.links:
-            params = dict()
+            params = {}
             if 'bw' in link.intf1.params:
                 params['bw'] = link.intf1.params['bw']
             if 'latency' in link.intf1.params:

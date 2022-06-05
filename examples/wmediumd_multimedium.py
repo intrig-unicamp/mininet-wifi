@@ -23,13 +23,13 @@ def topology():
     info('*** Add APs\n')
     ap1 = net.addAccessPoint('ap1', ssid='ap1-ssid', channel='5', 
                              position='337.0,424.0,0')
-    ap2 = net.addAccessPoint('ap2', ssid='ap2-ssid', channel='6', 
-                             position='1368.0,391.0,0')
+    net.addAccessPoint('ap2', ssid='ap2-ssid', channel='6',
+                       position='1368.0,391.0,0')
     ap3 = net.addAccessPoint('ap3', ssid='ap3-ssid', channel='6', 
                              position='2368.0,391.0,0')
 
     info('*** Add hosts/stations\n')
-    sta1 = net.addStation('sta1', ip='10.0.0.1', position='192.0,384.0,0')
+    net.addStation('sta1', ip='10.0.0.1', position='192.0,384.0,0')
     sta2 = net.addStation('sta2', ip='10.0.0.2', position='237.0,443.0,0')
     sta3 = net.addStation('sta3', ip='10.0.0.3', position='1493.0,150.0,0')
     sta4 = net.addStation('sta4', ip='10.0.0.4', position='1374.0,656.0,0')

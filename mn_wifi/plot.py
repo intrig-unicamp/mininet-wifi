@@ -173,7 +173,7 @@ class Plot2D (object):
         color = node.get_circle_color()
         node.circle = Plot2D.ax.add_patch(
             patches.Circle((0, 0), node.get_max_radius(),
-                           fill=True, alpha=0.1, color='b'))
+                           fill=True, alpha=0.1, color=color))
 
     @classmethod
     def instantiate_node(cls, node):

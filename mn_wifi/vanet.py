@@ -4,16 +4,20 @@
 """
 
 from __future__ import division
+
+import warnings
+import matplotlib.cbook
+
+from sys import exit
 from math import atan2
 from random import randint
 from time import sleep
-import warnings
 from threading import Thread as thread
 from random import randrange
-import matplotlib.cbook
 from pylab import ginput as ginp, math, cos, sin, np
 
 from mininet.log import info
+
 from mn_wifi.mobility import Mobility
 from mn_wifi.node import AP
 from mn_wifi.plot import PlotGraph, Plot2D
@@ -338,20 +342,20 @@ class vanet(Mobility):
                 for node in nodes:
                     if nodes == car:
                         continue
-                    else:
-                        # compute to see if vehicle is in range
-                        inside = math.pow((node.prop[0] - pos_x), 2) + \
-                                 math.pow((node.prop[1] - pos_y), 2)
-                        if inside <= math.pow(node.wintfs[0].range, 2):
-                            if isinstance(node, AP):
-                                color = 'black'
-                            else:
-                                color = 'r'
-                            line = Plot2D.line2d([pos_x, node.prop[0]],
-                                                 [pos_y, node.prop[1]],
-                                                 color=color)
-                            com_lines.append(line)
-                            Plot2D.line(line)
+
+                    # compute to see if vehicle is in range
+                    inside = math.pow((node.prop[0] - pos_x), 2) + \
+                             math.pow((node.prop[1] - pos_y), 2)
+                    if inside <= math.pow(node.wintfs[0].range, 2):
+                        if isinstance(node, AP):
+                            color = 'black'
+                        else:
+                            color = 'r'
+                        line = Plot2D.line2d([pos_x, node.prop[0]],
+                                             [pos_y, node.prop[1]],
+                                             color=color)
+                        com_lines.append(line)
+                        Plot2D.line(line)
 
             car.update_2d()
 

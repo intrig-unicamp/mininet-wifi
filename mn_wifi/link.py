@@ -11,9 +11,10 @@ import subprocess
 from time import sleep
 from subprocess import check_output as co, CalledProcessError
 
-from mn_wifi.devices import DeviceRate
 from mininet.link import Intf, TCIntf, Link
 from mininet.log import error, debug, info
+
+from mn_wifi.devices import DeviceRate
 from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.propagationModels import SetSignalRange, GetPowerGivenRange
 from mn_wifi.wmediumdConnector import DynamicIntfRef, \
@@ -271,20 +272,20 @@ class IntfWireless(Intf):
         if self.name not in self.node.params['wlan']:
             self.cmd('ip addr flush ', self.name)
             return self.cmd('ip addr add', args[0], 'brd + dev', self.name)
-        else:
-            if len(args) == 0:
-                return self.cmd('ip addr show', self.name)
-            else:
-                if ':' not in args[0]:
-                    self.cmd('ip addr flush ', self.name)
-                    cmd = 'ip addr add {} brd + dev {}'.format(args[0], self.name)
-                    if self.ip6:
-                        cmd += ' && ip -6 addr add {} dev {}'.format \
-                            (self.ip6, self.name)
-                    return self.cmd(cmd)
-                else:
-                    self.cmd('ip -6 addr flush ', self.name)
-                    return self.cmd('ip -6 addr add', args[0], 'dev', self.name)
+
+        if len(args) == 0:
+            return self.cmd('ip addr show', self.name)
+
+        if ':' not in args[0]:
+            self.cmd('ip addr flush ', self.name)
+            cmd = 'ip addr add {} brd + dev {}'.format(args[0], self.name)
+            if self.ip6:
+                cmd += ' && ip -6 addr add {} dev {}'.format \
+                    (self.ip6, self.name)
+            return self.cmd(cmd)
+
+        self.cmd('ip -6 addr flush ', self.name)
+        return self.cmd('ip -6 addr add', args[0], 'dev', self.name)
 
     def ipLink(self, *args):
         "Configure ourselves using ip link"
@@ -382,12 +383,12 @@ class IntfWireless(Intf):
         if '/' in ipstr:
             self.ip, self.prefixLen = ipstr.split('/')
             return self.ipAddr(ipstr)
-        else:
-            if prefixLen is None:
-                raise Exception('No prefix length set for IP address {}'.format
-                                (ipstr, ))
-            self.ip, self.prefixLen = ipstr, prefixLen
-            return self.ipAddr('{}/{}'.format(ipstr, prefixLen))
+
+        if prefixLen is None:
+            raise Exception('No prefix length set for IP address {}'.format
+                            (ipstr, ))
+        self.ip, self.prefixLen = ipstr, prefixLen
+        return self.ipAddr('{}/{}'.format(ipstr, prefixLen))
 
     def setIP6(self, ipstr, prefixLen6=None, **args):
         """Set our IP6 address"""
@@ -396,12 +397,12 @@ class IntfWireless(Intf):
         if '/' in ipstr:
             self.ip6, self.prefixLen6 = ipstr.split('/')
             return self.ipAddr(ipstr)
-        else:
-            if prefixLen6 is None:
-                raise Exception('No prefix length set for IP address {}'.format
-                                (ipstr, ))
-            self.ip6, self.prefixLen6 = ipstr, prefixLen6
-            return self.ipAddr('{}/{}'.format(ipstr, prefixLen6))
+
+        if prefixLen6 is None:
+            raise Exception('No prefix length set for IP address {}'.format
+                            (ipstr, ))
+        self.ip6, self.prefixLen6 = ipstr, prefixLen6
+        return self.ipAddr('{}/{}'.format(ipstr, prefixLen6))
 
     def setMediumId(self, medium_id):
         """Set medium id to create isolated interface groups"""
@@ -736,6 +737,11 @@ class HostapdConfig(IntfWireless):
 
             intf.set_tc_ap()
             intf.freq = Getfreq(intf.mode, intf.channel).freq
+            if not intf.freq:
+                info("Frequency is null for {}\n".format(intf))
+                info("Please make sure that mode ({}) supports "
+                     "channel {}\n".format(intf.mode, intf.channel))
+                exit()
 
     def setConfig(self, intf):
         """Configure AP
@@ -1233,7 +1239,7 @@ class WirelessIntf(object):
 
     def status(self):
         "Return link status as a string"
-        return "(use iw/iwconfig to check connectivity)".format(self.intf1.status(), self.intf2)
+        return "(use iw/iwconfig to check connectivity)"
 
     def __str__(self):
         return '{}<->{}'.format(self.intf1, self.intf2)

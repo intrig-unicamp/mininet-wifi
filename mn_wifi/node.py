@@ -19,13 +19,14 @@ OVSAP: a AP using the Open vSwitch OpenFlow-compatible switch
     implementation (openvswitch.org).
 """
 
-from os import system as sh, getpid
+
 import re
 import math
+import matplotlib.pyplot as plt
 
 from time import sleep
-
-import matplotlib.pyplot as plt
+from sys import exit
+from os import system as sh, getpid
 
 from mininet.log import info, debug, error
 from mininet.util import (errRun, errFail, Python3, getincrementaldecoder,
@@ -508,16 +509,16 @@ class AP(Node_wifi):
             dpid = dpid.replace(':', '')
             assert len(dpid) <= self.dpidLen and int(dpid, 16) >= 0
             return '0' * (self.dpidLen - len(dpid)) + dpid
+
+        # Use hex of the first number in the switch name
+        nums = re.findall(r'\d+', self.name)
+        if nums:
+            dpid = hex(int(nums[ 0 ]))[ 2: ]
         else:
-            # Use hex of the first number in the switch name
-            nums = re.findall(r'\d+', self.name)
-            if nums:
-                dpid = hex(int(nums[ 0 ]))[ 2: ]
-            else:
-                raise Exception('Unable to derive default datapath ID - '
-                                'please either specify a dpid or use a '
-                                'canonical ap name such as ap23.')
-            return '1' + '0' * (self.dpidLen -1 - len(dpid)) + dpid
+            raise Exception('Unable to derive default datapath ID - '
+                            'please either specify a dpid or use a '
+                            'canonical ap name such as ap23.')
+        return '1' + '0' * (self.dpidLen -1 - len(dpid)) + dpid
 
 
 class UserAP(AP, UserSwitch):

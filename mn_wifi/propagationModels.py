@@ -347,7 +347,7 @@ class GetPowerGivenRange(object):
     def twoRayGround(self, intf):
         """Two Ray Ground Propagation Loss Model (does not give a good result for
         a short distance)"""
-        dist = intf.range
+        # dist = intf.range
         gt = intf.antennaGain
         ht = intf.antennaHeight
         pt = intf.txpower

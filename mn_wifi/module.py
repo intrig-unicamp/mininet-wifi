@@ -177,17 +177,17 @@ class Mac80211Hwsim(object):
             if radio in radios:
                 radio_id = self.prefix + "%02d" % radio
                 phys_ += radio_id + ' '
-        sh("echo 'nodes=(%s)' >> %s" % (nodes_, file))
-        sh("echo 'phys=(%s)' >> %s" % (phys_, file))
-        sh("echo 'j=0' >> %s" % file)
+        sh("echo 'nodes=({})' >> {}".format(nodes_, file))
+        sh("echo 'phys=({})' >> {}".format(phys_, file))
+        sh("echo 'j=0' >> {}".format(file))
         sh("echo 'for i in ${phys[@]}' >> %s" % file)
         sh("echo 'do' >> %s" % file)
         sh("echo '    pid=$(ps -aux | grep \"${nodes[$j]}\" | grep -v 'hostapd' "
            "| awk \"{print \$2}\" | awk \"NR>=%s&&NR<=%s\")' "
            ">> %s" % (num+1, num+1, file))
         sh("echo '    sudo iw phy $i set netns $pid' >> %s" % file)
-        sh("echo '    j=$((j+1))' >> %s" % file)
-        sh("echo 'done' >> %s" % file)
+        sh("echo '    j=$((j+1))' >> {}".format(file))
+        sh("echo 'done' >> {}".format(file))
         sh("scp %s %s@%s:%s" % (file, params['ssh_user'], ip, dir))
         sh("ssh %s@%s \'chmod +x %s%s; %s%s\'" %
            (params['ssh_user'], ip, dir, file, dir, file))

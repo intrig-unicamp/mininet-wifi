@@ -20,7 +20,7 @@ def topology():
     net = Mininet_wifi()
 
     info("*** Creating nodes\n")
-    m1 = net.addModem('m1')
+    net.addModem('m1')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

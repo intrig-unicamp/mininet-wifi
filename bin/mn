@@ -13,6 +13,7 @@ from optparse import OptionParser
 import os
 import sys
 import time
+
 from sys import version_info as py_version_info
 
 # Fix setuptools' evil madness, and open up (more?) security holes
@@ -20,10 +21,8 @@ if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split(':') + sys.path
 
 from mininet.clean import cleanup
-from mininet.log import lg, LEVELS, info, debug, warn, error, output
-from mn_wifi.net import VERSION
-from mininet.net import MininetWithControlNet
-from mininet.net import Mininet
+from mininet.log import lg, LEVELS, info, debug, error, output
+from mininet.net import Mininet, MininetWithControlNet
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
                           DefaultController, NullController,
@@ -35,30 +34,17 @@ from mininet.topo import (SingleSwitchTopo, LinearTopo,
                           SingleSwitchReversedTopo,
                           MinimalTopo)
 from mininet.topolib import TreeTopo, TorusTopo
-from mininet.util import customClass, specialClass, splitArgs
-from mininet.util import buildTopo
+from mininet.util import customClass, specialClass, splitArgs, buildTopo
 
 import mn_wifi.cli
 from mn_wifi.bmv2 import switches, aps
 from mn_wifi.clean import cleanup_wifi
-from mn_wifi.net import MininetWithControlWNet
-from mn_wifi.net import Mininet_wifi
+from mn_wifi.net import VERSION, Mininet_wifi, MininetWithControlWNet
 from mn_wifi.topo import (SingleAPTopo, LinearWirelessTopo,
                           MinimalWirelessTopo)
 from mn_wifi.link import WirelessLink, wmediumd
 from mn_wifi.node import (Station, UserAP, OVSAP, CPULimitedStation)
 
-
-from functools import partial
-
-# Experimental! cluster edition prototype
-from mn_wifi.examples.cluster import (MininetCluster, RemoteHost, RemoteStation,
-                                      RemoteOVSSwitch, RemoteOVSAP, RemoteLink,
-                                      SwitchBinPlacer, RandomPlacer,
-                                      ClusterCleanup)
-from mn_wifi.examples.clustercli import ClusterCLI
-
-PLACEMENT = { 'block': SwitchBinPlacer, 'random': RandomPlacer }
 
 # built in topologies, created only when run
 TOPODEF = 'minimal'
@@ -180,10 +166,11 @@ def addDictOption(opts, choicesDict, default, name, **kwargs):
     params.update(**kwargs)
     opts.add_option('--' + name, **params)
 
+
 def version(*_args):
     "Print Mininet version and exit"
     output( "%s\n" % VERSION )
-    exit()
+    sys.exit()
 
 
 class MininetRunner(object):
@@ -350,21 +337,13 @@ class MininetRunner(object):
                         " Mininet's IP subnet, see the --ipbase option.")
         opts.add_option('--version', action='callback', callback=version,
                         help='prints the version and exits')
-        opts.add_option('--cluster', type='string', default=None,
-                        metavar='server1,server2...',
-                        help=('run on multiple servers (experimental!)'))
-        opts.add_option('--placement', type='choice',
-                        choices=list(PLACEMENT.keys()), default='block',
-                        metavar='block|random',
-                        help=('node placement for --cluster '
-                              '(experimental!) '))
 
         self.options, self.args = opts.parse_args()
 
         # We don't accept extra arguments after the options
         if self.args:
             opts.print_help()
-            exit()
+            sys.exit()
 
     def setup(self):
         "Setup and validate environment."
@@ -387,15 +366,10 @@ class MininetRunner(object):
 
         opts = self.options
 
-        if opts.cluster:
-            servers = opts.cluster.split(',')
-            for server in servers:
-                ClusterCleanup.add(server)
-
         if opts.clean:
             cleanup()
             cleanup_wifi()
-            exit()
+            sys.exit()
 
         start = time.time()
 
@@ -475,32 +449,14 @@ class MininetRunner(object):
         plot3d = opts.plot3d
         listenPort = 'None'
 
+        inNamespace = opts.innamespace
         if not opts.nolistenport:
             listenPort = opts.listenport
 
-        # Handle inNamespace, cluster options
-        inNamespace = opts.innamespace
-        cluster = opts.cluster
-        if inNamespace and cluster:
-            info("Please specify --innamespace OR --cluster\n")
-            exit()
         if opts.wifi:
             Net = MininetWithControlWNet if opts.innamespace else Mininet_wifi
         else:
             Net = MininetWithControlNet if opts.innamespace else Mininet
-        if opts.cluster:
-            warn('*** WARNING: Experimental cluster mode!\n'
-                 '*** Using RemoteHost, RemoteStation, RemoteOVSSwitch,'
-                 ' RemoteLink\n')
-            host, station, switch, ap, link = RemoteHost, RemoteStation, \
-                                              RemoteOVSSwitch, RemoteOVSAP, \
-                                              RemoteLink
-            Net = partial(MininetCluster, servers=servers,
-                          placement=PLACEMENT[opts.placement])
-            if opts.wifi:
-                mn_wifi.cli.CLI = ClusterCLI
-            else:
-                Mininet.cli.CLI = ClusterCLI
 
         if opts.wifi:
             mn = Net(topo=topo,

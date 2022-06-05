@@ -19,12 +19,12 @@ lines = run("egrep -or 'Mininet-WiFi [0-9\.\+]+\w*' *", shell=True)
 
 error = False
 
-for line in lines.split( '\n' ):
+for line in lines.split('\n'):
     if line and 'Binary' not in line:
-        fname, fversion = line.split( ':' )
+        fname, fversion = line.split(':')
         if version != fversion:
-            print( "%s: incorrect version '%s' (should be '%s')" % (
-                fname, fversion, version ) )
+            print("{}: incorrect version '{}' (should be '{}')".format(
+                fname, fversion, version))
             error = True
 
 if error:

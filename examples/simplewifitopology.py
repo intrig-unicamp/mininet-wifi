@@ -14,8 +14,7 @@ def topology():
     net = Mininet_wifi()
 
     info("*** Creating nodes\n")
-    sta_arg = dict()
-    ap_arg = dict()
+    sta_arg, ap_arg = {}, {}
     if '-v' in sys.argv:
         sta_arg = {'nvif': 2}
     else:

@@ -39,7 +39,7 @@ def topology(args):
 
     net.startMobility(time=0, mob_rep=1, reverse=False)
 
-    p1, p2, p3, p4 = dict(), dict(), dict(), dict()
+    p1, p2, p3, p4 = {}, {}, {}, {}
     if '-c' not in args:
         p1 = {'position': '40.0,30.0,0.0'}
         p2 = {'position': '40.0,40.0,0.0'}

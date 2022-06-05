@@ -1,4 +1,4 @@
-#@author: Ramon Fontes (ramon.fontes@imd.ufrn.br)
+# @author: Ramon Fontes (ramon.fontes@imd.ufrn.br)
 
 class Frequency(object):
 

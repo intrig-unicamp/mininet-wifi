@@ -19,7 +19,7 @@ def topology(args):
     net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
-    kwargs = dict()
+    kwargs = {}
     if '-a' in args:
         kwargs['range'] = 100
 
@@ -41,7 +41,7 @@ def topology(args):
     # WARNING: we may need to stop Network Manager if you want
     # to work with babel
     protocols = ['babel', 'batman_adv', 'batmand', 'olsrd', 'olsrd2']
-    kwargs = dict()
+    kwargs = {}
     for proto in args:
         if proto in protocols:
             kwargs['proto'] = proto

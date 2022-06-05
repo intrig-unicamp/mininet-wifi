@@ -61,8 +61,7 @@ def getStratumRoot():
 def parseBoolean(value):
     if value in ['1', 1, 'true', 'True']:
         return True
-    else:
-        return False
+    return False
 
 
 def pickUnusedPort():
@@ -501,7 +500,7 @@ nodes {{
         endtime = time.time() + self.timeout
 
         if self.inNamespace:
-            controller = self.configNameSpace()
+            self.configNameSpace()
 
         while True:
             port = self.grpcPortInternal if self.grpcPortInternal else self.grpcPort
@@ -585,7 +584,7 @@ class P4Station(Station):
 
     def config(self, **params):
         #  offload does not work with wifi
-        #r = super(Station, self).config(**params)
+        r = super(Station, self).config(**params)
         #for off in ["rx", "tx", "sg"]:
         #    cmd = "/sbin/ethtool --offload %s %s off" \
         #          % (self.defaultIntf(), off)
