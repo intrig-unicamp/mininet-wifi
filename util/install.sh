@@ -289,7 +289,7 @@ function olsrdv2 {
           echo "Removing libubox..."
           rm -r libubox
     fi
-    git clone --depth=1 git://git.openwrt.org/project/libubox.git
+    git clone --depth=1 https://git.openwrt.org/project/libubox.git
     cd $BUILD_DIR/mininet-wifi/libubox
     mkdir build
     cd build
@@ -302,7 +302,7 @@ function olsrdv2 {
           echo "Removing ubus..."
           rm -r ubus
     fi
-    git clone --depth=1 git://git.openwrt.org/project/ubus.git
+    git clone --depth=1 https://git.openwrt.org/project/ubus.git
     cd $BUILD_DIR/mininet-wifi/ubus
     mkdir build
     cd build
@@ -315,7 +315,7 @@ function olsrdv2 {
           echo "Removing uci..."
           rm -r uci
     fi
-    git clone --depth=1 git://git.openwrt.org/project/uci.git
+    git clone --depth=1 https://git.openwrt.org/project/uci.git
     cd $BUILD_DIR/mininet-wifi/uci
     mkdir build
     cd build
