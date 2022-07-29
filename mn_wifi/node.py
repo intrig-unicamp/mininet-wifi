@@ -369,11 +369,18 @@ class Node_wifi(Node):
 
     # Convenience and configuration methods
     def setIP6(self, ip, prefixLen=64, intf=None, **kwargs):
+        """Set the IP6 address for an interface.
+           intf: intf or intf name
+           ip: IP6 address as a string
+           kwargs: any additional arguments for intf.setIP6"""
+        return self.getNameToWintf(intf).setIP6(ip, prefixLen, **kwargs)
+
+    def setIP(self, ip, prefixLen=8, intf=None, **kwargs):
         """Set the IP address for an interface.
            intf: intf or intf name
            ip: IP address as a string
            kwargs: any additional arguments for intf.setIP"""
-        return self.getNameToWintf(intf).setIP6(ip, prefixLen, **kwargs)
+        return self.getNameToWintf(intf).setIP(ip, prefixLen, **kwargs)
 
     def setMode(self, mode, intf=None):
         return self.getNameToWintf(intf).setMode(mode)
