@@ -204,7 +204,7 @@ class Plot2D (object):
     @classmethod
     def close_plot(cls):
         try:
-            plt.close()
+            plt.cla()
         except:
             pass
 
