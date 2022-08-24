@@ -259,4 +259,8 @@ class PlotGraph(object):
 
     @classmethod
     def pause(cls):
-        plt.pause(0.001)
+        try:
+            plt.pause(0.001)
+        except:
+            pass
+
