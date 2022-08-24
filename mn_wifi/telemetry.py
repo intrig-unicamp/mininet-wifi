@@ -10,6 +10,7 @@ telemetry(nodes, **params)
 """
 
 import time
+import warnings
 from subprocess import check_output as co, PIPE
 import numpy
 
@@ -34,6 +35,7 @@ class telemetry(object):
     nodes = []
 
     def __init__(self, **kwargs):
+        warnings.filterwarnings("ignore")
         parseData.thread_ = thread(target=self.start, kwargs=(kwargs))
         parseData.thread_.daemon = True
         parseData.thread_._keep_alive = True
@@ -226,7 +228,7 @@ class parseData(object):
         if not self.thread_._keep_alive:
             try:
                 if self.data_type != 'position':
-                    plt.close()
+                    plt.cla()
             except:
                 pass
         time.sleep(1)
@@ -329,4 +331,4 @@ class parseData(object):
     def close(self, event):
         self.thread_._keep_alive = False
         self.thread_._is_running = False
-        plt.close(2)
+        plt.cla()
