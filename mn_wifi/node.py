@@ -380,7 +380,9 @@ class Node_wifi(Node):
            intf: intf or intf name
            ip: IP address as a string
            kwargs: any additional arguments for intf.setIP"""
-        return self.getNameToWintf(intf).setIP(ip, prefixLen, **kwargs)
+        if isinstance(self, Station) or isinstance(self, Car):
+            return self.getNameToWintf(intf).setIP(ip, prefixLen, **kwargs)
+        return self.intf(intf).setIP(ip, prefixLen, **kwargs)
 
     def setMode(self, mode, intf=None):
         return self.getNameToWintf(intf).setMode(mode)
