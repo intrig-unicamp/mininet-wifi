@@ -3,6 +3,7 @@
     author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
+import warnings
 import numpy as np
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -246,6 +247,7 @@ class Plot2D (object):
 class PlotGraph(object):
 
     def __init__(self, **kwargs):
+        warnings.filterwarnings("ignore")
         self.instantiate_graph(**kwargs)
 
     def instantiate_graph(self, **kwargs):
