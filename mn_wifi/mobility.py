@@ -129,7 +129,7 @@ class Mobility(object):
                                 if wmediumd_mode.mode == w_cst.SNR_MODE:
                                     intf.setSNRWmediumd(ap_intf, intf.rssi-(-91))
                             else:
-                                if intf.node.position != intf.node.pos:
+                                if hasattr(intf.node, 'pos') and intf.node.position != intf.node.pos:
                                     intf.node.pos = intf.node.position
                                     intf.configWLink(dist)
 
