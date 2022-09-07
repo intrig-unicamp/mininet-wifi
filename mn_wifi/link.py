@@ -1090,8 +1090,13 @@ class WirelessLink(TCIntf, IntfWireless):
         for key in self.__dict__.keys():
             if key in self.node.params:
                 if isinstance(self.node.params[key], list):
-                    value = self.node.params[key][wlan]
-                    setattr(self, key, value)
+                    try:
+                        value = self.node.params[key][wlan]
+                        setattr(self, key, value)
+                    except IndexError:
+                        error('*** index out of range for \'{}\' parameter\n'.format(key))
+                        error('*** please check out your code!\n')
+                        exit(1)
                 else:
                     if wlan > 0 and key == 'mac':
                         self.mac = self.getMAC()
