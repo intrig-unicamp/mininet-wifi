@@ -1,5 +1,6 @@
 "author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"
 
+import os
 import re
 
 from mininet.link import Intf, TCIntf, Link
@@ -212,6 +213,16 @@ class TC6LoWPANLink(TCIntf, IntfSixLoWPAN):
         result[ 'parent' ] = parent
 
         return result
+
+
+class LoWPAN(Link, IntfSixLoWPAN):
+
+    def __init__(self, node1, node2, **params):
+        """Create 6LoWPAN pair link
+           node: node
+           intf: default interface class/constructor"""
+        os.system('wpan-hwsim edge add {} {} >/dev/null 2>&1'.format(node1.id, node2.id))
+        os.system('wpan-hwsim edge add {} {} >/dev/null 2>&1'.format(node2.id, node1.id))
 
 
 class LowPANLink(Link, IntfSixLoWPAN):

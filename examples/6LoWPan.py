@@ -1,17 +1,22 @@
 #!/usr/bin/env python
 
 import os
+import sys
 
 from mininet.log import setLogLevel, info
+from mn_wifi.sixLoWPAN.link import LoWPAN
 from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 
-"""This example creates a simple network topology with 3 nodes
+"""This example creates a simple network topology with 4 nodes
 
-       sensor1
+       sensor1 (root)
       /       \
     /          \
 sensor2      sensor3
+               |
+               |
+             sensor4
 """
 
 
@@ -27,24 +32,26 @@ def topology():
     # because there is no wmediumd-like code for mac802154_hwim yet.
     # However, you may want to add mobility and node position
     # and use wpan-hwsim for some purposes.
-    net.addSensor('sensor1', ip6='2001::1/64', panid='0xbeef')
-    net.addSensor('sensor2', ip6='2001::2/64', panid='0xbeef')
-    net.addSensor('sensor3', ip6='2001::3/64', panid='0xbeef')
+    sensor1 = net.addSensor('sensor1', ip6='fe80::1/64', panid='0xbeef', dodag_rank=0)
+    sensor2 = net.addSensor('sensor2', ip6='fe80::2/64', panid='0xbeef', dodag_rank=1)
+    sensor3 = net.addSensor('sensor3', ip6='fe80::3/64', panid='0xbeef', dodag_rank=1)
+    sensor4 = net.addSensor('sensor4', ip6='fe80::4/64', panid='0xbeef', dodag_rank=2)
 
     info("*** Configuring nodes\n")
     net.configureWifiNodes()
 
+    info("*** Adding links\n")
+    net.addLink(sensor1, sensor2, cls=LoWPAN)
+    net.addLink(sensor1, sensor3, cls=LoWPAN)
+    net.addLink(sensor3, sensor4, cls=LoWPAN)
+
     info("*** Starting network\n")
     net.build()
 
-    info("*** Adding edges")
-    # This is useful for routing
-    # You may want to refer to https://github.com/linux-wpan/rpld
-    # if you want to implement some custom routing
-    os.system('wpan-hwsim edge add 0 1')  # sensor1 - sensor2
-    os.system('wpan-hwsim edge add 1 0')  # sensor2 - sensor1
-    os.system('wpan-hwsim edge add 0 2')  # sensor1 - sensor3
-    os.system('wpan-hwsim edge add 2 0')  # sensor3 - sensor1
+    if '-r' in sys.argv:
+        info("*** Configuring RPLD\n")
+        # You must have https://github.com/linux-wpan/rpld
+        net.configRPLD(net.sensors)
 
     info("*** Running CLI\n")
     CLI(net)

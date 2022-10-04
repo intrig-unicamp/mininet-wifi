@@ -105,7 +105,8 @@ class module(object):
               "-namespaces...\n")
         phy = self.getPhy()
         wlan_list = self.get_virtual_wpan()
-        for node in nodes:
+        for id, node in enumerate(nodes):
+            node.id = id
             for wlan in range(0, len(node.params['wpan'])):
                 os.system('iwpan phy phy{} set netns {}'.format(phy[0], node.pid))
                 node.cmd('ip link set {} down'.format(wlan_list[0]))

@@ -34,7 +34,7 @@ from mn_wifi.module import Mac80211Hwsim
 from mn_wifi.node import AP, Station, Car, OVSKernelAP, physicalAP
 from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.propagationModels import PropagationModel as ppm
-from mn_wifi.sixLoWPAN.link import LowPANLink
+from mn_wifi.sixLoWPAN.link import LowPANLink, LoWPAN
 from mn_wifi.sixLoWPAN.net import Mininet_IoT
 from mn_wifi.sixLoWPAN.node import OVSSensor, LowPANNode
 from mn_wifi.sixLoWPAN.util import ipAdd6
@@ -640,6 +640,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
             link = cls(node=node1, port=port1, **params)
             self.links.append(link)
             return link
+        elif cls == LoWPAN:
+            cls(node1=node1, node2=node2, **params)
         elif cls == WWANLink:
             link = cls(node=node1, port=port1, **params)
             self.links.append(link)

@@ -83,6 +83,26 @@ class LowPANNode(Node_wifi):
         "Return IP address of a node or specific interface."
         return self.intf(intf).IP6()
 
+    def configRPLD(self):
+        cmd = 'ifaces = { {\n'
+        cmd += '        ifname = \"{}-pan0\",\n'.format(self.name)
+        if self.params['dodag_rank'] == 0:
+            cmd += '        dodag_root = true,\n'
+            cmd += '        rpls = { {\n'
+            cmd += '               instance = 1,\n'
+            cmd += '               dags = { {\n'
+            cmd += '                       dest_prefix = \"fd3c:be8a:173f:8e80::/64\",\n'
+            cmd += '               }, }\n'
+            cmd += '        }, }\n'
+        else:
+            cmd += '        dodag_root = false,\n'
+        cmd += '}, }'
+        self.cmd('echo \'{}\' > lowpan-{}.conf'.format(cmd, self.name))
+        self.runRPLD()
+
+    def runRPLD(self):
+        self.cmd('rpld -C lowpan-{}.conf &'.format(self.name))
+
     def setDefault6Route(self, intf=None):
         """Set the default ipv6 route to go through intf.
            intf: Intf or {dev <intfname> via <gw-ip> ...}"""

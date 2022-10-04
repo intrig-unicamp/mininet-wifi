@@ -128,6 +128,11 @@ class Mininet_IoT(object):
         self.sensors.append(node)
         return node
 
+    def configRPLD(self, nodes):
+        sleep(2)
+        for node in nodes:
+            node.configRPLD()
+
     def ping6(self, hosts=None, timeout=None):
         """Ping6 between all specified hosts.
            hosts: list of hosts
