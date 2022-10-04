@@ -920,7 +920,7 @@ class HostapdConfig(IntfWireless):
         is not included at /etc/NetworkManager/conf.d/unmanaged.conf"""
         nms = 'network-manager'
         nm_is_running = sh('service {} status 2>&1 | grep '
-                                  '-ic running >/dev/null 2>&1'.format(nms))
+                           '-ic running >/dev/null 2>&1'.format(nms))
         if nm_is_running != 256:
             info('Mac address(es) added into {}\n'.format(cls.nm_conf_file))
             info('Restarting {}...\n'.format(nms))
