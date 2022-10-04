@@ -1334,7 +1334,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
 
     def configureWifiNodes(self):
         "Keep backward compatibility"
-        self.configureNodes
+        self.configureNodes()
 
     def configureNodes(self):
         "Configure WiFi Nodes"
