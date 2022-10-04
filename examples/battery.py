@@ -19,8 +19,8 @@ def topology():
     net.addSensor('sensor2', ip6='2001::2/64', voltage=3.7, panid='0xbeef')
     net.addSensor('sensor3', ip6='2001::3/64', voltage=3.7, panid='0xbeef')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Starting network\n")
     net.build()

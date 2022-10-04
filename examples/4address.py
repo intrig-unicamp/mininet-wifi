@@ -36,8 +36,8 @@ def topology(args):
     info("*** Configuring Propagation Model\n")
     net.setPropagationModel(model="logDistance", exp=4.5)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Adding Links\n")
     net.addLink(ap1, ap2, cls=_4address)  # ap1=ap, ap2=client

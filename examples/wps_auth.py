@@ -21,8 +21,8 @@ def topology(attack):
                              failMode="standalone", datapath='user', wps_state='2',
                              config_methods='label display push_button keypad')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Associating Stations\n")
     net.addLink(sta1, ap1)

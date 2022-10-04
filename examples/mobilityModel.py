@@ -25,8 +25,8 @@ def topology(args):
         ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
                                  failMode="standalone", position='50,50,0')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     if '-p' not in args:
         net.plotGraph()

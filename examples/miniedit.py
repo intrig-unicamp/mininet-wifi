@@ -4678,7 +4678,7 @@ class MiniEdit(Frame):
                            ipBase=self.appPrefs['ipBase'])
 
         self.buildNodes(net)
-        net.configureWifiNodes()
+        net.configureNodes()
         self.buildLinks(net)
 
         # Build network (we have to do this separately at the moment )

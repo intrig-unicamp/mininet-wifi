@@ -18,8 +18,8 @@ def topology():
     ap1 = net.addAccessPoint('ap1', ssid='ssid_1', mode='g', channel='5',
                              failMode="standalone")
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Associating...\n")
     net.addLink(ap1, sta1)

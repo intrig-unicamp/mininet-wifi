@@ -32,8 +32,8 @@ def topology(args):
 
     net.setPropagationModel(model="logDistance", exp=4)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Creating links\n")
     # MANET routing protocols supported by proto:

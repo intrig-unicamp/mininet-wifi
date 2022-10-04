@@ -24,8 +24,8 @@ def topology(args):
     info("*** Configuring propagation model\n")
     net.setPropagationModel(model="logDistance", exp=4)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     if '-p' not in args:
         net.plotGraph(max_x=100, max_y=100)

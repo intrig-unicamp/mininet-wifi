@@ -27,8 +27,8 @@ def topology():
                              position='40,10,0')
     c0 = net.addController('c0')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     net.plotGraph(max_x=120, max_y=120)
 

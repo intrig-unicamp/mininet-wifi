@@ -709,8 +709,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
             self.addAccessPoint(apName, **params)
             info(apName + ' ')
 
-        info('\n*** Configuring wifi nodes...\n')
-        self.configureWifiNodes()
+        info('\n*** Configuring nodes...\n')
+        self.configureNodes()
 
         super(Mininet_wifi, self).buildFromTopo(topo)
 
@@ -1333,6 +1333,10 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
             HostapdConfig.restartNetworkManager()
 
     def configureWifiNodes(self):
+        "Keep backward compatibility"
+        self.configureNodes
+
+    def configureNodes(self):
         "Configure WiFi Nodes"
         params = {}
         if self.docker:

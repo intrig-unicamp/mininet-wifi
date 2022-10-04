@@ -23,8 +23,8 @@ def topology():
     ap2 = net.addAccessPoint('ap2', wlans=2, ssid='ssid2', position='30,10,0')
     c0 = net.addController('c0')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Associating Stations\n")
     net.addLink(sta1, ap1)

@@ -43,8 +43,8 @@ def topology(args):
                              ssid='ssid', mode="g", channel="1", position='30,40,0')
     c0 = net.addController('c0')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     if '-p' not in args:
         net.plotGraph(max_x=100, max_y=100)

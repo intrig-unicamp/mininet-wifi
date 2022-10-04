@@ -30,8 +30,8 @@ def topology():
     sta2 = net.addStation('sta2')
     c0 = net.addController('c0')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Associating Stations\n")
     net.addLink(sta1, ap1)

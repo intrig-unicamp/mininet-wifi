@@ -23,7 +23,7 @@ def topology():
     net.addModem('m1')
 
     info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    net.configureNodes()
 
     info("*** Starting network\n")
     net.start()

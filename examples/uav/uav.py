@@ -28,8 +28,8 @@ def topology():
 
     net.setPropagationModel(model="logDistance", exp=4.5)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     net.addLink(dr1, cls=adhoc, intf='dr1-wlan0',
                 ssid='adhocNet', proto='batman_adv',

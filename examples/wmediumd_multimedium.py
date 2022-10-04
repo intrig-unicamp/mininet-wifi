@@ -45,8 +45,8 @@ def topology():
                        (sta5,))  # Medium #3
     net.setInitialMediums(initial_mediums)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     net.plotGraph(max_x=3000, max_y=1000)
 

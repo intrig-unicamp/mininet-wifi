@@ -27,8 +27,8 @@ def topology():
                              channel='1', position='50,50,0')
     c0 = net.addController('c0', port=6653)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Starting network\n")
     net.build()

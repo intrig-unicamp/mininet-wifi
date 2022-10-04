@@ -38,7 +38,7 @@ def topology():
     sensor4 = net.addSensor('sensor4', ip6='fe80::4/64', panid='0xbeef', dodag_rank=2)
 
     info("*** Configuring nodes\n")
-    net.configureWifiNodes()
+    net.configureNodes()
 
     info("*** Adding links\n")
     net.addLink(sensor1, sensor2, cls=LoWPAN)

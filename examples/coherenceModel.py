@@ -19,8 +19,8 @@ def topology(args):
                              channel='1', failMode="standalone",
                              position='50,50,0')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     if '-p' not in args:
         net.plotGraph(max_x=300, max_y=300)

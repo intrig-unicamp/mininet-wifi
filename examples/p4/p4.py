@@ -46,7 +46,7 @@ def topology(remote_controller):
         info('*** Adding Controller\n')
         net.addController('c0', controller=RemoteController)
 
-    net.configureWifiNodes()
+    net.configureNodes()
 
     info('*** Creating links\n')
     net.addLink(sta1, ap1)

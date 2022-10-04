@@ -31,8 +31,8 @@ def topology(args):
 
     net.setPropagationModel(model="logDistance", exp=4.5)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     ap1.setMasterMode(intf='ap1-wlan0', ssid='ap1-ssid', channel='1', mode='n')
     ap2.setMasterMode(intf='ap2-wlan0', ssid='ap2-ssid', channel='6', mode='n')

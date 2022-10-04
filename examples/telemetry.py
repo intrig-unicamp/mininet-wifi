@@ -30,8 +30,8 @@ def topology():
     info("*** Configuring Propagation Model\n")
     net.setPropagationModel(model="logDistance", exp=4)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     nodes = net.stations
     net.telemetry(nodes=nodes, single=True, data_type='rssi')

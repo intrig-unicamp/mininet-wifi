@@ -31,8 +31,8 @@ def topology(mobility):
     info("*** Configuring Propagation Model\n")
     net.setPropagationModel(model="logDistance", exp=4)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Creating links\n")
     net.addLink(sta1, cls=mesh, ssid='meshNet',

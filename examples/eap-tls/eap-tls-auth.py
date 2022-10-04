@@ -64,8 +64,8 @@ def topology():
                              .format(cwd, cwd, cwd, cwd),
                              client_isolation=True)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Associating Stations\n")
     net.addLink(sta1, ap1)

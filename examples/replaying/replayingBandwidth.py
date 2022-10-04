@@ -20,8 +20,8 @@ def topology():
                              position='50,50,0')
     c1 = net.addController('c1', controller=Controller)
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** adding Link\n")
     net.addLink(sta1, ap1)

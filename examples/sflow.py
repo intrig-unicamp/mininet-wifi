@@ -27,8 +27,8 @@ def topology():
     ap3 = net.addAccessPoint('ap3', wlans=2, ssid='ssid3', failMode='standalone',
                              position='90,10,0')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Associating Stations\n")
     net.addLink(sta1, ap1)

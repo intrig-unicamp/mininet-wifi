@@ -18,8 +18,8 @@ def topology():
                              passwd='123456789a', encrypt='wpa2',
                              failMode="standalone", datapath='user')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Associating Stations\n")
     net.addLink(sta1, ap1)

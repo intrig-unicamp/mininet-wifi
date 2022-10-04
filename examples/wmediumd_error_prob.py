@@ -29,8 +29,8 @@ def topology(args):
                           position='20,60,10')
     c1 = net.addController('c1')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     net.addLink(sta1, ap1, error_prob=0.01)
     net.addLink(sta2, ap1, error_prob=0.02)

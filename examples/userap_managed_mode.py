@@ -23,8 +23,8 @@ def topology():
                               position='10,20,0', cls=UserAP, inNamespace=True)
     c0 = net.addController('c0')
 
-    info("*** Configuring wifi nodes\n")
-    net.configureWifiNodes()
+    info("*** Configuring nodes\n")
+    net.configureNodes()
 
     info("*** Associating Stations\n")
     net.addLink(sta1, intf='sta1-wlan1', cls=mesh,
