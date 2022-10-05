@@ -1255,6 +1255,8 @@ class TCLinkWireless(WirelessIntf):
 
     def __init__(self, node, port=None, intfName=None,
                  addr=None, cls=WirelessLink, **params):
+        if cls == TCLinkWireless:
+            cls = WirelessLink
         WirelessIntf.__init__(self, node=node, port=port,
                               intfName=intfName, cls=cls,
                               addr=addr, **params)
