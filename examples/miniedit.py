@@ -3162,7 +3162,7 @@ class MiniEdit(Frame):
                 f.write(b"    net.setPropagationModel(model=\"logDistance\", exp=3)\n")
                 f.write(b"\n")
                 f.write(b"    info(\"*** Configuring wifi nodes\\n\")\n")
-                f.write(b"    net.configureWifiNodes()\n")
+                f.write(b"    net.configureNodes()\n")
                 f.write(b"\n")
 
             # Save Links

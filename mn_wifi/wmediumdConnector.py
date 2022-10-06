@@ -198,7 +198,7 @@ class WStarter(object):
     def initialize(self, **kwargs):
         """
         Start wmediumd, this method should be called right after
-        Mininet.configureWifiNodes()
+        Mininet.configureNodes()
 
         Notice: The stations can reach each other before this method is
         called and some scripts may use some kind of a cache (eg. iw station
