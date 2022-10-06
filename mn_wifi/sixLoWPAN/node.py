@@ -86,7 +86,7 @@ class LowPANNode(Node_wifi):
     def configRPLD(self):
         cmd = 'ifaces = { {\n'
         cmd += '        ifname = \"{}-pan0\",\n'.format(self.name)
-        if self.params['dodag_rank'] == 0:
+        if self.params['dodag_rank'] == 1:
             cmd += '        dodag_root = true,\n'
             cmd += '        rpls = { {\n'
             cmd += '               instance = 1,\n'
