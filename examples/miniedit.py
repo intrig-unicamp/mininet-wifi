@@ -2869,24 +2869,20 @@ class MiniEdit(Frame):
                     args += switchType_
             if hasHost:
                 if args:
-                    args += ', Host'
-                else:
-                    args += ' Host'
+                    args += ', '
+                args += ' Host'
                 if isCPU:
                     if args:
-                        args += ', CPULimitedHost'
-                    else:
-                        args += 'CPULimitedHost'
+                        args += ', '
+                    args += 'CPULimitedHost'
             if hasLegacyRouter:
                 if args:
-                    args += ', Node'
-                else:
-                    args += ' Node'
+                    args += ', '
+                args += ' Node'
             if hasLegacySwitch:
                 if args:
-                    args += ', OVSKernelSwitch'
-                else:
-                    args += ' OVSKernelSwitch'
+                    args += ', '
+                args += ' OVSKernelSwitch'
 
             if args:
                 f.write(b"from mininet.node import" + args.encode() + b"\n")
@@ -2932,7 +2928,7 @@ class MiniEdit(Frame):
                     if controllerType == 'inband':
                         inBandCtrl = True
 
-            if inBandCtrl == True:
+            if inBandCtrl:
                 f.write(b"\n")
                 f.write(b"class InbandController( RemoteController ):\n")
                 f.write(b"\n")
@@ -3162,7 +3158,7 @@ class MiniEdit(Frame):
                 f.write(b"    net.setPropagationModel(model=\"logDistance\", exp=3)\n")
                 f.write(b"\n")
                 f.write(b"    info(\"*** Configuring wifi nodes\\n\")\n")
-                f.write(b"    net.configureNodes()\n")
+                f.write(b"    net.configureWifiNodes()\n")
                 f.write(b"\n")
 
             # Save Links
