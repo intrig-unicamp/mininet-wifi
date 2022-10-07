@@ -25,7 +25,7 @@ from six import string_types
 from mn_wifi.clean import Cleanup as CleanupWifi
 from mn_wifi.energy import Energy
 from mn_wifi.link import IntfWireless, wmediumd, _4address, HostapdConfig, \
-    WirelessLink, TCLinkWireless, ITSLink, WifiDirectLink, adhoc, mesh, \
+    WirelessLink, TCWirelessLink, ITSLink, WifiDirectLink, adhoc, mesh, \
     master, managed, physicalMesh, PhysicalWifiDirectLink, _4addrClient, \
     _4addrAP, phyAP
 from mn_wifi.mobility import Tracked as TrackedMob, model as MobModel, \
@@ -607,7 +607,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
             if 'bw' not in params and 'bw' not in str(cls):
                 params['bw'] = intf.getCustomRate() if hasattr(intf.node, 'position') else intf.getCustomRate()
             # tc = True, this is useful for tc configuration
-            TCLinkWireless(node=intf.node, intfName=intf.name,
+            TCWirelessLink(node=intf.node, intfName=intf.name,
                            port=intf.id, cls=cls, **params)
             intf.associate(ap_intf)
 
@@ -1160,7 +1160,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
                     new_mac = '{}{}{}'.format(mac[:4], vif_+1, mac[5:])
                     node.cmd('iw dev {} interface add {} '
                              'type station'.format(node.params['wlan'][0], vif))
-                    TCLinkWireless(node, intfName=vif)
+                    TCWirelessLink(node, intfName=vif)
                     managed(node, wlan=vif_+1)
 
                     node.wintfs[vif_+1].mac = new_mac
@@ -1179,7 +1179,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         for wlan in range(len(node.params['wlan'])):
             if not self.autoAssociation or self.roads:
                 intf = node.params['wlan'][wlan]
-                link = TCLinkWireless(node, intfName=intf)
+                link = TCWirelessLink(node, intfName=intf)
                 self.links.append(link)
             managed(node, wlan)
         for intf in node.wintfs.values():
@@ -1319,11 +1319,11 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
                     intf.setAntennaGain(intf.antennaGain)
 
     def configMasterIntf(self, node, wlan):
-        TCLinkWireless(node)
+        TCWirelessLink(node)
         master(node, wlan, port=wlan)
         phy = node.params.get('phywlan', None)
         if phy:
-            TCLinkWireless(node, intfName=phy)
+            TCWirelessLink(node, intfName=phy)
             node.params['wlan'].append(phy)
             phyAP(node, wlan+1)
 
@@ -1459,7 +1459,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         for node in nodes:
             for wlan in range(len(node.params['wlan'])):
                 intf = node.params['wlan'][wlan]
-                link = TCLinkWireless(node, intfName=intf, port=wlan)
+                link = TCWirelessLink(node, intfName=intf, port=wlan)
                 self.links.append(link)
                 # lets set ip/mac to intfs
                 node.intfs[wlan].ip = node.wintfs[wlan].ip

@@ -712,7 +712,7 @@ class HostapdConfig(IntfWireless):
                 intf.vifaces.append(iface)
                 intf.vssid.append(vssid)
                 if not wmediumd_mode.mode:
-                    TCLinkWireless(intf.node, intfName=iface)
+                    TCWirelessLink(intf.node, intfName=iface)
                     VirtualMaster(intf.node, intf.id, intf=iface)
 
     def configure(self, intf):
@@ -1250,12 +1250,12 @@ class WirelessIntf(object):
         return '{}<->{}'.format(self.intf1, self.intf2)
 
 
-class TCLinkWireless(WirelessIntf):
+class TCWirelessLink(WirelessIntf):
     "Link with symmetric TC interfaces configured via opts"
 
     def __init__(self, node, port=None, intfName=None,
                  addr=None, cls=WirelessLink, **params):
-        if cls == TCLinkWireless:
+        if cls == TCWirelessLink:
             cls = WirelessLink
         WirelessIntf.__init__(self, node=node, port=port,
                               intfName=intfName, cls=cls,
@@ -1504,7 +1504,7 @@ class wmediumd(object):
                         vssids = node.params['vssids'].split(',')
                     for id, vif in enumerate(range(len(vssids))):
                         iface = '{}-{}'.format(intf.name, id)
-                        TCLinkWireless(intf.node, intfName=iface)
+                        TCWirelessLink(intf.node, intfName=iface)
                         VirtualMaster(intf.node, intf.id, intf=iface)
 
             for id, intf in enumerate(node.wintfs.values()):
