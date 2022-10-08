@@ -89,7 +89,7 @@ class LowPANNode(Node_wifi):
         if not 'storing_mode' in self.params:
             self.params['storing_mode'] = 2
         cmd += '        storing_mode = {},\n'.format(self.params['storing_mode'])
-        if self.params['dodag_rank'] == 1:
+        if 'dodag_root' in self.params and self.params['dodag_root']:
             cmd += '        dodag_root = true,\n'
             cmd += '        rpls = { {\n'
             cmd += '               instance = 1,\n'
