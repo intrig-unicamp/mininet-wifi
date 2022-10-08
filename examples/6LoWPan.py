@@ -31,10 +31,15 @@ def topology():
     # because there is no wmediumd-like code for mac802154_hwim yet.
     # However, you may want to add mobility and node position
     # and use wpan-hwsim for some purposes.
-    sensor1 = net.addSensor('sensor1', ip6='fe80::1/64', panid='0xbeef', dodag_rank=1)
-    sensor2 = net.addSensor('sensor2', ip6='fe80::2/64', panid='0xbeef', dodag_rank=2)
-    sensor3 = net.addSensor('sensor3', ip6='fe80::3/64', panid='0xbeef', dodag_rank=2)
-    sensor4 = net.addSensor('sensor4', ip6='fe80::4/64', panid='0xbeef', dodag_rank=3)
+    # dodag_rank and storing mode only work with RPLD
+    sensor1 = net.addSensor('sensor1', ip6='fe80::1/64', panid='0xbeef',
+                            dodag_rank=1, storing_mode=2)
+    sensor2 = net.addSensor('sensor2', ip6='fe80::2/64', panid='0xbeef',
+                            dodag_rank=2, storing_mode=2)
+    sensor3 = net.addSensor('sensor3', ip6='fe80::3/64', panid='0xbeef',
+                            dodag_rank=2, storing_mode=2)
+    sensor4 = net.addSensor('sensor4', ip6='fe80::4/64', panid='0xbeef',
+                            dodag_rank=3, storing_mode=2)
 
     info("*** Configuring nodes\n")
     net.configureNodes()
