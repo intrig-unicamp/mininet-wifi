@@ -54,7 +54,7 @@ class LowPANNode(Node_wifi):
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
          self.lastPid, self.lastCmd, self.pollOut) = (
-             None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None)
         self.waiting = False
         self.readbuf = ''
 
@@ -86,6 +86,9 @@ class LowPANNode(Node_wifi):
     def configRPLD(self):
         cmd = 'ifaces = { {\n'
         cmd += '        ifname = \"{}-pan0\",\n'.format(self.name)
+        if not 'storing_mode' in self.params:
+            self.params['storing_mode'] = 2
+        cmd += '        storing_mode = {},\n'.format(self.params['storing_mode'])
         if self.params['dodag_rank'] == 1:
             cmd += '        dodag_root = true,\n'
             cmd += '        rpls = { {\n'
@@ -163,12 +166,12 @@ class APSensor(LowPANNode):
             # Use hex of the first number in the switch name
             nums = re.findall(r'\d+', self.name)
             if nums:
-                dpid = hex(int(nums[ 0 ]))[ 2: ]
+                dpid = hex(int(nums[0]))[2:]
             else:
                 raise Exception('Unable to derive default datapath ID - '
                                 'please either specify a dpid or use a '
                                 'canonical ap name such as ap23.')
-            return '1' + '0' * (self.dpidLen -1 - len(dpid)) + dpid
+            return '1' + '0' * (self.dpidLen - 1 - len(dpid)) + dpid
 
     def defaultIntf(self):
         "Return control interface"
@@ -206,8 +209,8 @@ class APSensor(LowPANNode):
 
     def __repr__(self):
         "More informative string representation"
-        intfs = (','.join([ '%s:%s' % (i.name, i.IP())
-                            for i in self.intfList() ]))
+        intfs = (','.join(['%s:%s' % (i.name, i.IP())
+                           for i in self.intfList()]))
         return '<%s %s: %s pid=%s> ' % (
             self.__class__.__name__, self.name, intfs, self.pid)
 
@@ -225,7 +228,7 @@ class UserSensor(APSensor):
         super(UserAP, self).__init__(name, dpopts='--no-slicing', **kwargs)
         pathCheck('ofdatapath', 'ofprotocol',
                   moduleName='the OpenFlow reference user switch' +
-                  '(openflow.org)')
+                             '(openflow.org)')
         if self.listenPort:
             self.opts += ' --listen=ptcp:%i ' % self.listenPort
         else:
@@ -237,13 +240,13 @@ class UserSensor(APSensor):
            Log to /tmp/sN-{ofd,ofp}.log.
            controllers: list of controller objects"""
         # Add controllers
-        clist = ','.join([ 'tcp:%s:%d' % (c.IP(), c.port)
-                           for c in controllers ])
+        clist = ','.join(['tcp:%s:%d' % (c.IP(), c.port)
+                          for c in controllers])
         ofdlog = '/tmp/' + self.name + '-ofd.log'
         ofplog = '/tmp/' + self.name + '-ofp.log'
-        intfs = [ str(i) for i in self.intfList()
-                  if (isinstance(i, IntfSixLoWPAN) and not i.IP6() or
-                      (not isinstance(i, IntfSixLoWPAN) and not i.IP()))]
+        intfs = [str(i) for i in self.intfList()
+                 if (isinstance(i, IntfSixLoWPAN) and not i.IP6() or
+                     (not isinstance(i, IntfSixLoWPAN) and not i.IP()))]
 
         self.cmd('ofdatapath -i ' + ','.join(intfs) +
                  ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid +
@@ -331,9 +334,9 @@ class OVSSensor(APSensor, OVSSwitch):
                          not isinstance(intf, IntfSixLoWPAN) and not intf.IP()))
 
         # Command to create controller entries
-        clist = [ (self.name + c.name, '%s:%s:%d' %
-                   (c.protocol, c.IP(), c.port))
-                  for c in controllers ]
+        clist = [(self.name + c.name, '%s:%s:%d' %
+                  (c.protocol, c.IP(), c.port))
+                 for c in controllers]
         if self.listenPort:
             clist.append((self.name + '-listen',
                           'ptcp:%s' % self.listenPort))
