@@ -37,6 +37,22 @@ _optional_:
 -P: P4 dependencies    
 -6: wpan tools
 
+#### Docker
+**This is recommended if you are using a different linux distribution from the ones supported by the installation script.** 
+
+If you prefer to use Mininet-WiFi with Docker you should follow the steps described below:
+
+1. Building the docker image:
+    ```sh
+    docker build -t mn-wifi:v1 .
+    ```
+
+2. Running the container: Mininet-WiFi relies on Kernel modules from the host, requires elevated privilege, and the host network interface:
+
+    ```sh
+    docker run -it --rm --privileged --env="DISPLAY" --env="QT_X11_NO_MITSHM=1" -v /tmp/.X11-unix:/tmp/.X11-unix:rw --net host -v /sys/:/sys -v /lib/modules:/lib/modules -v /sys/kernel/debug:/sys/kernel/debug -v /var/run/netns:/var/run/netns mn-wifi:v1
+    ```
+
 ### Building Topologies with GUI
 
 ![](https://github.com/ramonfontes/vnd/blob/master/miniedit.png)
