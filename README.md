@@ -40,7 +40,7 @@ _optional_:
 #### Docker
 **This is recommended if you are using a different linux distribution from the ones supported by the installation script.** 
 
-If you prefer to use Mininet-WiFi with Docker you should follow the steps:
+If you prefer to use Mininet-WiFi with Docker you should follow the steps described below:
 
 1. Building the docker image:
     ```sh
