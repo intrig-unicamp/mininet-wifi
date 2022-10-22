@@ -66,7 +66,7 @@ For instructions about easier development check [this helper file](doc/dev_help.
 ## Pre-configured Virtual Machine    
 For your convenience, we provide pre-built VM images including Mininet-WiFi and other useful software. The VM images are in .ova format and should be usable with any modern x64 virtualization system.   
   
-[[3.4GB Size] - Lubuntu 20.04 x64](https://drive.google.com/file/d/1R8n4thPwV2krFa6WNP0Eh05ZHZEdhw4W/view?usp=sharing) - Mininet-WiFi (_pass: wifi_)     
+[[4.6GB Size] - Lubuntu 20.04 x64](https://drive.google.com/file/d/1R8n4thPwV2krFa6WNP0Eh05ZHZEdhw4W/view?usp=sharing) - Mininet-WiFi (_pass: wifi_)     
 [[6.7GB Size] - Lubuntu 20.04 x64](https://drive.google.com/file/d/1oozRqFO2KjjxW0Ob47d6Re4i6ay1wdwg/view?usp=sharing) - Mininet-WiFi with P4 (_pass: wifi_)     
 
    
