@@ -87,7 +87,7 @@ class IntfWireless(Intf):
         cmd = 'tc qdisc replace dev {} root handle 2: netem '.format(iface)
         cmd += 'rate {:.4f}mbit '.format(bw)
         if latency > 0.1: cmd += 'latency {:.2f}ms '.format(latency)
-        if loss > 0.1: cmd += 'loss {:.1f}%% '.format(loss)
+        if loss > 0.1: cmd += 'loss {:.1f}% '.format(loss)
         self.node.pexec(cmd)
 
     def get_default_gw(self):
