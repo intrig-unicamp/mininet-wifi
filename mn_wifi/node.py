@@ -380,7 +380,7 @@ class Node_wifi(Node):
            intf: intf or intf name
            ip: IP address as a string
            kwargs: any additional arguments for intf.setIP"""
-        if isinstance(self, Station) or isinstance(self, Car):
+        if intf in self.wintfs:
             return self.getNameToWintf(intf).setIP(ip, prefixLen, **kwargs)
         return self.intf(intf).setIP(ip, prefixLen, **kwargs)
 
