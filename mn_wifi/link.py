@@ -683,12 +683,10 @@ class IntfWireless(Intf):
 
 
 class HostapdConfig(IntfWireless):
-    write_mac = False
-    nm_conf_file = '/etc/NetworkManager/conf.d/unmanaged.conf'
 
     def __init__(self, intf):
         'configure hostapd'
-        self.check_nm(intf)
+        self.check_vssid(intf)
         self.configure(intf)
         self.set_mac_viface(intf)
 
@@ -699,9 +697,7 @@ class HostapdConfig(IntfWireless):
                 vintf.node.params['wlan'].append(vintf.name)
                 vintf.mac = vintf.getMAC()
 
-    def check_nm(self, intf):
-        self.checkNetworkManager(intf)
-
+    def check_vssid(self, intf):
         if 'vssids' in intf.node.params:
             if isinstance(intf.node.params['vssids'], list):
                 vssids = intf.node.params['vssids'][intf.id].split(',')
@@ -913,52 +909,6 @@ class HostapdConfig(IntfWireless):
         return cmd
 
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-
-    @classmethod
-    def restartNetworkManager(cls):
-        """Restart network manager if the mac address of the AP
-        is not included at /etc/NetworkManager/conf.d/unmanaged.conf"""
-        nms = 'network-manager'
-        nm_is_running = sh('service {} status 2>&1 | grep '
-                           '-ic running >/dev/null 2>&1'.format(nms))
-        if nm_is_running != 256:
-            info('Mac address(es) added into {}\n'.format(cls.nm_conf_file))
-            info('Restarting {}...\n'.format(nms))
-            sh('sudo service network-manager restart')
-            # sh('nmcli general reload')
-            sleep(2)
-
-    def checkNetworkManager(self, intf):
-        "add mac address into /etc/NetworkManager/conf.d/unmanaged.conf"
-        unmanaged = 'unmanaged-devices'
-        nmdir = '/etc/NetworkManager'
-        old_content = ''
-
-        if path.isdir(nmdir) and not path.isfile(self.nm_conf_file):
-            open(self.nm_conf_file, 'w').close()
-
-        if path.isdir(nmdir):
-            file = open(self.nm_conf_file, 'rt')
-            data = file.read()
-            isNew = True
-            for content in data.split('\n'):
-                if unmanaged in content:
-                    old_content = content
-                    new_content = old_content
-                    isNew = False
-            if isNew:
-                sh('echo \'#\' >> {}'.format(self.nm_conf_file))
-                new_content = "[keyfile]\n{}=".format(unmanaged)
-
-            name = intf.node.name + '*'
-            if name not in old_content:
-                new_content += "interface-name:{};".format(name)
-                data = data.replace(old_content, new_content)
-                file.close()
-                file = open(self.nm_conf_file, "wt")
-                file.write(data)
-                file.close()
-                HostapdConfig.write_mac = True
 
     def ap_config_file(self, cmd, intf):
         "run an Access Point and create the config file"
