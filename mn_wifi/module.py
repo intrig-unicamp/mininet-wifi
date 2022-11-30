@@ -4,7 +4,8 @@
 from os import system as sh, path, getpid
 from re import search
 from time import sleep
-from subprocess import check_output as co, PIPE, Popen, call, DEVNULL
+from subprocess import check_output as co, PIPE, Popen, call, DEVNULL, \
+    CalledProcessError
 from logging import basicConfig, exception, DEBUG
 from mininet.log import debug, info, error
 
@@ -217,14 +218,19 @@ class Mac80211Hwsim(object):
         self.logging_to_file(log_filename)
 
         try:
+            pids = co(['pgrep', '-f', 'NetworkManager'])
+        except CalledProcessError:
+            pids = ''
+
+        try:
             for wlan in range(len(node.params['wlan'])):
                 try:
                     rc = call(['which', 'nmcli'], stdout=DEVNULL)
                 except:
                     rc = call(['which', 'nmcli'], stdout=FNULL)
-                if rc == 0:
-                    sh('nmcli device set {} managed no'.format(wlan_list[0]))
-                    sleep(0.1)
+                if pids and rc == 0:
+                        sh('nmcli device set {} managed no'.format(wlan_list[0]))
+                        sleep(0.1)
                 if isinstance(node, AP) and not node.inNamespace:
                     self.rename(node, wlan_list[0], node.params['wlan'][wlan])
                 else:
