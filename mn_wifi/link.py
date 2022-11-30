@@ -767,6 +767,7 @@ class HostapdConfig(IntfWireless):
         if intf.mode == 'ax':
             intf.country_code = 'DE'
         if 'n' in intf.mode:
+            cmd += "\ncountry_code={}".format(intf.country_code)
             cmd += "\nhw_mode=g" if intf.mode == 'n2' else "\nhw_mode=a"
         elif intf.mode == 'a':
             cmd += "\ncountry_code={}".format(intf.country_code)
@@ -922,6 +923,8 @@ class HostapdConfig(IntfWireless):
         cmd = self.get_hostapd_cmd(intf)
         try:
             intf.cmd(cmd)
+            if intf.country_code == 'US':
+                sleep(0.5)
             if int(intf.channel) == 0 or intf.channel == 'acs_survey':
                 info("*** Waiting for ACS... It takes 10 seconds.\n")
                 sleep(10)
