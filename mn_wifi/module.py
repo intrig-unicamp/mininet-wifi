@@ -1,11 +1,10 @@
 # author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 
-from os import system as sh, path, getpid
+from os import system as sh, path, getpid, devnull
 from re import search
 from time import sleep
-from subprocess import check_output as co, PIPE, Popen, call, DEVNULL, \
-    CalledProcessError
+from subprocess import check_output as co, PIPE, Popen, call, CalledProcessError
 from logging import basicConfig, exception, DEBUG
 from mininet.log import debug, info, error
 
@@ -224,10 +223,8 @@ class Mac80211Hwsim(object):
 
         try:
             for wlan in range(len(node.params['wlan'])):
-                try:
-                    rc = call(['which', 'nmcli'], stdout=DEVNULL)
-                except:
-                    rc = call(['which', 'nmcli'], stdout=FNULL)
+                f = open(devnull, 'w')
+                rc = call(['which', 'nmcli'], stdout=f)
                 if pids and rc == 0:
                         sh('nmcli device set {} managed no'.format(wlan_list[0]))
                         sleep(0.1)
