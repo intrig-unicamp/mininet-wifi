@@ -183,7 +183,6 @@ class Node_wifi(Node):
         """Set medium id to create isolated interface groups"""
         self.getNameToWintf(intf).setMediumId(medium_id)
 
-
     def get_txpower(self, intf):
         connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % intf)
         cmd = 'iw dev %s info | grep txpower | awk \'{print $2}\'' % intf
@@ -248,7 +247,7 @@ class Node_wifi(Node):
 
     def getxyz(self): 
         pos = self.position 
-        x,y = round(pos[0], 2), round(pos[1], 2)
+        x, y = round(pos[0], 2), round(pos[1], 2)
         #only access third element if it exists 
         if len(pos) == 3:
             z = round(pos[2], 2) 
@@ -280,9 +279,12 @@ class Node_wifi(Node):
 
     def update_graph(self):
         if plt.fignum_exists(1):
-            self.set_circle_radius()
-            self.updateLine()
-            self.update_2d()
+            if hasattr(self.circle, 'set_radius'):
+                self.set_circle_radius()
+                self.updateLine()
+                self.update_2d()
+            else:
+                self.update_3d()
 
     def get_distance_to(self, dst):
         """Get the distance between two nodes
