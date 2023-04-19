@@ -86,14 +86,14 @@ class LowPANNode(Node_wifi):
     def configRPLD(self):
         cmd = 'ifaces = { {\n'
         cmd += '        ifname = \"{}-pan0\",\n'.format(self.name)
-        if not 'storing_mode' in self.params:
+        if 'storing_mode' not in self.params:
             self.params['storing_mode'] = 2
-        cmd += '        storing_mode = {},\n'.format(self.params['storing_mode'])
         if 'dodag_root' in self.params and self.params['dodag_root']:
             cmd += '        dodag_root = true,\n'
             cmd += '        rpls = { {\n'
             cmd += '               instance = 1,\n'
             cmd += '               dags = { {\n'
+            cmd += '                       mode_of_operation = {},\n'.format(self.params['storing_mode'])
             cmd += '                       dest_prefix = \"fd3c:be8a:173f:8e80::/64\",\n'
             cmd += '               }, }\n'
             cmd += '        }, }\n'
