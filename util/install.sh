@@ -563,6 +563,7 @@ function of13 {
     # Resume the install:
     cd $BUILD_DIR/ofsoftswitch13
     ./boot.sh
+    sed -i 's/^AM_CFLAGS = -Wstrict-prototypes -Werror$/AM_CFLAGS = -Wstrict-prototypes -Werror -Wno-error=stringop-truncation -Wno-error=format-truncation=/g' Makefile.am
     ./configure
     make
     sudo make install
