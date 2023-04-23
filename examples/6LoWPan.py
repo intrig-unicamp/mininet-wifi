@@ -59,7 +59,7 @@ def topology():
 
     if '-r' in sys.argv:
         info("*** Configuring RPLD\n")
-        # You must have https://github.com/linux-wpan/rpld
+        # You must have the nonstoring_mode branch from https://github.com/linux-wpan/rpld
         net.configRPLD(net.sensors)
 
     info("*** Running CLI\n")
