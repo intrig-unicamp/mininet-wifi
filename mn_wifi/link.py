@@ -4,11 +4,11 @@
    @Contributor: Joaquin Alvarez (j.alvarez@uah.es)
 """
 
-from os import system as sh, getpid, path
+from os import system as sh, getpid
 import re
-import glob
 import subprocess
 from time import sleep
+from glob import glob
 from subprocess import check_output as co, CalledProcessError
 
 from mininet.link import Intf, TCIntf, Link
@@ -411,7 +411,7 @@ class IntfWireless(Intf):
 
     def check_if_wpafile_exist(self):
         file = '{}_{}.staconf'.format(self.name, self.id)
-        return glob.glob(file)
+        return glob(file)
 
     def wpaFile(self, ap_intf):
         cmd = ''
