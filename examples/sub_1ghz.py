@@ -24,9 +24,6 @@ def topology(args):
                    position='10,20,0')
     net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.2/8',
                    position='20,50,0')
-    net.addStation('sta3', mac='00:00:00:00:00:04', ip='10.0.0.3/8',
-                   position='20,60,10')
-    c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
     net.setPropagationModel(model="logDistance", exp=4)
@@ -39,8 +36,7 @@ def topology(args):
 
     info("*** Starting network\n")
     net.build()
-    c1.start()
-    ap1.start([c1])
+    ap1.start([])
 
     info("*** Running CLI\n")
     CLI(net)
