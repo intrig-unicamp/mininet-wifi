@@ -1069,15 +1069,21 @@ class _4address(Link, IntfWireless):
            node1: ap
            node2: client
            port1/port2: port id"""
-        intfName2 = '{}.wds'.format(node2.name)
+        wlan = port2 if port2 else 0
+        apwlan = port1 if port1 else 0
+
+        if hasattr(node2, 'cwds'):
+            node2.cwds += 1
+        else:
+            node2.cwds = 0
+
+        print(node2.cwds)
+        intfName2 = '{}.wds{}'.format(node2.name, node2.cwds)
 
         if not hasattr(node1, 'position'): self.setPos(node1)
         if not hasattr(node2, 'position'): self.setPos(node2)
 
         if intfName2 not in node2.params['wlan']:
-            wlan = node2.params['wlan'].index(port1) if port1 else 0
-            apwlan = node1.params['wlan'].index(port2) if port2 else 0
-
             intf = node2.wintfs[wlan]
             ap_intf = node1.wintfs[apwlan]
 
@@ -1110,10 +1116,10 @@ class _4address(Link, IntfWireless):
             _4addrAP(node1, node1_intf_index)
             _4addrClient(node2, node2_intf_index)
 
-            node2.wintfs[node2_intf_index].mac = intf.mac[:3] + '09' + intf.mac[5:]
-            self.bring4addrIfaceDown()
-            self.setMAC(node2.wintfs[node2_intf_index])
-            self.bring4addrIfaceUP()
+            node2.wintfs[node2_intf_index].mac = intf.mac[:3] + '09' + ':0' + str(node2.cwds) + intf.mac[8:]
+            self.bring4addrIfaceDown(node2.cwds)
+            self.setMAC(node2.wintfs[node2_intf_index], node2.cwds)
+            self.bring4addrIfaceUP(node2.cwds)
             self.iwdev_cmd('{} connect {} {}'.format(
                 node2.params['wlan'][node2_intf_index], ap_intf.ssid, ap_intf.mac))
 
@@ -1126,14 +1132,14 @@ class _4address(Link, IntfWireless):
             id = int(hex(int(nums[0]))[2:])
             node.position = (10, round(id, 2), 0)
 
-    def bring4addrIfaceDown(self):
-        self.cmd('ip link set dev {}.wds down'.format(self.node))
+    def bring4addrIfaceDown(self, wlan):
+        self.cmd('ip link set dev {}.wds{} down'.format(self.node, wlan))
 
-    def bring4addrIfaceUP(self):
-        self.cmd('ip link set dev {}.wds up'.format(self.node))
+    def bring4addrIfaceUP(self, wlan):
+        self.cmd('ip link set dev {}.wds{} up'.format(self.node, wlan))
 
-    def setMAC(self, intf):
-        self.cmd('ip link set dev {}.wds addr {}'.format(intf.node, intf.mac))
+    def setMAC(self, intf, wlan):
+        self.cmd('ip link set dev {}.wds{} addr {}'.format(intf.node, wlan, intf.mac))
 
     def add4addrIface(self, intf, intfName):
         self.iwdev_cmd('{} interface add {} type managed 4addr on'.format(
