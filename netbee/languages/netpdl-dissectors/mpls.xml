@@ -1,0 +1,38 @@
+<protocol name="mpls" longname="Multi Protocol Label Switching" showsumtemplate="mpls">
+	<format>
+		<fields>
+			<!--
+			The CoS field is identified as Exp (Experimental Use) inside RFC 3032
+			-->
+			<field type="bit" name="label" longname="Label" mask="0xFFFFF000" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="cos" longname="Class of Service" mask="0x00000E00" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="s" longname="Bottom of Stack" mask="0x00000100" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="ttl" longname="Time To Live"  mask="0x000000FF" size="4" showtemplate="FieldDec"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<if expr="buf2int(s) == 1">
+			<if-true>
+				<switch expr="buf2int(label)">
+					<case value="0"> <nextproto proto="#ip"/> </case>
+					<case value="2"> <nextproto proto="#ipv6"/> </case>
+					<default> 
+						<nextproto proto="#ip"/>
+					</default>		
+				</switch>
+			</if-true>	
+			<if-false>
+				<nextproto proto="#mpls"/>
+			</if-false>
+		</if>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="mpls">
+			<section name="next"/>
+			<text value="LABEL: "/>
+			<protofield name="label" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

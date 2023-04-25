@@ -1,0 +1,42 @@
+PCRE_COPY_NAMED_SUBSTRING(3)                      PCRE_COPY_NAMED_SUBSTRING(3)
+
+
+
+NAME
+       PCRE - Perl-compatible regular expressions
+
+SYNOPSIS
+
+       #include <pcre.h>
+
+       int pcre_copy_named_substring(const pcre *code,
+            const char *subject, int *ovector,
+            int stringcount, const char *stringname,
+            char *buffer, int buffersize);
+
+DESCRIPTION
+
+       This is a convenience function for extracting a captured
+       substring, identified by name, into a given buffer.  The
+       arguments are:
+
+         code          Pattern that was successfully matched
+         subject         Subject  that  has  been  successfully
+       matched
+         ovector       Offset vector that pcre_exec() used
+         stringcount   Value returned by pcre_exec()
+         stringname    Name of the required substring
+         buffer        Buffer to receive the string
+         buffersize    Size of buffer
+
+       The   yield   is   the   length   of   the    substring,
+       PCRE_ERROR_NOMEMORY  if  the  buffer  was  too small, or
+       PCRE_ERROR_NOSUBSTRING if the string name is invalid.
+
+       There is a complete description of the PCRE  native  API
+       in  the  pcreapi page and a description of the POSIX API
+       in the pcreposix page.
+
+
+
+                                                  PCRE_COPY_NAMED_SUBSTRING(3)

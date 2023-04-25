@@ -1,0 +1,586 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	elementFormDefault="qualified">
+	<xs:element name="after">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="assign-variable" minOccurs="0"
+					maxOccurs="unbounded" />
+				<xs:element ref="if" minOccurs="0" maxOccurs="unbounded" />
+			</xs:sequence>
+			<xs:attribute name="when" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="alias">
+		<xs:complexType>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="replacewith" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="assign-lookuptable">
+		<xs:complexType>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="value" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="assign-variable">
+		<xs:complexType>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="value" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="before">
+		<xs:complexType>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element ref="update-lookuptable" />
+				<xs:element ref="if" />
+				<xs:element ref="assign-variable" />
+			</xs:choice>
+			<xs:attribute name="when" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="block">
+		<xs:complexType mixed="true">
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element ref="field" />
+				<xs:element ref="loop" />
+				<xs:element ref="switch" />
+				<xs:element ref="if" />
+				<xs:element ref="block" />
+				<xs:element ref="includeblk" />
+				<xs:element ref="loopctrl" />
+			</xs:choice>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="longname" type="xs:string" />
+			<xs:attribute name="showsumtemplate" type="xs:string" />
+			<xs:attribute name="description" type="xs:string" />
+			<xs:attribute name="size" type="xs:byte" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="case">
+		<xs:complexType mixed="true">
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element ref="block" />
+				<xs:element ref="field" />
+				<xs:element ref="if" />
+				<xs:element ref="includeblk" />
+				<xs:element ref="loop" />
+				<xs:element ref="loopctrl" />
+				<xs:element ref="nextproto" />
+				<xs:element ref="nextproto-candidate" />
+				<xs:element ref="switch" />
+			</xs:choice>
+			<xs:attribute name="value" type="xs:string" use="required" />
+			<xs:attribute name="show" type="xs:string" />
+			<xs:attribute name="comment" type="xs:string" />
+			<xs:attribute name="maxvalue" type="xs:short" />
+			<xs:attribute name="name" type="xs:string" />
+			<xs:attribute name="longname" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="data">
+		<xs:complexType>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="type" type="xs:string" use="required" />
+			<xs:attribute name="size" type="xs:byte" />
+			<xs:attribute name="value" type="xs:byte" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="default">
+		<xs:complexType mixed="true">
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element ref="field" />
+				<xs:element ref="nextproto" />
+				<xs:element ref="includeblk" />
+				<xs:element ref="loopctrl" />
+				<xs:element ref="block" />
+			</xs:choice>
+			<xs:attribute name="show" type="xs:string" />
+			<xs:attribute name="comment" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="encapsulation">
+		<xs:complexType>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element ref="nextproto" />
+				<xs:element ref="nextproto-candidate" />
+				<xs:element ref="if" />
+				<xs:element ref="switch" />
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="execute-code">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="init" minOccurs="0" />
+				<xs:element ref="verify" minOccurs="0" />
+				<xs:element ref="before" minOccurs="0" maxOccurs="unbounded" />
+				<xs:element ref="after" minOccurs="0" maxOccurs="unbounded" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="field">
+		<xs:complexType mixed="true">
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element ref="field" />
+				<xs:element ref="loop" />
+			</xs:choice>
+			<xs:attribute name="type" type="xs:string" use="required" />
+			<xs:attribute name="name" use="required" >
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:pattern value="[a-zA-Z0-9_]+"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="size" type="xs:short" />
+			<xs:attribute name="longname" type="xs:string" />
+			<xs:attribute name="showtemplate" type="xs:string" use="required" />
+			<xs:attribute name="mask" type="xs:string" />
+			<xs:attribute name="plugin" type="xs:string" />
+			<xs:attribute name="expr" type="xs:string" />
+			<xs:attribute name="description" type="xs:string" />
+			<xs:attribute name="endtoken" type="xs:string" />
+			<xs:attribute name="begintoken" type="xs:string" />
+			<xs:attribute name="endregex" type="xs:string" />
+			<xs:attribute name="endoffset" type="xs:string" />
+			<xs:attribute name="beginregex" type="xs:string" />
+			<xs:attribute name="beginoffset" type="xs:string" />
+			<xs:attribute name="bigendian">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="yes" />
+						<xs:enumeration value="no" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="comment" type="xs:string" />
+			<xs:attribute name="align" type="xs:byte" />
+			<xs:attribute name="enddiscard" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="fields">
+		<xs:complexType mixed="true">
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element ref="field" />
+				<xs:element ref="block" />
+				<xs:element ref="switch" />
+				<xs:element ref="if" />
+				<xs:element ref="loop" />
+				<xs:element ref="includeblk" />
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="format">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="fields" />
+				<xs:element ref="block" minOccurs="0" maxOccurs="unbounded" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="if">
+		<xs:complexType mixed="true">
+			<xs:sequence>
+				<xs:element ref="if-true" />
+				<xs:element minOccurs="0" ref="if-false" />
+				<xs:element minOccurs="0" name="missing-packetdata">
+					<xs:complexType mixed="true">
+						<xs:choice minOccurs="0" maxOccurs="unbounded">
+							<xs:element ref="field" />
+							<xs:element ref="block" />
+							<xs:element ref="switch" />
+							<xs:element ref="if" />
+							<xs:element ref="loop" />
+							<xs:element ref="includeblk" />
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="expr" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="if-false">
+		<xs:complexType>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element ref="field" />
+				<xs:element ref="block" />
+				<xs:element ref="loopctrl" />
+				<xs:element ref="text" />
+				<xs:element ref="if" />
+				<xs:element ref="loop" />
+				<xs:element ref="nextproto" />
+				<xs:element ref="protofield" />
+				<xs:element ref="switch" />
+				<xs:element ref="includeblk" />
+				<xs:element ref="assign-lookuptable" />
+				<xs:element ref="update-lookuptable" />
+				<xs:element ref="nextproto-candidate" />
+				<xs:element ref="assign-variable" />
+				<xs:element ref="section" />
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="if-true">
+		<xs:complexType>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element ref="field" />
+				<xs:element ref="block" />
+				<xs:element ref="loopctrl" />
+				<xs:element ref="text" />
+				<xs:element ref="if" />
+				<xs:element ref="loop" />
+				<xs:element ref="nextproto" />
+				<xs:element ref="protofield" />
+				<xs:element ref="switch" />
+				<xs:element ref="includeblk" />
+				<xs:element ref="assign-lookuptable" />
+				<xs:element ref="update-lookuptable" />
+				<xs:element ref="nextproto-candidate" />
+				<xs:element ref="assign-variable" />
+				<xs:element ref="section" />
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="includeblk">
+		<xs:complexType>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="type" type="xs:string" />
+			<xs:attribute name="longname" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="init">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="alias" minOccurs="0" maxOccurs="unbounded" />
+				<xs:element ref="variable" minOccurs="0" maxOccurs="unbounded" />
+				<xs:element ref="lookuptable" minOccurs="0" maxOccurs="unbounded" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="key">
+		<xs:complexType>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="type" type="xs:string" use="required" />
+			<xs:attribute name="size" type="xs:byte" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="lookupdata">
+		<xs:complexType>
+			<xs:attribute name="value" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="lookupkey">
+		<xs:complexType>
+			<xs:attribute name="value" type="xs:string" use="required" />
+			<xs:attribute name="mask" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="lookuptable">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="key" maxOccurs="unbounded" />
+				<xs:element ref="data" minOccurs="0" maxOccurs="unbounded" />
+			</xs:sequence>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="exactentries" type="xs:long" use="required" />
+			<xs:attribute name="maskentries" type="xs:long" use="required" />
+			<xs:attribute name="validity" use="required">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="static" />
+						<xs:enumeration value="dynamic" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="loop">
+		<xs:complexType>
+			<xs:choice maxOccurs="unbounded">
+				<!-- Bug here; this element must be the fist child of the loop, but I'm 
+					unable to say this using XSD -->
+				<xs:element name="missing-packetdata" minOccurs="0"
+					maxOccurs="1">
+					<xs:complexType mixed="true">
+						<xs:choice minOccurs="0" maxOccurs="unbounded">
+							<xs:element ref="field" />
+							<xs:element ref="block" />
+							<xs:element ref="switch" />
+							<xs:element ref="if" />
+							<xs:element ref="loop" />
+							<xs:element ref="includeblk" />
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="includeblk" />
+				<xs:element ref="switch" />
+				<xs:element ref="block" />
+				<xs:element ref="field" />
+				<xs:element ref="if" />
+				<xs:element ref="loop" />
+			</xs:choice>
+			<xs:attribute name="type">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="do-while" />
+						<xs:enumeration value="size" />
+						<xs:enumeration value="times2repeat" />
+						<xs:enumeration value="while" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="expr" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="loopctrl">
+		<xs:complexType>
+			<xs:attribute name="type" use="required">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="break" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="netpdl">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="protocol" maxOccurs="unbounded" />
+				<xs:element ref="visualization" />
+			</xs:sequence>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="version" type="xs:decimal" use="required" />
+			<xs:attribute name="creator" type="xs:string" use="required" />
+			<xs:attribute name="date" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="nextproto">
+		<xs:complexType>
+			<xs:attribute name="proto" type="xs:string" use="required" />
+			<xs:attribute name="comment" type="xs:string" />
+			<xs:attribute name="preferred">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="true"/>
+						<xs:enumeration value="false"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="nextproto-candidate">
+		<xs:complexType>
+			<xs:attribute name="proto" type="xs:string" use="required" />
+			<xs:attribute name="preferred">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="true"/>
+						<xs:enumeration value="false"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="protocol">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="execute-code" minOccurs="0" />
+				<xs:element ref="format" minOccurs="0" />
+				<xs:element ref="encapsulation" minOccurs="0" />
+				<xs:element ref="visualization" minOccurs="0" />
+			</xs:sequence>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="longname" type="xs:string" use="required" />
+			<xs:attribute name="showsumtemplate" type="xs:string" />
+			<xs:attribute name="comment" type="xs:string" />
+			<xs:attribute name="description" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="protofield">
+		<xs:complexType>
+			<xs:attribute name="name" type="xs:string" />
+			<xs:attribute name="showdata" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="protohdr">
+		<xs:complexType>
+			<xs:attribute name="showdata" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="packethdr">
+		<xs:complexType>
+			<xs:attribute name="value" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="section">
+		<xs:complexType>
+			<xs:attribute name="name" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="showdtl">
+		<xs:complexType>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element ref="text" />
+				<xs:element ref="protofield" />
+				<xs:element ref="if" />
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="showmap">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="switch" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="showsumstruct">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="sumsection" maxOccurs="unbounded" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="showsumtemplate">
+		<xs:complexType>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element ref="section" />
+				<xs:element ref="packethdr" />
+				<xs:element ref="protohdr" />
+				<xs:element ref="protofield" />
+				<xs:element ref="text" />
+				<xs:element ref="if" />
+			</xs:choice>
+			<xs:attribute name="name" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="showtemplate">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="showdtl" minOccurs="0" />
+				<xs:element ref="showmap" minOccurs="0" />
+			</xs:sequence>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="showtype">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="ascii" />
+						<xs:enumeration value="bin" />
+						<xs:enumeration value="dec" />
+						<xs:enumeration value="hex" />
+						<xs:enumeration value="hexnox" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="showgrp" type="xs:byte" />
+			<xs:attribute name="showsep" type="xs:string" />
+			<xs:attribute name="showplg" type="xs:string" />
+			<xs:attribute name="showfast">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="ipv4" />
+						<xs:enumeration value="asciiline" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="sumsection">
+		<xs:complexType>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="longname" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="switch">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="case" maxOccurs="unbounded" />
+				<xs:element ref="default" minOccurs="0" />
+			</xs:sequence>
+			<xs:attribute name="expr" type="xs:string" use="required" />
+			<xs:attribute name="comment" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="text">
+		<xs:complexType>
+			<xs:attribute name="value" type="xs:string" />
+			<xs:attribute name="expr" type="xs:string" />
+			<xs:attribute name="when" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="update-lookuptable">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="lookupkey" maxOccurs="unbounded" />
+				<xs:element ref="lookupdata" minOccurs="0" maxOccurs="unbounded" />
+			</xs:sequence>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="action" use="required">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="add" />
+						<xs:enumeration value="obsolete" />
+						<xs:enumeration value="purge" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="validity">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="keepforever" />
+						<xs:enumeration value="keepmaxtime" />
+						<xs:enumeration value="updateonhit" />
+						<xs:enumeration value="replaceonhit" />
+						<xs:enumeration value="addonhit" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="keeptime" type="xs:long" />
+			<xs:attribute name="hittime" type="xs:long" />
+			<xs:attribute name="newhittime" type="xs:long" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="variable">
+		<xs:complexType>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="type" use="required">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="buffer" />
+						<xs:enumeration value="number" />
+						<xs:enumeration value="protocol" />
+						<xs:enumeration value="refbuffer" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="validity" use="required">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="static" />
+						<xs:enumeration value="thispacket" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="value" type="xs:byte" />
+			<xs:attribute name="size" type="xs:byte" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="verify">
+		<xs:complexType>
+			<xs:sequence minOccurs="0" maxOccurs="unbounded">
+				<xs:element ref="if" />
+			</xs:sequence>
+			<xs:attribute name="when" type="xs:string" />
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="visualization">
+		<xs:complexType>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element ref="showtemplate" minOccurs="0" maxOccurs="unbounded" />
+				<xs:element ref="showsumtemplate" minOccurs="0"
+					maxOccurs="unbounded" />
+				<xs:element ref="showsumstruct" minOccurs="0" />
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

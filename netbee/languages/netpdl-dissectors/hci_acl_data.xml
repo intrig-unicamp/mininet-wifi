@@ -1,0 +1,15 @@
+<protocol name="hci_acl_data" longname="HCI ACL Data">
+	<format>
+		<fields>
+			<field type="fixed" name="acl_connection_handle" longname="Connection Handle" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="acl_data_length" longname="Data Length" size="2" showtemplate="FieldHex"/>
+ 			<!--
+ 			<field type="variable" name="acl_data_payload" longname="Data payload" expr="buf2int(acl_data_length)" showtemplate="Field1BytesHex"/>
+ 			-->
+ 		</fields>
+	</format>
+
+ 	 <encapsulation>
+		<nextproto proto="#l2cap_command"/>
+	</encapsulation>
+</protocol>

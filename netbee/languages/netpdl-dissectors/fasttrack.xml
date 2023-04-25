@@ -1,0 +1,141 @@
+<protocol name="fasttrack" longname="FastTrack" showsumtemplate="fasttrack">
+		<execute-code>
+		<verify>
+		<!-- this signature identify only download sessions -->
+		<!-- signaling sessions are encrypted except first two messages -->
+		<!-- session establishement message have not a known format -->
+			<if expr="hasstring($packet[$currentoffset:0], 'get (/.download/.*|/.supernode.|/.status.|/.network.*|/.files|/.file[0-9]{4}-[0-9a-zA-Z]{34}|/.hash=[0-9a-f]) http/1.1|user-agent: kazaa|x-kazaa(-username|-network|-ip|-supernodeip|-xferid|-xferuid|tag)|give [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]?[0-9]?[0-9]?',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+			<if expr="hasstring($packet[$currentoffset:0], '[\x27\x28].{4}[\x80]\x4b\x61\x5a\x61\x41',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="($protoverify_result == %FOUND) and ($L4proto == #tcp)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#fasttrack"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#fasttrack"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#fasttrack"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+		
+		<before when="($protoverify_result == %FOUND) and ($L4proto == #udp)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#fasttrack"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#fasttrack"/>
+			</update-lookuptable>
+		</before>	
+	</execute-code>
+	
+	<format>
+		<fields>
+			<if expr="$L4proto == #tcp">
+				<if-true>
+					<if expr="$packet[$currentoffset:3] == 'GET'">
+						<if-true>
+							<field type="tokenended" name="method" longname="Method" endtoken=" " showtemplate="FieldAscii"/>
+							<field type="tokenended" name="resource" longname="Resource" endtoken=" " showtemplate="FieldAscii"/>
+							<field type="line" name="version" longname="Version" showtemplate="FieldAscii"/>
+							
+							<field type="tokenended" name="headers" longname="Headers" endtoken="\x0D\x0A\x0D\x0A" showtemplate="FieldAscii"/>					
+						</if-true>
+					</if>
+					
+					<if expr="$packet[$currentoffset:4] == 'HTTP'">
+						<if-true>
+							<field type="tokenended" name="version" longname="Version" endtoken=" " showtemplate="FieldAscii"/>
+							<field type="tokenended" name="response" longname="Response" endtoken="\x0D\x0A" showtemplate="FieldAscii"/>
+							<field type="tokenended" name="headers" longname="Headers" endtoken="\x0D\x0A\x0D\x0A" showtemplate="FieldAscii"/>					
+							
+						</if-true>
+					</if>
+				</if-true>
+				
+				<!--<if-false>-->
+				<!--UDP-->
+				<!--</if-false>-->
+			</if>
+			<field type="variable" name="fasttrackData" longname="Fasttrack Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="fasttrack">
+			<section name="next"/>
+
+					<text value="Fasttrack"/>
+					
+					<if expr="$L4proto == #udp">
+						<if-true>
+							<text value=" UDP"/>
+						</if-true>
+						<if-false>
+							<if expr="ispresent(method)">
+								<if-true>
+									<text value=" Request"/>
+								</if-true>
+								<if-false>
+									<text value=" Download"/>
+								</if-false>
+							</if>						
+						</if-false>
+					</if>
+			
+		</showsumtemplate>
+	</visualization>
+</protocol>

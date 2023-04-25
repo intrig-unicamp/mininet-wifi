@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<netpdl name="nbee.org NetPDL Database" version="0.9" creator="nbee.org" date="09-04-2007">
+
+<protocol name="startproto" longname="Starting Protocol (used only for beginning the parsing)">
+		<execute-code>
+		<init>
+	
+			<!-- NetPDL default variables -->
+			<variable name="$linklayer" type="number" validity="static"/>
+			<variable name="$framelength" type="number" validity="thispacket"/>
+			<variable name="$packetlength" type="number" validity="thispacket"/>
+			<variable name="$currentoffset" type="number" validity="thispacket"/>
+			<variable name="$currentprotooffset" type="number" validity="thispacket"/>
+			<variable name="$timestamp_sec" type="number" validity="thispacket"/>
+			<variable name="$timestamp_usec" type="number" validity="thispacket"/>
+			<variable name="$packet" type="refbuffer" validity="thispacket"/>
+			<variable name="$nextproto" type="protocol" validity="thispacket"/>
+			<variable name="$prevproto" type="protocol" validity="thispacket"/>
+			<variable name="$protoverify_result" type="number" validity="thispacket"/>
+			<variable name="$show_networknames" type="number" validity="static"/>
+
+			<!-- Variables for tokenXXX fields; these are updated after each field (of the proper type), so we do not have to reset them at each packet -->
+			<variable name="$token_begintlen" type="number" validity="static"/>
+			<variable name="$token_fieldlen" type="number" validity="static"/>
+			<variable name="$token_endtlen" type="number" validity="static"/>
+
+			<!-- Other variables are not present in this file, since these are for optional features -->
+		</init>
+	</execute-code>
+
+	<encapsulation>
+			<switch expr="$linklayer">
+				<case value="1"> <nextproto proto="#ethernet"/> </case>
+			</switch>
+	</encapsulation>
+
+</protocol>
+
+
+<protocol name="ethernet" longname="Ethernet 802.3">
+	<format>
+		<fields>
+			<field type="fixed" name="dst" longname="MAC Destination" size="6"/>
+			<field type="fixed" name="src" longname="MAC Source" size="6" />
+			<field type="fixed" name="type" longname="Ethertype - Length" size="2"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<switch expr="buf2int(type)">
+			<case value="0x800"> <nextproto proto="#ip"/> </case>
+			<case value="0x806"> <nextproto proto="#arp"/> </case>
+		</switch>
+	</encapsulation>
+
+</protocol>
+
+<!--
+<protocol name="etherpadding" longname="Ethernet padding">
+	<format>
+		<fields>
+			<field type="variable" name="etherpad" longname="Ethernet Padding (frame less than 64 bytes)" expr="$framelength - $currentoffset"/>
+		</fields>
+	</format>
+</protocol>
+-->
+
+<protocol name="defaultproto" longname="Other data" comment="Generic protocol that is called when no other protocols are available">
+	<format>
+		<fields>
+			<field type="variable" name="payload" longname="Data payload" expr="$packetlength - $currentoffset"/>
+		</fields>
+	</format>
+</protocol>
+
+
+<protocol name="arp" longname="ARP (Address Resolution Protocol)">
+	<format>
+		<fields>
+			<field type="fixed" name="hType" longname="Hardware type" size="2"/>
+			<field type="fixed" name="pType" longname="Protocol type" size="2"/>
+			<field type="fixed" name="hLen" longname="Hardware address length" size="1"/>
+			<field type="fixed" name="pLen" longname="Protocol address length" size="1"/>
+			<field type="fixed" name="op" longname="Operation code" size="2"/>
+			<field type="fixed" name="sHwAddr" longname="Sender MAC address" size="6"/>
+			<field type="fixed" name="sIPAddr" longname="Sender IP address" size="4"/>
+			<field type="fixed" name="dHwAddr" longname="Destination MAC address" size="6"/>
+			<field type="fixed" name="dIPAddr" longname="Destination IP address" size="4"/>
+		</fields>
+	</format>
+</protocol>
+
+
+<protocol name="ip" longname="IPv4 (Internet Protocol version 4)">
+	<format>
+		<fields>
+			<field type="bit" name="ver" longname="Version" mask="0xF0" size="1"/>
+			<field type="bit" name="hlen" longname="Header length" comment="The length is in multiple of 4 bytes" mask="0x0F" size="1"/>
+			<field type="fixed" name="tos" longname="Type of service" size="1"/>
+			<field type="fixed" name="tlen" longname="Total length" size="2"/>
+			<field type="fixed" name="identification" longname="Identification" size="2"/>
+			<block name="ffo" longname="Flags and Fragment offset">
+				<field type="bit" name="unused" longname="Unused" mask="0x8000" size="2"/>
+				<field type="bit" name="df" longname="Don't fragment" mask="0x4000" size="2"/>
+				<field type="bit" name="mf" longname="More fragments" mask="0x2000" size="2"/>
+				<field type="bit" name="foffset" longname="Fragment offset" comment="This is in multiple of 8 bytes" mask="0x1FFF" size="2"/>
+			</block>
+			<field type="fixed" name="ttl" longname="Time to live" size="1"/>
+			<field type="fixed" name="nextp" longname="Next protocol" size="1"/>
+			<field type="fixed" name="hchecksum" longname="Header Checksum" size="2"/>
+			<field type="fixed" name="src" longname="Source address" size="4"/>
+			<field type="fixed" name="dst" longname="Destination address" size="4"/>
+
+			<field type="variable" name="option" longname="IP Options" expr="(buf2int(hlen) * 4) - 20"/>
+		</fields>
+	</format>
+</protocol>
+
+</netpdl>
+

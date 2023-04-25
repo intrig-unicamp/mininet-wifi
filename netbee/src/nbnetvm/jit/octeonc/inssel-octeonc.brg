@@ -1,0 +1,496 @@
+/*****************************************************************************/
+/*                                                                           */
+/* Copyright notice: please read file license.txt in the NetBee root folder. */
+/*                                                                           */
+/*****************************************************************************/
+
+#include <sstream>
+#include <string>
+
+#include "application.h"
+#include "cfg.h"
+#include "int_structs.h" 
+#include "mirnode.h"
+#include "octeonc-asm.h"
+// include the octeon coprocessor file, not to repeat the same code twice
+#include "octeon-coprocessor.h"
+
+#define MBMAX_OPCODES 256
+#define MBTREE_TYPE jit::MIRNode
+#define MBREG_TYPE  jit::octeonc::octeoncRegType
+
+#define MBTREE_LEFT(t) ((t)->getKid(0))
+#define MBTREE_RIGHT(t) ((t)->getKid(1))
+#define MBTREE_OP(t) ((t)->getOpcode())
+#define MBTREE_STATE(t) ((t)->state)
+#define MBTREE_VALUE(t) ((t)->getDefReg())
+#define MBALLOC_STATE   new MBState()
+#define MBGET_OP_NAME(opcode) nvmOpCodeTable[opcode].CodeName
+
+#define MBTREE_GET_CONST_VALUE(t) (((ConstNode *)t)->getValue())
+#define APPLICATION Application::getApp(BB) 
+#define ADDINS(i) BB.getCode().push_back((i))
+
+typedef jit::octeonc::octeonc_Insn IR;
+
+using namespace jit;
+using namespace octeonc;
+
+%%
+
+%term CNST RET SNDPKT PBL LDPORT
+
+;packet load terminals
+%term PBLDS PBLDU PSLDS PSLDU PILD
+;packet store terminals
+%term PBSTR PSSTR PISTR
+;info load terminals
+%term ISSBLD ISBLD ISSSLD ISSLD ISSILD
+;info store terminals
+%term IBSTR ISSTR IISTR
+;data load terminals
+%term DBLDS DBLDU DSLDS DSLDU DILD
+;data store terminals
+%term DBSTR DSSTR DISTR
+
+;inc dec
+%term IINC_1 IDEC_1 
+
+;arithmetic instruction
+%term SUBUOV ADDUOV SUB ADD NEG AND OR NOT
+
+;multiply and divide instructions
+%term IMUL MOD 
+
+;shift instructions
+%term USHR SHR SHL
+
+;jump instructions
+%term JCMPEQ JCMPNEQ JCMPLE JCMPL JCMPG JCMPGE JUMPW JNE JEQ JUMP SWITCH
+
+;load store registers
+%term LDREG STREG
+
+;coprocessors
+%term COPRUN COPINIT COPPKTOUT
+
+;compare
+%term CMP
+
+;clear info mem
+%term INFOCLR
+
+%start stmt
+
+stmt: INFOCLR {
+    static const char* i = 
+    "memset((*exbuf)->InfoData, 0, (*exbuf)->InfoLen);" ;
+    ADDINS(new octeonc_GenerigInsn(i));
+}
+
+con: CNST
+{
+}
+
+reg: con
+{
+	MBREG_TYPE new_reg(MBREG_TYPE::new_virt_reg());
+	uint32_t imm = MBTREE_GET_CONST_VALUE(tree);
+
+	tree->setDefReg(new_reg);
+    std::ostringstream os;
+    //os << "int32_t " << new_reg << " = "
+    os << new_reg << " = "
+       << imm << ";" ;
+    ADDINS(new octeonc_GenerigInsn(os.str()));
+}
+
+stmt: con
+{
+}
+
+stmt: reg
+{
+}
+
+stmt: RET
+{
+	if(Application::getApp(BB).getSegmentType() == INIT_SEGMENT)
+	{
+		//do nothing
+		return;
+	}
+    ADDINS(new octeonc_GenerigInsn("nvmDropPacket(exbuf,0,0);"));
+    ADDINS(new octeonc_GenerigInsn("return 0;"));
+}
+
+reg: LDPORT
+{
+	throw "LDPORT not implemented in Instruction Selection\n";
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Coprocessor instructions
+;
+
+reg: COPINIT
+{
+	CopMIRNode* insn = dynamic_cast<CopMIRNode*>(tree);
+	assert(insn != NULL);
+
+	nvmCoprocessorState* copro = 
+        APPLICATION.getCoprocessor(insn->getcoproId());
+
+	nvmNetPE* pe = APPLICATION.getCurrentPEHandler()->OwnerPE;
+	uint32_t index = pe->Copros[ insn->getcoproId() ];
+
+	nvmCoproInitFunct *init_func = 
+        jit::octeon::octeon_copro_map[index].copro_init;
+
+	nvmMemDescriptor inited(
+        APPLICATION.getMemDescriptor(Application::inited));
+
+	//call compile time init function
+	if(init_func != NULL)
+	{
+		init_func(copro, inited.Base + insn->getcoproInitOffset());
+	}
+
+	MBREG_TYPE reg(MBTREE_VALUE(tree));
+    std::ostringstream os;
+
+    // os << "int32_t " << reg << " = "
+    os << reg << " = "
+       << Application::getCurrentPEHandler()->OwnerPE->Name 
+       << "_" << copro->name << ".init(&" 
+       << Application::getCurrentPEHandler()->OwnerPE->Name 
+       << "_" << copro->name << ", 0);";
+   
+    ADDINS(new octeonc_GenerigInsn(os.str()));
+}
+
+stmt: COPRUN
+{
+	CopMIRNode* insn = dynamic_cast<CopMIRNode*>(tree);
+	assert(insn != NULL);
+
+	nvmCoprocessorState* copro = 
+        APPLICATION.getCoprocessor(insn->getcoproId());
+
+	std::ostringstream os;
+
+    os << Application::getCurrentPEHandler()->OwnerPE->Name 
+       << "_" << copro->name << ".invoke(&" 
+       << Application::getCurrentPEHandler()->OwnerPE->Name 
+       << "_" << copro->name << ", " << insn->getcoproOp() << ");";
+
+    ADDINS(new octeonc_GenerigInsn(os.str()));
+}
+
+stmt: COPPKTOUT
+{
+	CopMIRNode* insn = dynamic_cast<CopMIRNode*>(tree);
+	assert(insn != NULL);
+
+	nvmCoprocessorState* copro = 
+        APPLICATION.getCoprocessor(insn->getcoproId());
+
+	std::ostringstream os;
+    os << Application::getCurrentPEHandler()->OwnerPE->Name 
+       << "_" << copro->name << ".xbuf = (*exbuf);" ;
+
+    ADDINS(new octeonc_GenerigInsn(os.str()));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; packet instruction
+;
+
+stmt: SNDPKT
+{
+	SndPktNode* insn = dynamic_cast<SndPktNode *>(tree);
+	assert(insn != NULL);
+
+	std::ostringstream os;
+    #ifdef OCTEON_MULTICORE
+        os << "nvmSendOut(exbuf, " << (uint32_t) insn->getPort_number() << ", 0);";
+    #else
+        nvmNetPE* pe = Application::getCurrentPEHandler()->OwnerPE;
+
+        nvmPEPort* port = pe->PortTable + (uint32_t) insn->getPort_number();
+        assert(port->PortFlags != 0);
+
+        string next_func;
+
+        if(nvmFLAG_ISSET(port->PortFlags, PORT_CONN_SOCK))
+        {
+            next_func = "nvmSendOut";
+        }
+        else if(nvmFLAG_ISSET(port->PortFlags, PORT_CONN_PE))
+        {
+            next_func = string(port->CtdPE->Name) + "_push";
+        }
+        else throw "Port connected to nothing!!!";
+
+        os << next_func << "(exbuf, " << (uint32_t) insn->getPort_number() << ", 0);";
+    #endif
+
+    os << "\n\treturn 0;\n";
+
+    ADDINS(new octeonc_GenerigInsn(os.str()));
+}
+
+reg: PBL
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+
+	std::ostringstream os;
+    // os << "int32_t " << dst << " = "
+    os << dst << " = "
+       << "(*exbuf)->PacketLen;";
+
+    ADDINS(new octeonc_GenerigInsn(os.str()));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; LDREG STREG
+;
+
+stmt: STREG(reg)
+{
+    MBREG_TYPE src(MBTREE_VALUE(MBTREE_LEFT(tree)));
+    MBREG_TYPE dst(MBTREE_VALUE(tree));
+    std::ostringstream os;
+
+    if(dst.get_model()->get_space() ==
+            Application::getCoprocessorRegSpace())
+    {
+        MBREG_TYPE reg(octeoncRegType::new_virt_reg());
+
+        uint32_t regname = dst.get_model()->get_name();
+        uint32_t coproId = regname / MAX_COPRO_REGISTERS;
+        uint32_t coproReg = regname % MAX_COPRO_REGISTERS;
+
+        nvmCoprocessorState* copro = 
+            APPLICATION.getCoprocessor(coproId);
+
+        os << Application::getCurrentPEHandler()->OwnerPE->Name 
+            << "_" << copro->name << ".registers[" 
+            << coproReg << "] = " << src << ";" ;
+    }
+    else
+    {
+        // os << "int32_t " << dst << " = " << src << ";" ;
+        os << dst << " = " << src << ";" ;
+    }
+    ADDINS(new octeonc_GenerigInsn(os.str()));
+}
+
+reg: LDREG
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+
+	if(dst.get_model()->get_space() == 
+       Application::getCoprocessorRegSpace())
+	{
+		MBREG_TYPE reg(octeoncRegType::new_virt_reg());
+		tree->setDefReg(reg);
+
+		uint32_t regname = dst.get_model()->get_name();
+		uint32_t coproId = regname / MAX_COPRO_REGISTERS;
+		uint32_t coproReg = regname % MAX_COPRO_REGISTERS;
+
+		nvmCoprocessorState* copro = 
+            APPLICATION.getCoprocessor(coproId);
+
+        std::ostringstream os;
+
+        //os << "int32_t " << reg << " = "
+        os << reg << " = "
+           << Application::getCurrentPEHandler()->OwnerPE->Name 
+           << "_" << copro->name << ".registers[" 
+           << coproReg << "];" ;
+        ADDINS(new octeonc_GenerigInsn(os.str()));
+	}
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; INC DEC NEG NOT
+;
+
+reg: IINC_1(reg),
+reg: IDEC_1(reg),
+reg: NEG(reg),
+reg: NOT(reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE src(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+    ADDINS(new octeonc_Unaryexpr(
+        tree, new octeoncRegOperand(dst), new octeoncRegOperand(src)));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Mul and div instructions
+;
+
+reg: IMUL(reg, reg),
+reg: MOD(reg, reg),
+reg: USHR (reg, reg),
+reg: SHR (reg, reg),
+reg: SHL (reg, reg),
+reg: AND(reg, reg),
+reg: OR(reg, reg),
+reg: SUB(reg, reg),
+reg: SUBUOV(reg, reg),
+reg: ADDUOV(reg, reg),
+reg: ADD(reg, reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE src1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+    ADDINS(new octeonc_Binaryexpr(
+        tree, new octeoncRegOperand(dst),
+        new octeoncRegOperand(src1), new octeoncRegOperand(src2)));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; MEM LOAD INSTRUCTION
+;
+
+reg: DBLDS(reg),
+reg: ISSBLD(reg),
+reg: PBLDS(reg),
+reg: DBLDU(reg),
+reg: ISBLD(reg),
+reg: PBLDU(reg),
+reg: DSLDS(reg),
+reg: ISSSLD(reg),
+reg: PSLDS(reg),
+reg: DSLDU(reg),
+reg: ISSLD(reg),
+reg: PSLDU(reg),
+reg: DILD(reg),
+reg: ISSILD(reg),
+reg: PILD(reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE off(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+    ADDINS(new octeonc_Load(
+        tree, new octeoncRegOperand(off), new octeoncRegOperand(dst)));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; MEM STORE INSTRUCTION
+;
+
+stmt: DBSTR(reg, reg),
+stmt: IBSTR(reg, reg),
+stmt: PBSTR(reg, reg),
+stmt: DSSTR(reg, reg),
+stmt: ISSTR(reg, reg),
+stmt: PSSTR(reg, reg),
+stmt: DISTR(reg, reg),
+stmt: IISTR(reg, reg),
+stmt: PISTR(reg, reg)
+{
+	MBREG_TYPE offset(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+    ADDINS(new octeonc_Store(
+        tree, new octeoncRegOperand(offset), new octeoncRegOperand(value)));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; jump instructions
+;
+
+stmt: JUMPW,
+stmt: JUMP
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+
+    std::ostringstream os;
+    os << "goto L" << target << ";" ;
+    ADDINS(new octeonc_GenerigInsn(os.str()));
+}
+
+stmt: JCMPEQ (reg, reg),
+stmt: JCMPNEQ(reg, reg),
+stmt: JCMPLE (reg, reg),
+stmt: JCMPL  (reg, reg),
+stmt: JCMPG  (reg, reg),
+stmt: JCMPGE (reg, reg)
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE reg2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+    ADDINS(new octeonc_Jump(jump, target, jf,
+        new octeoncRegOperand(reg1), new octeoncRegOperand(reg2)));
+}
+
+stmt: JNE(CMP(reg, reg)),
+stmt: JEQ(CMP(reg,reg))
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+	MIRNode* cmp = MBTREE_LEFT(tree);
+
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(cmp)));
+	MBREG_TYPE reg2(MBTREE_VALUE(MBTREE_RIGHT(cmp)));
+
+    ADDINS(new octeonc_Jump(jump, target, jf,
+        new octeoncRegOperand(reg1), new octeoncRegOperand(reg2)));
+}
+
+stmt: JNE(reg),
+stmt: JEQ(reg) 
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+    ADDINS(new octeonc_Jump(jump, target, jf,
+        new octeoncRegOperand(reg1), new octeoncLitOperand(0)));
+}
+
+stmt: SWITCH(reg)
+{
+	//!\todo use switch_emitter
+	SwitchMIRNode* insn = dynamic_cast<SwitchMIRNode*>(tree);
+	assert(insn != NULL);
+
+	MBREG_TYPE reg = MBTREE_VALUE(MBTREE_LEFT(insn));
+    SwitchMIRNode::targets_iterator i;
+    std::ostringstream os;
+
+    os << "switch(" << reg << ") {\n";
+    for(i = insn->TargetsBegin(); i != insn->TargetsEnd(); i++)
+    {
+        os << "\t\tcase " << i->first << ":\n"
+           << "\t\t\tgoto L" << i->second << ";\n";
+	}
+
+    os << "\t\tdefault:\n\t\t\tgoto L" << insn->getDefaultTarget() << ";\n}\n";
+
+    ADDINS(new octeonc_GenerigInsn(os.str()));
+}
+
+%%

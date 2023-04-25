@@ -1,0 +1,11 @@
+EXPORTS
+DllGetVersion
+pcre_callout DATA
+pcre_free DATA
+pcre_malloc DATA
+pcre_stack_free DATA
+pcre_stack_malloc DATA
+regcomp
+regerror
+regexec
+regfree

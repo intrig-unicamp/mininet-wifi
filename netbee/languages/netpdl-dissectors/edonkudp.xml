@@ -1,0 +1,74 @@
+<protocol name="edonkudp" longname="eDonkey (UDP)" showsumtemplate="edonkudp">
+	<execute-code>
+		<verify>
+			<!-- client to client messages and client to server messages have different format -->
+			<!-- client to client: marker length type message -->
+			<!-- client to server: marker type message -->
+			<!--<if expr="(hasstring($packet[$currentoffset:0],'^(\xe3|\xc5)([\0-\x0e]|\x90|\x96|\x97|\x98|\x92|\x99|\x9a|\x9b|\x9c|\x9e|\xa2|\xa3)',0)  or ((($packetlength - $currentoffset - 5) == buf2int(changebyteorder($packet[$currentoffset+1:4]))) and hasstring($packet[$currentoffset:0],'^\xc5(\x90|\x91|\x93)',0)))">-->
+			<if expr="hasstring($packet[$currentoffset : 0],'^\xe4[\x01\09\x10\x11\x18\x19\x20\x21\x28\x29\x30\x34\x40\x48\x52]',0) or (hasstring($packet[$currentoffset:0],'^[\xe3\xc5][\x90\x94\x96\x97\x98\x92\x99\x9a\x9b\x9c\x9e\xa2\xa3]',0)  or ((($packetlength - $currentoffset - 5) == buf2int(changebyteorder($packet[$currentoffset+1:4]))) and hasstring($packet[$currentoffset:0],'^\xc5[\x90\x91\x93]',0)))">
+				
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>				
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#edonkudp"/>
+			</update-lookuptable>	
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#edonkudp"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<update-lookuptable name="$KnownUDPServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$ipsrc"/>
+						<lookupkey value="$portsrc"/>
+						<lookupdata value="#edonkudp"/>
+					</update-lookuptable>
+
+					<update-lookuptable name="$KnownUDPServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$ipdst"/>
+						<lookupkey value="$portdst"/>
+						<lookupdata value="#edonkudp"/>
+					</update-lookuptable>
+				</if-true>
+			</if>
+		</before>			
+	</execute-code>
+	
+	<format>
+		<fields>
+			<block name="header" longname="Header">
+				<field type="fixed" name="marker" size="1" longname="Marker" showtemplate="FieldHex"/>
+				<field type="fixed" name="typemessage" size="1" longname="Type message" showtemplate="FieldHex"/>
+			</block>
+			<field type="variable" name="eDonkeyData" longname="eDonkey Data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="edonkudp">
+			<section name="next"/>
+			<text value="eDonkey"/>
+			<if expr="ispresent(marker) and marker=='\xe4'">
+				<if-true>
+					<text value=" 0xE4"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

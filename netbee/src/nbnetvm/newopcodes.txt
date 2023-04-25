@@ -1,0 +1,28 @@
+//
+//	  Canonical Name		String Name				Operand Params					Code				"name|category|main description|possible exception|stack transition|variant description"
+// --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// NOTE: opcodes with name="" and params=0 still need to be defined
+
+nvmOPCODE(STREG,			"regstore",				T_NO_ARG_INST,				0xdb,				OP_TYPE_STMT|OP_STREG|ONE_OP|ONE_DEF,				"regstore|locals management|stores a local in a register|nothing|??|??")
+nvmOPCODE(CNST,				"constant",				T_NO_ARG_INST,				0xdc,				OP_TYPE_TERM|OP_CNST|NO_OPS|NO_DEF,					"constant|locals management|represents a costant|nothing|??|??")
+nvmOPCODE(CNST8,			"constant.8",			T_NO_ARG_INST,				0xdd,				OP_TYPE_TERM|OP_CNST|NO_OPS|NO_DEF,					"constant|locals management|represents a costant (8 bits wide)|nothing|??|??")
+nvmOPCODE(CNST16,			"constant.16",			T_NO_ARG_INST,				0xde,				OP_TYPE_TERM|OP_CNST|NO_OPS|NO_DEF,					"constant|locals management|represents a costant (16 bits wide)|nothing|??|??")
+nvmOPCODE(LDREG,			"regload",				T_NO_ARG_INST,				0xc5,				OP_TYPE_TERM|OP_LDREG|NO_OPS|NO_DEF,				"regload|locals management|loads a register|nothing|??|??")
+nvmOPCODE(LDREG8,			"regload.8",			T_NO_ARG_INST,				0xc6,				OP_TYPE_TERM|OP_LDREG|NO_OPS|NO_DEF,				"regload|locals management|loads a register (8 bits wide)|nothing|??|??")
+nvmOPCODE(LDREG16,			"regload.16",			T_NO_ARG_INST,				0xc7,				OP_TYPE_TERM|OP_LDREG|NO_OPS|NO_DEF,				"regload|locals management|loads a register (16 bits wide)|nothing|??|??")
+nvmOPCODE(LLOAD8,			"load.8",				T_NO_ARG_INST,				0xc8,				OP_TYPE_NTERM|OP_LLOAD|DIM_8|ONE_OP|ONE_DEF,		"load|load operations|load a memory location into a register|nothing|??|??")
+nvmOPCODE(LLOAD16,			"load.16",				T_NO_ARG_INST,				0xc9,				OP_TYPE_NTERM|OP_LLOAD|DIM_16|ONE_OP|ONE_DEF,		"load|load operations|load a memory location into a register|nothing|??|??")
+nvmOPCODE(LLOAD32,			"load.32",				T_NO_ARG_INST,				0xca,				OP_TYPE_NTERM|OP_LLOAD|DIM_32|ONE_OP|ONE_DEF,		"load|load operations|load a memory location into a register|nothing|??|??")
+nvmOPCODE(LSTORE8,			"store.8",				T_NO_ARG_INST,				0xcb,				OP_TYPE_STMT|OP_LSTORE|DIM_8|TWO_OPS|NO_DEF,		"store|store operations|stores a value into a memory position|nothing|??|??")
+nvmOPCODE(LSTORE16,			"store.16",				T_NO_ARG_INST,				0xcc,				OP_TYPE_STMT|OP_LSTORE|DIM_16|TWO_OPS|NO_DEF,		"store|store operations|stores a value into a memory position|nothing|??|??")
+nvmOPCODE(LSTORE32,			"store.32",				T_NO_ARG_INST,				0xcd,				OP_TYPE_STMT|OP_LSTORE|DIM_32|TWO_OPS|NO_DEF,		"store|store operations|stores a value into a memory position|nothing|??|??")
+nvmOPCODE(LDPKTBASE,		"load.packet.base",		T_NO_ARG_INST,				0xce,				OP_TYPE_TERM|OP_LDPKTB|ONE_DEF,						"loadpacketbase|internal operations|loads the base address for the packet memory|nothing|??|??")
+nvmOPCODE(LDINFOBASE,		"load.info.base",		T_NO_ARG_INST,				0xcf,				OP_TYPE_TERM|OP_LDINFOB|ONE_DEF,					"loadinfobase|internal operations|loads the base address for the info memory|nothing|??|??")
+nvmOPCODE(LDSHAREDBASE,		"load.shared.base",		T_NO_ARG_INST,				0x90,				OP_TYPE_TERM|OP_LDSHAREDB|ONE_DEF,					"loadsharedbase|internal operations|loads the base address for the shared memory|nothing|??|??")
+nvmOPCODE(LDDATABASE,		"load.data.base",		T_NO_ARG_INST,				0x91,				OP_TYPE_TERM|OP_LDDATAB|ONE_DEF,					"loaddatabase|internal operations|loads the base address for the data memory|nothing|??|??")
+nvmOPCODE(LDPORT,			"load.port",			T_NO_ARG_INST,				0x92,				OP_TYPE_TERM|OP_LDPORT|ONE_DEF,						"loadport|internal operations|loads the calling port|nothing|??|??")
+nvmOPCODE(PHI,				"phi.function",			T_NO_ARG_INST,				0x93,				OP_TYPE_STMT|OP_PHI|ONE_DEF,						"phi|internal operations|SSA phi function|nothing|??|??")
+nvmOPCODE(PCHECK,			"bcheck.pkt",T_NO_ARG_INST,				0x94,				OP_TYPE_STMT|OP_CHECK|TWO_OPS|NO_DEF,				"boundcheck mem packet|offset|dim")
+nvmOPCODE(ICHECK,			"bcheck.info",	T_NO_ARG_INST,				0x95,				OP_TYPE_STMT|OP_CHECK|TWO_OPS|NO_DEF,				"boundcheck info packet|offset|dim")
+nvmOPCODE(DCHECK,			"bcheck.data",	T_NO_ARG_INST,				0x96,				OP_TYPE_STMT|OP_CHECK|TWO_OPS|NO_DEF,				"boundcheck data packet|offset|dim")

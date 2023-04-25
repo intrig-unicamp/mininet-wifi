@@ -1,0 +1,179 @@
+<protocol name="stun" longname="STUN" showsumtemplate="stun">
+	<execute-code>
+		<verify>
+			<!-- STUN uses TCP to change a shared secret -->
+			<!-- header has fixed length (20 bytes)-->
+			<if expr="hasstring($packet[$currentoffset:0],'^(\0\x01|\x01\x01|\x01\x11|\0\x02|\x01\x02|\x01\x12)',0) and (buf2int($packet[$currentoffset +2 : 2]) == ($packetlength -$currentoffset -20))">
+			<!--<if expr="1">-->
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#stun"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#stun"/>
+			</update-lookuptable>
+		</before>
+	</execute-code>
+	
+	<format>
+		<fields>
+			<field type="fixed" name="message_type" longname="Message Type" size="2" showtemplate="stun.message.type"/> -->
+			<field type="fixed" name="message_length" longname="Message Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="transaction_id" longname="Transaction ID" size="16" showtemplate="FieldHex"/>
+			<!--<field type="variable" name="attributes" longname="Attributes" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>-->
+			<block name="attributes" longname="Attributes">
+				<loop type="while" expr="$packetlength - $currentoffset">
+					<includeblk name="attribute"/>
+				</loop>
+			</block>
+
+		</fields>
+		
+		
+		<block name="attribute" longname="Attribute">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="stun.attribute.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			
+			<switch expr="buf2int(type)">
+				<case value="0x0001"> <includeblk name="mapped_address"/></case>
+				<case value="0x0002"> <includeblk name="response_address"/></case>
+				<case value="0x0003"> <includeblk name="change_request"/></case>
+				<case value="0x0004"> <includeblk name="source_address"/></case>
+				<case value="0x0005"> <includeblk name="changed_address"/></case>
+				<case value="0x0006"> <includeblk name="username"/></case>
+				<case value="0x0007"> <includeblk name="password"/></case>
+				<case value="0x0008"> <includeblk name="message_integrity"/></case>
+				<case value="0x0009"> <includeblk name="error_code"/></case>
+				<case value="0x000a"> <includeblk name="unknown_attributes"/></case>
+				<case value="0x000b"> <includeblk name="reflected_from"/></case>
+				<default> 
+					<field type="variable" name="value" longname="Value" expr="buf2int(length)" showtemplate="FieldAscii"/>
+				</default>
+			</switch>
+			
+			
+		</block>
+		
+		<block name="mapped_address" longname="Mapped Addres">
+			<field type="fixed" name="xxx" longname="XXX" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="family" longname="Family" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="port" longname="Port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr"/>
+		</block>	
+		
+		<block name="response_address" longname="Response Addres">
+			<field type="fixed" name="xxx" longname="XXX" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="family" longname="Family" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="port" longname="Port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr"/>
+		</block>	
+
+		<block name="changed_address" longname="Change Addres">
+			<field type="fixed" name="xxx" longname="XXX" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="family" longname="Family" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="port" longname="Port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr"/>
+		</block>		
+		
+		<block name="change_request" longname="Change Request">
+			<field type="bit" name="change_ip" longname="Change IP" mask="0x00000004" size="4" showtemplate="FieldBin"/>
+			<field type="bit" name="change_port" longname="Change Port" mask="0x00000002" size="4" showtemplate="FieldBin"/>
+		</block>
+		
+		<block name="source_address" longname="Source Address">
+			<field type="fixed" name="xxx" longname="XXX" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="family" longname="Family" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="port" longname="Port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr"/>		
+		</block>
+		
+		<block name="username" longname="Username">
+			<field type="variable" name="username" longname="Username" expr="buf2int(length)" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="password" longname="Password">
+			<field type="variable" name="password" longname="Password" expr="buf2int(length)" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="message_integrity" longname="Message Integrity">
+			<field type="fixed" name="hmac" longname="HAMC" size="20" showtemplate="FieldHex"/>
+		</block>
+		
+		<block name="error_code" longname="Error Code">
+			<field type="bit" name="zeros" longname="Zeros" mask="0xfffff800" size="4" showtemplate="FieldBin"/>
+			<field type="bit" name="class" longname="Class" mask="0x00000700" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="number" longname="Number" mask="0x000000ff" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="reason" longname="Reason" expr="buf2int(length) -4" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="unknown_attributes" longname="Unknow Attributes">
+			<field type="variable" name="list_attribute" longname="List Attributes" expr="buf2int(length)" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="reflected_from" longname="Reflected Fromm">
+			<field type="fixed" name="xxx" longname="XXX" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="family" longname="Family" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="port" longname="Port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr"/>
+		</block>
+	</format>
+	
+
+	
+	<visualization>	
+		<showtemplate name="stun.message.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0001" show="Binding Request"/>
+					<case value="0x0101" show="Binding Response"/>
+					<case value="0x0111" show="Binding Error Response"/>
+					<case value="0x0002" show="Shared Secret Request"/>
+					<case value="0x0102" show="Shared Secret Response"/>
+					<case value="0x0112" show="Shared Secret ErrorResponse"/>
+					<default show="Message type not recognized"/>
+				</switch>		
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="stun.attribute.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0001" show="MAPPED-ADDRESS"/>
+					<case value="0x0002" show="RESPONSE-ADDRESS"/>
+					<case value="0x0003" show="CHANGE-REQUEST"/>
+					<case value="0x0004" show="SOURCE-ADDRESS"/>
+					<case value="0x0005" show="CHANGED-ADDRESS"/>
+					<case value="0x0006" show="USERNAME"/>
+					<case value="0x0007" show="PASSWORD"/>
+					<case value="0x0008" show="MESSAGE-INTEGRITY"/>
+					<case value="0x0009" show="ERROR-CODE"/>
+					<case value="0x000a" show="UNKNOWN-ATTRIBUTES"/>
+					<case value="0x000b" show="REFLECTED-FROM"/>
+					<default show="Attribute type not recognized"/>
+				</switch>		
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="stun">
+			<section name="next"/>
+			<text value="STUN"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

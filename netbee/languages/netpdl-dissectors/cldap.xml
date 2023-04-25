@@ -1,0 +1,46 @@
+<protocol name="cldap" longname="Connection-Less Lightweight Directory Access Protocol (CLDAP)" showsumtemplate="cldap">
+	<execute-code>
+		<verify>
+													<!-- sequence   messegeID      type op  -->			
+			<if expr="hasstring($packet[$currentoffset:0],'\x30(.|\x0a){1,5}\x02[\x01\x02\x03](.|\x0a){1,3}[\x63\x64\x6f]',0) and ((($packetlength - $currentoffset - 2) == buf2int($packet[$currentoffset +1:1])) or (((buf2int($packet[$currentoffset+1 : 1]) bitwand 0x80  !=0) and (($packetlength - $currentoffset - 2 - (buf2int ($packet[$currentoffset +1 : 1]) bitwand 0x7F)) == buf2int ($packet[$currentoffset + 2 : buf2int($packet[$currentoffset + 1 : 1]) bitwand 0x7F ])))))">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#cldap"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#cldap"/>
+			</update-lookuptable>
+		</before>		
+	</execute-code>
+	
+	<format>
+		<fields>
+			<field type="variable" name="data" longname="CLDAP Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+			<!--<field type="fixed" name="ldapdata" longname="LDAP Data" size="100" showtemplate="FieldAscii"/>-->
+		</fields>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="cldap">
+			<section name="next"/>
+			<text value="CLDAP"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

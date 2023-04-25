@@ -1,0 +1,94 @@
+<protocol name="sip" longname="Session Initiation Protocol" showsumtemplate="sip">
+	<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '^(invite|register|cancel|message|subscribe|notify) sip[\x09-\x0d -~]*sip/[0-2]\.[0-9]', 0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="($L4proto == #tcp) and ($protoverify_result == %FOUND)">	
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#sip"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#sip"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#sip"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+
+		<before when="($L4proto == #udp) and ($protoverify_result == %FOUND)">	
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#sip"/>
+			</update-lookuptable>
+
+			<!-- SIP has bidirectional connections, so let's insert also the other direction -->
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#sip"/>
+			</update-lookuptable>
+		</before>
+	</execute-code>
+	<format>
+		<fields>
+			<field type="line" name="cmd" longname="Command" showtemplate="FieldAscii"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<field type="line" name="HeaderField" longname="Header Field" showtemplate="FieldAscii"/>
+			</loop>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="sip">
+			<section name="next"/>
+			<text value="SIP: "/>
+			<protofield name="cmd" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

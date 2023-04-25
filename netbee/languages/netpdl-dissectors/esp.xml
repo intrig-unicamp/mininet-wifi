@@ -1,0 +1,14 @@
+<protocol name="esp" longname="ESP Encrypted Data" comment="Encrypted data after ESP Extension Header" showsumtemplate="esp">
+	<format>
+		<fields>
+			<field type="variable" name="payload" longname="Data payload" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>	
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="esp">
+			<section name="next"/>
+			<text value="esp"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

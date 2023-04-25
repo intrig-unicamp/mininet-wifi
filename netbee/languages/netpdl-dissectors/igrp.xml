@@ -1,0 +1,47 @@
+<protocol name="igrp" longname="Interior Gateway Routing Protocol" showsumtemplate="igrp">
+	<format>
+		<fields>
+			<field type="bit" name="ver" longname="Version" mask="0xF0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="opcode" longname="Option Code" mask="0x0F" size="1" showtemplate="igrp.opcode"/>
+			<field type="fixed" name="Updaterelease" longname="Update Release" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Asystem" longname="Autonomous System Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="ninterior" longname="Interior Routers" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="nsystem" longname="System Routers" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="nexterior" longname="Exterior Routers" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="Checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+
+			<block name="payload" longname="Payload">
+				<!-- This block will keep all the remaining data of the packet -->
+				<loop type="size" expr="$packetlength - $currentoffset">
+					<field type="fixed" name="Description" longname="Description" size="3" showtemplate="FieldDec"/>
+					<field type="fixed" name="delay" longname="delay" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="bandwidth" longname="bandwidth" size="4" showtemplate="FieldDec"/>
+					<field type="fixed" name="mtu" longname="mtu" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="reliability" longname="reliability" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="load" longname="load" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="hop_count" longname="hop_count" size="1" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+		</fields>	
+	</format>
+
+	<visualization>
+		<showtemplate name="igrp.opcode" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Update"/> 
+					<case value="2" show="Request"/> 
+					<default show="Error in IGRP code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="igrp">
+			<section name="next"/>
+			<text value="IGMP: "/>
+			<protofield name="opcode" showdata="showmap"/>
+		</showsumtemplate>
+
+	</visualization>
+	
+</protocol>

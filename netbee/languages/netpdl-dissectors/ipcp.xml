@@ -1,0 +1,60 @@
+<protocol name="ipcp" longname="IPCP (PPP Internet Protocol Control Protocol)" showsumtemplate="ipcp">
+	<format>
+		<fields>
+			<field type="fixed" name="code" longname="Code" size="1" showtemplate="ipcp.code"/>
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="len" longname="Length" size="2" showtemplate="FieldDec"/>
+			<loop type="size" expr="buf2int(len)-4">
+				<!-- Here a switch could be better in order to provide
+				a better decription of each option-->
+				<field type="fixed" name="opt_type" longname="Option type" size="1" showtemplate="ipcp.opt.type"/>
+				<field type="fixed" name="opt_len" longname="Option length" size="1" showtemplate="FieldDec"/>
+				<if expr="buf2int(opt_type) != 2">
+					<if-true>
+						<field type="variable" name="opt_data" longname="Option data" expr="buf2int(opt_len)-2" showtemplate="ip4addr-noplg"/>
+					</if-true>
+					<if-false>
+						<field type="variable" name="opt_data" longname="Option data" expr="buf2int(opt_len)-2" showtemplate="FieldHex"/>
+					</if-false>
+				</if>
+				
+			</loop>
+		</fields>
+	</format>
+	<visualization>
+		<showsumtemplate name="ipcp">
+			<text value=" - IPCP"/>
+		</showsumtemplate>
+		<showtemplate name="ipcp.code" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Vendor-Specific"/> 
+					<case value="1" show="Configure-Request"/> 
+					<case value="2" show="Configure-Ack"/> 
+					<case value="3" show="Configure-Nak"/> 
+					<case value="4" show="Configure-Reject"/> 
+					<case value="5" show="Terminate-Request"/> 
+					<case value="6" show="Terminate-Ack"/>
+					<case value="7" show="Code-Reject"/>
+					<default show="Error in code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		<showtemplate name="ipcp.opt.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<!--for more info see http://www.networksorcery.com/enp/protocol/LCP.htm-->
+					<case value="1" show="IP Address (Deprecated)"/> 
+					<case value="2" show="IP Compression Protocol"/> 
+					<case value="3" show="IP Address"/> 
+					<case value="4" show="Mobile IPv4"/> 					
+					<case value="129" show="Primary DNS Server Address"/> 
+					<case value="130" show="Primary NBNS Server Address"/>
+					<case value="131" show="Secondary DNS Server Address"/>
+					<case value="132" show="Secondary NBNS Server Address"/>
+					<default show="Error option code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>

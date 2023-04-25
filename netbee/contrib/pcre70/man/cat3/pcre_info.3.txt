@@ -1,0 +1,26 @@
+PCRE_INFO(3)                                                      PCRE_INFO(3)
+
+
+
+NAME
+       PCRE - Perl-compatible regular expressions
+
+SYNOPSIS
+
+       #include <pcre.h>
+
+       int   pcre_info(const   pcre  *code,  int  *optptr,  int
+       *firstcharptr);
+
+DESCRIPTION
+
+       This  function  is  obsolete.  You   should   be   using
+       pcre_fullinfo() instead.
+
+       There  is  a complete description of the PCRE native API
+       in the pcreapi page and a description of the  POSIX  API
+       in the pcreposix page.
+
+
+
+                                                                  PCRE_INFO(3)

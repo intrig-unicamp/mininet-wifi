@@ -1,0 +1,15 @@
+
+<protocol name="ipfrag" longname="IPv4 Fragment Payload" comment="Fake protocol, that contains the fragmented payload of an IPv4 packet" showsumtemplate="ipfrag">
+	<format>
+		<fields>
+			<field type="variable" name="payload" longname="Data payload" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="ipfrag">
+			<text value="IP Fragmented Payload"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

@@ -1,0 +1,271 @@
+<protocol name="isakmp" longname="ISAKMP" showsumtemplate="isakmp">
+	<format>
+		<fields>
+			<block name="header" longname="Header ISAKMP">
+				<field type="fixed" name="initiator_cookie" longname="Initiator Cookie" size="8" showtemplate="FieldHex"/>
+				<field type="fixed" name="responder_cookie" longname="Responder Cookie" size="8" showtemplate="FieldHex"/>
+				<field type="fixed" name="next_payload" longname="Next Payload" size="1" showtemplate="isakmp.payload.type"/>
+				<field type="fixed" name="version" longname="Version" size="1" showtemplate="FieldHex">
+					<field type="bit" name="major" longname="Major" mask="0xf0" size="1" showtemplate="FieldDec"/>
+					<field type="bit" name="minor" longname="Minor" mask="0x0f" size="1" showtemplate="FieldDec"/>
+				</field>
+					
+				<field type="fixed" name="exchange_type" longname="Exchanghe type" size="1" showtemplate="isakmp.exchange.type"/>
+				<field type="fixed" name="flags" longname="Flags"  size="1" showtemplate="FieldHex">
+					<field type="bit" name="authentication" longname="Authentication" mask="0x04" size="1" showtemplate="FieldBin"/>
+					<field type="bit" name="commit" longname="Commit" mask="0x02" size="1" showtemplate="FieldBin"/>
+					<field type="bit" name="encryption" longname="Encryption" mask="0x01" size="1" showtemplate="FieldBin"/>					
+				</field>
+					
+				<field type="fixed" name="messageid" longname="Message ID" size="4" showtemplate="FieldDec"/>
+				<field type="fixed" name="length" longname="Length" size="4" showtemplate="FieldDec"/>			
+			</block>
+			
+			<if expr="(buf2int(flags) bitwand 0x01) == 0x01">
+				<if-true>
+					<!-- payload is encrypted -->
+					<field type="variable" name="encrypted_payload" longname="Encrypted Payload" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-true>
+				<if-false>
+					<loop type="size" expr="$packetlength - $currentoffset">
+						<switch expr="buf2int(next_payload)">
+							<case value="0x01">	<includeblk name="sa"/>	</case>
+							<case value="0x02">	<includeblk name="proposal"/> </case>
+							<case value="0x03">	<includeblk name="transform"/> </case>
+							<case value="0x04">	<includeblk name="key_exchange"/> </case>
+							<case value="0x05">	<includeblk name="identification"/>	</case>
+							<case value="0x06">	<includeblk name="certificate"/> </case>
+							<case value="0x07">	<includeblk name="certificate_request"/> </case>
+							<case value="0x08">	<includeblk name="hash"/> </case>
+							<case value="0x09">	<includeblk name="signature"/> </case>
+							<case value="0x0a">	<includeblk name="nonce"/> </case>
+							<case value="0x0b">	<includeblk name="notification"/> </case>
+							<case value="0x0c">	<includeblk name="delete"/>	</case>
+							<case value="0x0d">	<includeblk name="vendor"/>	</case>				
+						</switch>
+					</loop>
+				</if-false>
+				
+			</if>
+			
+			<!--<field type="variable" name="payload" longname="Payload" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>-->
+		
+		</fields>
+		
+		<block name="header_payload" longname="Header Payload">
+			<field type="fixed" name="next_payload" longname="Next Payload" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="reserved" longname="Reserved" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="payload_length" longname="Payload Length" size="2" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="sa" longname="Security Association Payload">
+			<includeblk name="header_payload"/>
+			<field type="fixed" name="doi" longname="DOI" size="4" showtemplate="FieldAscii"/>
+			<field type="variable" name="situation" longname="Situation" expr="buf2int(payload_length) - 8" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="proposal" longname="Proposal Payload">
+			<includeblk name="header_payload"/>
+			<field type="fixed" name="proposal_number" longname="Proposal #" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="protocol_id" longname="Protocol ID" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="spi_size" longname="SPI size" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="number_transfom" longname="# of Transform" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="spi" longname="SPI" expr="buf2int(payload_length) - 8" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="transform" longname="Transform Payload">
+			<includeblk name="header_payload"/>
+			<field type="fixed" name="transform_number" longname="Transform #" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="transform_id" longname="Transform ID" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="reserved" longname="Reserved" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="sa_attributes" longname="SA Attributes" expr="buf2int(payload_length) - 8" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="key_exchange" longname="Key Exchange Payload">
+			<includeblk name="header_payload"/>
+			<field type="variable" name="kex_data" longname="Key Exchange Data" expr="buf2int(payload_length) -4" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="identification" longname="Identification Payload">
+			<includeblk name="header_payload"/>
+			<field type="fixed" name="id_type" longname="ID Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="doi_specification_id_data" longname="DOI Specification ID Data" size="3" showtemplate="FieldAscii"/>
+			<field type="variable" name="identification_data" longname="Identification Data" expr="buf2int(payload_length)-8" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="certificate" longname="Certificate Payload">
+			<includeblk name="header_payload"/>
+			<field type="fixed" name="cert_encoding" longname="Certificate Encoding" size="1" showtemplate="isakmp.cert.type"/>
+			<field type="variable" name="certifcate_data" longname="Certificate Data" expr="buf2int(payload_length) -5" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="certificate_request" longname="Certificate Request Payload">
+			<includeblk name="header_payload"/>
+			<field type="fixed" name="cert_type" longname="Certificate type" size="1" showtemplate="isakmp.cert.type"/>
+			<field type="variable" name="certifcate_autority" longname="Certificate Autority" expr="buf2int(payload_length) -5" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="hash" longname="Hash Payload">
+			<includeblk name="header_payload"/>
+			<field type="variable" name="hash_data" longname="Hash Data" expr="buf2int(payload_length) -4" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="signature" longname="Signature Payload">
+			<includeblk name="header_payload"/>
+			<field type="variable" name="signature_data" longname="Signature Data" expr="buf2int(payload_length) -4" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="nonce" longname="Nonce Payload">
+			<includeblk name="header_payload"/>
+			<field type="variable" name="nonce_data" longname="Nonce Data" expr="buf2int(payload_length) -4" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="notification" longname="Notification Payload">
+			<includeblk name="header_payload"/>
+			<field type="fixed" name="doi" longname="DOI" size="4" showtemplate="FieldAscii"/>
+			<field type="fixed" name="protocol_id" longname="Protocol ID" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="spi_size" longname="SPI Size" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="notify_message_type" longname="Notify Message Type" size="2" showtemplate="isakmp.notify.type"/>
+			<field type="variable" name="spi" longname="SPI" expr="buf2int(spi_size)" showtemplate="FieldAscii"/>
+			<field type="variable" name="notification_data" longname="Notification Data" expr="buf2int(payload_length) - buf2int(spi_size) - 12" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="delete" longname="Delete Payload">
+			<includeblk name="header_payload"/>
+			<field type="fixed" name="doi" longname="DOI" size="4" showtemplate="FieldAscii"/>
+			<field type="fixed" name="protocol_id" longname="Protocol ID" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="spi_size" longname="SPI Size" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="number_spis" longname="# of SPIs" size="1" showtemplate="FieldDec"/>
+			<!--<field type="variable" name="security_parameter_index" longname="Security Parameter Index" expr="buf2int(spi_size) * buf2int(number_spis)" showtemplate="FieldAscii"/>-->
+			<field type="variable" name="security_parameter_index" longname="Security Parameter Index" expr="buf2int(payload_length) - 11" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="vendor" longname="Vendor Payload">
+			<includeblk name="header_payload"/>
+			<field type="variable" name="vendor_id" longname="Vendor ID" expr="buf2int(payload_length) -4" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="dataattribute" longname="Data Attribute">
+			<loop type="while" expr="$packetlength - $currentoffset - buf2int(payload_length) - 8">
+				<field type="bit" name="attribute_format" longname="AF" mask="0x8000" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="attribute_type" longname="Attribute Type" mask="0x7FFFF" size="2" showtemplate="FieldBin"/>
+				
+				<!--<if expr="buf2int(attribute_format) bitwand 0x8000 == 0x8000">-->
+				<if expr="buf2int(attribute_format)">
+					<if-true>
+						<field type="fixed" name="attribute_value" longname="Attribute Value" size="2" showtemplate="FieldAscii"/>
+					</if-true>
+					<if-false>
+						<field type="fixed" name="attribute_length" longname="Attribute Length" size="2" showtemplate="FieldAscii"/>
+						<field type="variable" name="attribute_value" longname="Attribute Value" expr="buf2int(attribute_value)" showtemplate="FieldAscii"/>
+					</if-false>
+				</if>
+
+			</loop>
+		</block>
+	</format>
+	
+	
+	<visualization>
+		<showtemplate name="isakmp.payload.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x01" show="Security Association"></case>
+					<case value="0x02" show="Proposal"></case>
+					<case value="0x03" show="Transform"></case>
+					<case value="0x04" show="Key Exchange"></case>
+					<case value="0x05" show="Identification"></case>
+					<case value="0x06" show="Certificate"></case>
+					<case value="0x07" show="Certificate Request"></case>
+					<case value="0x08" show="Hash"></case>
+					<case value="0x09" show="Signature"></case>
+					<case value="0x0a" show="Nonce"></case>
+					<case value="0x0b" show="Notification"></case>
+					<case value="0x0c" show="Delete"></case>
+					<case value="0x0d" show="Vendor ID"></case>
+					<default show="Unkown messagge"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="isakmp.exchange.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x00" show="NONE"></case>
+					<case value="0x01" show="Base"></case>
+					<case value="0x02" show="Identify Protection"></case>
+					<case value="0x03" show="Authentication Only"></case>
+					<case value="0x04" show="Aggressive"></case>
+					<case value="0x05" show="Informal"></case>
+					<default show="Unkown messagge"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="isakmp.cert.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x00" show="NONE"></case>
+					<case value="0x01" show="PKCS #7"></case>
+					<case value="0x02" show="PGP"></case>
+					<case value="0x03" show="DSN Signed Key"></case>
+					<case value="0x04" show="X.509 Certificate - Signature"></case>
+					<case value="0x05" show="X.509 Certificate - Key Exchange"></case>
+					<case value="0x06" show="Kerberos Tokens"></case>
+					<case value="0x07" show="Certificate Revocation List (CRL)"></case>
+					<case value="0x08" show="Authority Revocation List (ARL)"></case>
+					<case value="0x09" show="SPKI Certificate"></case>
+					<case value="0x0a" show="X.509 Certificate - Attribute"></case>
+					<default show="RESERVED"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="isakmp.notify.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0001" show="INVALID-PAYLOAD-TYPE"></case>
+					<case value="0x0002" show="DOI-NOT-SUPPORTED"></case>
+					<case value="0x0003" show="SITUATION-NOT-SUPPORTED"></case>
+					<case value="0x0004" show="INVALID-COOKIE"></case>
+					<case value="0x0005" show="INVALID-MAJOR-VERSION"></case>
+					<case value="0x0006" show="INVALID-MINOR-VERSION"></case>
+					<case value="0x0007" show="INVALID-EXCHANGE-TYPE"></case>
+					<case value="0x0008" show="INVALID-FLAGS"></case>
+					<case value="0x0009" show="INVALID-MESSAGE-ID"></case>
+					<case value="0x000a" show="INVALID-PROTOCOL-ID"></case>
+					<case value="0x000b" show="INVALID-SPI"></case>
+					<case value="0x000c" show="INVALID-TRANSFORM-ID"></case>
+					<case value="0x000d" show="ATTRIBUTES-NOT-SUPPORTED"></case>
+					<case value="0x000e" show="NO-PROPOSAL-CHOSEN"></case>
+					<case value="0x000f" show="BAD-PROPOSAL-SYNTAX"></case>
+					
+					<case value="0x0010" show="PAYLOAD-MALFORMED"></case>
+					<case value="0x0011" show="INVALID-KEY-INFORMATION"></case>
+					<case value="0x0012" show="INVALID-ID-INFORMATION"></case>
+					<case value="0x0013" show="INVALID-CERT-ENCODING"></case>
+					<case value="0x0014" show="INVALID-CERTIFICATE"></case>
+					<case value="0x0015" show="CERT-TYPE-UNSUPPORTED"></case>
+					<case value="0x0016" show="INVALID-CERT-AUTHORITY"></case>
+					<case value="0x0017" show="INVALID-HASH-INFORMATION"></case>
+					<case value="0x0018" show="AUTHENTICATION-FAILED"></case>
+					<case value="0x0019" show="INVALID-SIGNATURE"></case>
+					<case value="0x001a" show="ADDRESS-NOTIFICATION"></case>
+					<case value="0x001b" show="NOTIFY-SA-LIFETIME"></case>
+					<case value="0x001c" show="CERTIFICATE-UNAVAILABLE"></case>
+					<case value="0x001d" show="UNSUPPORTED-EXCHANGE-TYPE"></case>
+					<case value="0x001e" show="UNEQUAL-PAYLOAD-LENGTHS"></case>
+					
+					<case value="0x4000" show="CONNECTED"></case>
+
+					<default show="RESERVED"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		<showsumtemplate name="isakmp">
+			<section name="next"/>
+			<text value="ISAKMP "/>
+			<protofield name="exchange_type" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

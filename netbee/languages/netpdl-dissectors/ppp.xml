@@ -1,0 +1,31 @@
+<protocol name="ppp" longname="PPP (Point-To-Point Protocol)" showsumtemplate="ppp">
+	<format>
+		<fields>
+			<field type="fixed" name="flag" longname="Flag" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="control" longname="Control" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="protocol" longname="Protocol" size="2" showtemplate="FieldHex"/>
+			<if expr="buf2int(protocol) == 0x00FD">
+				<if-true>
+					<field type="variable" name="cpayload" longname="PPP Compressed payload" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+				</if-true>
+			</if>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<switch expr="buf2int(protocol)">
+			<case value="0x0021"> <nextproto proto="#ip"/> </case>
+			<case value="0xc021"> <nextproto proto="#lcp"/> </case>
+			<case value="0xc223"> <nextproto proto="#chap"/> </case>
+			<case value="0x8021"> <nextproto proto="#ipcp"/> </case>
+			<case value="0x80FD"> <nextproto proto="#ccp"/> </case>
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="ppp">
+			<text value=" - PPP"/>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>

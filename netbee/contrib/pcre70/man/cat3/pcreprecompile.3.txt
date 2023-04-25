@@ -1,0 +1,137 @@
+PCREPRECOMPILE(3)                                            PCREPRECOMPILE(3)
+
+
+
+NAME
+       PCRE - Perl-compatible regular expressions
+
+SAVING AND RE-USING PRECOMPILED PCRE PATTERNS
+
+       If you are running an application that uses a large num-
+       ber of regular expression patterns, it may be useful  to
+       store  them  in  a precompiled form instead of having to
+       compile them every time the application is run.  If  you
+       are  not  using  any  private  character tables (see the
+       pcre_maketables()  documentation),  this  is  relatively
+       straightforward.  If you are using private tables, it is
+       a little bit more complicated.
+
+       If you save compiled patterns to a file,  you  can  copy
+       them  to a different host and run them there. This works
+       even if the new host has the opposite endianness to  the
+       one  on which the patterns were compiled. There may be a
+       small performance penalty, but it should  be  insignifi-
+       cant.
+
+SAVING A COMPILED PATTERN
+       The  value returned by pcre_compile() points to a single
+       block of memory that  holds  the  compiled  pattern  and
+       associated  data.  You can find the length of this block
+       in bytes by calling pcre_fullinfo() with an argument  of
+       PCRE_INFO_SIZE. You can then save the data in any appro-
+       priate manner. Here is sample code that compiles a  pat-
+       tern  and writes it to a file. It assumes that the vari-
+       able fd refers to a file that is open for output:
+
+         int erroroffset, rc, size;
+         char *error;
+         pcre *re;
+
+         re = pcre_compile("my pattern", 0, &error,  &erroroff-
+       set, NULL);
+         if (re == NULL) { ... handle errors ... }
+         rc = pcre_fullinfo(re, NULL, PCRE_INFO_SIZE, &size);
+         if (rc < 0) { ... handle errors ... }
+         rc = fwrite(re, 1, size, fd);
+         if (rc != size) { ... handle errors ... }
+
+       In  this  example,  the bytes that comprise the compiled
+       pattern are copied exactly. Note  that  this  is  binary
+       data  that may contain any of the 256 possible byte val-
+       ues. On systems that make a distinction  between  binary
+       and non-binary data, be sure that the file is opened for
+       binary output.
+
+       If you want to write more than one pattern  to  a  file,
+       you  will  have  to devise a way of separating them. For
+       binary data, preceding each pattern with its  length  is
+       probably the most straightforward approach. Another pos-
+       sibility is to write out the data in hexadecimal instead
+       of binary, one pattern to a line.
+
+       Saving  compiled patterns in a file is only one possible
+       way of storing them for later use.  They  could  equally
+       well  be  saved  in a database, or in the memory of some
+       daemon process that passes them via sockets to the  pro-
+       cesses that want them.
+
+       If  the pattern has been studied, it is also possible to
+       save the study data in a similar  way  to  the  compiled
+       pattern   itself.  When  studying  generates  additional
+       information,  pcre_study()  returns  a  pointer   to   a
+       pcre_extra data block. Its format is defined in the sec-
+       tion on matching a pattern in the pcreapi documentation.
+       The  study_data  field  points to the binary study data,
+       and this is what you must save (not the pcre_extra block
+       itself). The length of the study data can be obtained by
+       calling   pcre_fullinfo()   with    an    argument    of
+       PCRE_INFO_STUDYSIZE. Remember to check that pcre_study()
+       did return a non-NULL value before trying  to  save  the
+       study data.
+
+RE-USING A PRECOMPILED PATTERN
+
+       Re-using  a precompiled pattern is straightforward. Hav-
+       ing reloaded it into main memory, you pass  its  pointer
+       to pcre_exec() or pcre_dfa_exec() in the usual way. This
+       should work even on another host, and even if that  host
+       has the opposite endianness to the one where the pattern
+       was compiled.
+
+       However, if you passed a  pointer  to  custom  character
+       tables when the pattern was compiled (the tableptr argu-
+       ment of pcre_compile()), you must  now  pass  a  similar
+       pointer  to  pcre_exec() or pcre_dfa_exec(), because the
+       value saved with the compiled pattern will obviously  be
+       nonsense.  A  field  in  a pcre_extra() block is used to
+       pass this data, as described in the section on  matching
+       a pattern in the pcreapi documentation.
+
+       If  you did not provide custom character tables when the
+       pattern was compiled, the pointer in the  compiled  pat-
+       tern  is  NULL,  which  causes pcre_exec() to use PCRE's
+       internal tables. Thus, you do not need to take any  spe-
+       cial action at run time in this case.
+
+       If  you  saved study data with the compiled pattern, you
+       need to create your own pcre_extra data  block  and  set
+       the  study_data  field  to  point  to the reloaded study
+       data. You must also set the PCRE_EXTRA_STUDY_DATA bit in
+       the  flags field to indicate that study data is present.
+       Then  pass  the  pcre_extra  block  to  pcre_exec()   or
+       pcre_dfa_exec() in the usual way.
+
+COMPATIBILITY WITH DIFFERENT PCRE RELEASES
+
+       The  layout of the control block that is at the start of
+       the data that makes up a compiled  pattern  was  changed
+       for  release  5.0.  If  you have any saved patterns that
+       were compiled with previous  releases  (not  a  facility
+       that was previously advertised), you will have to recom-
+       pile them for release 5.0 and above.
+
+       If you have any saved patterns in UTF-8 mode that use \p
+       or  \P  that  were  compiled  with any release up to and
+       including 6.4, you  will  have  to  recompile  them  for
+       release 6.5 and above.
+
+       All  saved patterns from earlier releases must be recom-
+       piled for release 7.0 or higher, because  there  was  an
+       internal reorganization at that release.
+
+Last updated: 28 November 2006
+Copyright (c) 1997-2006 University of Cambridge.
+
+
+
+                                                             PCREPRECOMPILE(3)

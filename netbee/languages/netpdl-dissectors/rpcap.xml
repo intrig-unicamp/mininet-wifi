@@ -1,0 +1,115 @@
+<protocol name="rpcap" longname="RPCAP (Remote Capture Protocol)" showsumtemplate="rpcap">
+<execute-code>
+<verify>
+		<if expr="hasstring($packet[$currentoffset+1:0], '[\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x82\x83\x84\x85\x88\x89\x8A\x8B]',0) and (($packetlength - $currentoffset ) == buf2int($packet[$currentoffset+4:4])) "> 
+			<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+			</if-true>
+		</if>
+</verify>
+		
+   <before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#rpcap"/>
+			</update-lookuptable>	
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#rpcap"/>
+			</update-lookuptable>
+   </before>		
+ </execute-code>
+
+	<format>
+		<fields>
+			<field type="fixed" name="ver" longname="Version" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Command type" size="1" showtemplate="rpcap.type"/>
+			<field type="fixed" name="value" longname="Value (command dependent)" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="plen" longname="Payload Length" size="4" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(type)">
+				<case value="4">
+					<includeblk name="StartCap"/>
+				</case>
+
+				<case value="137">
+					<includeblk name="GetStatsReply"/>
+				</case>
+
+				<default>
+					<field type="variable" name="payload" longname="Data payload" expr="buf2int(plen)" showtemplate="Field4BytesHex"/>
+				</default>
+			</switch>
+		</fields>
+
+
+		<block name="StartCap" longname="Start Capture Request">
+			<field type="fixed" name="snaplen" longname="Packet snapshot length" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="read_timeout" longname="Read Timeout" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="flags" longname="Flags" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="portdata" longname="Port data" size="2" showtemplate="FieldDec"/>
+			<includeblk name="SetFilter"/>
+		</block>
+		
+		<block name="SetFilter" longname="Set Filter Request">
+			<field type="fixed" name="filtertype" longname="Filter Type" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="dummy" longname="Dummy" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="nitems" longname="Number of Items" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="filter" longname="Filter string" expr="buf2int(nitems) * 8" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="GetStatsReply">
+			<field type="fixed" name="ifrecv" longname="Packets received by the kernel filter" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="ifdrop" longname="Packets dropped by the network interface" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="krnldrop" longname="Packets dropped by the kernel filter" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="srvcapt" longname="Packets sent to the RPCAP collector" size="4" showtemplate="FieldDec"/>
+		</block>
+	</format>
+
+
+	<visualization>
+		<showtemplate name="rpcap.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Error"/> 
+					<case value="2" show="List all devices request"/> 
+					<case value="3" show="Open adapter request"/>
+					<case value="4" show="Start capture request"/>
+					<case value="5" show="Update capture filter request"/>
+					<case value="6" show="Close adapter"/>
+					<case value="7" show="Packet transfer"/>
+					<case value="8" show="Authentication request"/>
+					<case value="9" show="Get stats request"/>
+					<case value="10" show="End capture request"/>
+					<case value="11" show="Set sampling request"/>
+
+					<case value="130" show="List all devices reply"/> 
+					<case value="131" show="Open adapter reply"/>
+					<case value="132" show="Start capture reply"/>
+					<case value="133" show="Update capture filter reply"/>
+					<case value="136" show="Authentication reply"/>
+					<case value="137" show="Get stats reply"/>
+					<case value="138" show="End capture reply"/>
+					<case value="139" show="Set sampling reply"/>
+
+					<default show="Error in RPCAP code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="rpcap">
+			<section name="next"/>
+			<text value="RPCAP "/>
+			<protofield name="type" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>

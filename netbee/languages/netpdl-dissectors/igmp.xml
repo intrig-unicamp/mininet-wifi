@@ -1,0 +1,124 @@
+<protocol name="igmp" longname="IGMP (Internet Group Management Protocol)" showsumtemplate="igmp">
+	<format>
+		<fields>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="igmp.type"/>
+
+			<switch expr="buf2int(type)">
+				<case value = "17">
+					<!-- Come faccio a dividere maxres per 10 -->
+					<!-- Se maxres > 128 devo fare qualche cosa? -->
+					<field type="fixed" name="maxres" longname="Max Response Time" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="IGMP Checksum" size="2" showtemplate="FieldHex"/>
+					<field type="fixed" name="gaddress" longname="Group Address" size="4" showtemplate="ip4addr-noplg"/>
+					<block name="flags" longname="Flags">
+						<field type="bit" name="resv" longname="Reserved" size="1" mask="0xF0" showtemplate="FieldBin"/>
+						<field type="bit" name="s_flag" longname="Suppress Router-Side Processing" size="1" mask="0x08" showtemplate="FieldBin"/>
+						<field type="bit" name="qrv" longname="Querier's Robustness Variable" size="1" mask="0x07" showtemplate="FieldBin"/>
+					</block>
+					
+					<!-- Se qqic > 128 devo fare qualche cosa? -->
+					<field type="fixed" name="qqic" longname="Querier's Query Interval Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="nsources" longname="Number Of Sources" size="1" showtemplate="FieldDec"/>
+					<!-- Posso mettere come nome di Source Address il numero? -->
+					<loop type="times2repeat" expr="buf2int(nsources)">
+						<field type="fixed" name="source_addr" longname="Source Address" size="4" showtemplate="ip4addr-noplg"/>
+					</loop>
+				</case>
+
+				<case value = "18">
+					<field type="fixed" name="unused" longname="Ununsed" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<field type="fixed" name="gaddress" longname="Group Address" size="4" showtemplate="ip4addr-noplg"/>
+				</case>
+
+				<case value = "22">
+					<field type="fixed" name="maxres" longname="Max Response Time" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<field type="fixed" name="gaddress" longname="Group Address" size="4" showtemplate="ip4addr-noplg"/>
+				</case>
+
+				<case value = "23">
+					<field type="fixed" name="maxres" longname="Max Response Time" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<field type="fixed" name="gaddress" longname="Group Address" size="4" showtemplate="ip4addr-noplg"/>
+				</case>
+
+				<case value = "34">
+					<field type="fixed" name="reserved" longname="Reserved" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<field type="fixed" name="reserved" longname="Reserved" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="nrecords" longname="Number Of Group Records" size="2" showtemplate="FieldDec"/>
+					<loop type="times2repeat" expr="buf2int(nrecords)">
+						<includeblk name="group_records"/>
+					</loop>
+				</case>
+			</switch>
+		</fields>
+
+		<!-- E' possibile inserire il numero dopo Group Records? -->
+		<block name="group_records" longname="Group Records">
+			<field type="fixed" name="rec_type" longname="Record Type" size="1" showtemplate="FieldDec"/>
+			<!-- Ad ogni record type corrisponde un modo diverso: devo specificarlo qui? -->
+			<field type="fixed" name="aux_data_len" longname="Auxiliary Data Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="num_sources" longname="Number Of Sources" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="m_address" longname="Multicast Address" size="4" showtemplate="ip4addr-noplg"/>
+			<loop type="times2repeat" expr="buf2int(num_sources)">
+				<!-- E' possibile inserire il numero dopo Source Address? -->
+				<field type="fixed" name="s_address" longname="Source Address" size="4" showtemplate="ip4addr-noplg"/>
+			</loop>
+			<field type="variable" name="aux_data" longname="Auxiliary Data" expr="buf2int(aux_data_len)" showtemplate="FieldDec"/>
+		</block>	
+	</format>
+
+	<encapsulation> 
+		<switch expr = "buf2int(type)">
+			<case value="19">
+				<nextproto proto = "#dvmrp" />
+			</case>
+
+<!--
+			<case value="48">
+				<nextproto proto = "#mrd" />
+			</case>
+
+			<case value="49">
+				<nextproto proto = "#mrd" />
+			</case>
+
+			<case value="50">
+				<nextproto proto = "#mrd" />
+			</case>
+-->
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showtemplate name="igmp.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="17" comment="0x11" show="V2 Group Membership Query"/>
+					<case value="18" comment="0x12" show="V1 Membership Report"/>
+					<case value="19" comment="0x13" show="DVMRP"/>
+					<case value="20" comment="0x14" show="V1 PIM"/>
+					<case value="21" comment="0x15" show="Cisco Trace Message"/>
+					<case value="22" comment="0x16" show="V2 Membership Report"/>
+					<case value="23" comment="0x17" show="V2 Leave Group"/>
+					<case value="30" comment="0x1E" show="Multicast Traceroute Response"/>
+					<case value="31" comment="0x1F" show="Multicast Traceroute"/>
+					<case value="34" comment="0x22" show="V3 Membership Report"/>
+					<case value="48" comment="0x30" show="Multicast Router Advertisement"/>
+					<case value="49" comment="0x31" show="Multicast Router Solicitation"/>
+					<case value="50" comment="0x32" show="Multicast Router Termination"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="igmp">
+			<section name="next"/>
+			<text value="IGMP"/>
+			<section name="next"/>
+			<protofield name="type" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

@@ -1,0 +1,85 @@
+<protocol name="ipx" longname="IPX Internetwork Packet eXchange" showsumtemplate="ipx">
+	<!-- We should check that 'checksum' is equal to 'FFFF' -->
+	<execute-code>
+		<!-- If we're on Ethernet, update the packet length -->
+		<after when="$linklayer == 1">
+			<assign-variable name="$packetlength" value="$currentoffset + buf2int(len) - 30"/> 	<!-- 30 is the size of the IPX header -->
+		</after>
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="fixed" name="cks" longname="Checksum" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="len" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="tc" longname="Transport Control" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Packet Type" size="1" showtemplate="type"/>
+			<field type="fixed" name="netdst" longname="Destination Network" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="noddst" longname="Destination Node" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="skdst" longname="Destination Socket" size="2" showtemplate="socket"/>
+			<field type="fixed" name="netsrc" longname="Source Network" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="nodsrc" longname="Source Node" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="sksrc" longname="Source Socket" size="2" showtemplate="FieldHex"/>
+		</fields>
+	</format>
+	
+	<encapsulation>
+		<switch expr="buf2int(skdst)">
+			<case value="0x0452"> <nextproto proto="#ipx_sap"/> </case>
+			<case value="0x0453"> <nextproto proto="#ripx"/> </case>
+			<case value="0x0455"> <nextproto proto="#netbiosssn"/> </case>
+			<case value="0x0451"> <nextproto proto="#ncp"/> </case>
+		</switch>
+
+<!--
+Please note: it was this before
+		<switch expr="buf2int(type)">
+			<case value="0x00"> <nextproto proto="#ipx_sap"/> </case>
+			<case value="0x01"> <nextproto proto="#ripx"/> </case>
+			<case value="0x04"> <nextproto proto="#ipx_sap"/> </case>
+			<case value="0x05"> <nextproto proto="#spx"/> </case>
+			<case value="0x11"> <nextproto proto="#ncp"/> </case>
+		</switch>
+-->
+	</encapsulation>
+	
+	<visualization>
+		<showtemplate name="socket" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0247" show="NVT"/>
+					<case value="0x0451" show="NCP"/>
+					<case value="0x0452" show="SAP"/>
+					<case value="0x0453" show="IPX RIP"/>
+					<case value="0x0455" show="NetBIOS"/>
+					<case value="0x0456" show="Diagnostics"/>
+					<case value="0x0457" show="SER"/>
+					<case value="0x8063" show="NVT2 Server"/>
+					<case value="0x811E" show="Print Server"/>
+					<default show="Experimental protocols"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00" show="Hello or SAP"/>
+					<case value="0x01" show="IPX RIP"/>
+					<case value="0x02" show="Echo Packet"/>
+					<case value="0x03" show="Error Packet"/>
+					<case value="0x04" show="SAP"/>
+					<case value="0x05" show="SPX"/>
+					<case value="0x11" show="NCP"/>
+					<case value="0x14" show="NetBios broadcast"/>
+					<default show="Experimental protocols"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="ipx">
+			<section name="next"/>
+			<text value="IPX"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

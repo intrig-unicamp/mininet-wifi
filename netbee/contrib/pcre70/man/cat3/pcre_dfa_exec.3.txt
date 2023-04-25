@@ -1,0 +1,94 @@
+PCRE_DFA_EXEC(3)                                              PCRE_DFA_EXEC(3)
+
+
+
+NAME
+       PCRE - Perl-compatible regular expressions
+
+SYNOPSIS
+
+       #include <pcre.h>
+
+       int  pcre_dfa_exec(const  pcre  *code,  const pcre_extra
+       *extra,
+            const char *subject, int length, int startoffset,
+            int options, int *ovector, int ovecsize,
+            int *workspace, int wscount);
+
+DESCRIPTION
+
+       This function  matches  a  compiled  regular  expression
+       against  a  given  subject  string, using an alternative
+       matching algorithm that scans the  subject  string  just
+       once  (not  Perl-compatible).  Note that the main, Perl-
+       compatible, matching function is pcre_exec(). The  argu-
+       ments for this function are:
+
+         code         Points to the compiled pattern
+         extra        Points to an associated pcre_extra struc-
+       ture,
+                        or is NULL
+         subject      Points to the subject string
+         length       Length of the subject string, in bytes
+         startoffset  Offset in bytes in the subject  at  which
+       to
+                        start matching
+         options      Option bits
+         ovector       Points  to  a  vector of ints for result
+       offsets
+         ovecsize     Number of elements in the vector
+         workspace    Points to a vector of ints used as  work-
+       ing space
+         wscount      Number of elements in the vector
+
+       The options are:
+
+         PCRE_ANCHORED      Match only at the first position
+         PCRE_NEWLINE_ANY     Recognize   any  Unicode  newline
+       sequence
+         PCRE_NEWLINE_CR    Set CR as the newline sequence
+         PCRE_NEWLINE_CRLF  Set CRLF as the newline sequence
+         PCRE_NEWLINE_LF    Set LF as the newline sequence
+         PCRE_NOTBOL        Subject is not the beginning  of  a
+       line
+         PCRE_NOTEOL        Subject is not the end of a line
+         PCRE_NOTEMPTY       An  empty  string  is  not a valid
+       match
+         PCRE_NO_UTF8_CHECK Do not check the subject for UTF-8
+                              validity   (only   relevant    if
+       PCRE_UTF8
+                              was set at compile time)
+         PCRE_PARTIAL        Return  PCRE_ERROR_PARTIAL  for  a
+       partial match
+         PCRE_DFA_SHORTEST  Return only the shortest match
+         PCRE_DFA_RESTART   This is a restart after  a  partial
+       match
+
+       There  are  restrictions on what may appear in a pattern
+       when using this matching function. Details are given  in
+       the pcrematching documentation.
+
+       A pcre_extra structure contains the following fields:
+
+         flags        Bits indicating which fields are set
+         study_data   Opaque data from pcre_study()
+         match_limit  Limit on internal resource use
+         match_limit_recursion   Limit  on  internal  recursion
+       depth
+         callout_data Opaque data passed back to callouts
+         tables       Points to character tables or is NULL
+
+       The     flag     bits     are     PCRE_EXTRA_STUDY_DATA,
+       PCRE_EXTRA_MATCH_LIMIT,    PCRE_EXTRA_MATCH_LIMIT_RECUR-
+       SION,  PCRE_EXTRA_CALLOUT_DATA,  and  PCRE_EXTRA_TABLES.
+       For   this   matching   function,  the  match_limit  and
+       match_limit_recursion fields are not used, and must  not
+       be set.
+
+       There  is  a complete description of the PCRE native API
+       in the pcreapi page and a description of the  POSIX  API
+       in the pcreposix page.
+
+
+
+                                                              PCRE_DFA_EXEC(3)

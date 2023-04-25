@@ -1,0 +1,252 @@
+<protocol name="ipv6" longname="IPv6 (Internet Protocol version 6)" showsumtemplate="ipv6">
+	<!-- We should check that 'version' is equal to '6' -->
+	<execute-code>
+		<after>
+			<!-- Store ipsrc and ipdst in a couple of variables for the sake of speed -->
+			<!-- This aims at hiding differences between IPv4 and IPv6 for session tracking -->
+			<assign-variable name="$ipsrc" value="src"/>
+			<assign-variable name="$ipdst" value="dst"/>
+			
+			<if expr="$ipsrc lt $ipdst" >
+				<if-true>
+					<assign-variable name="$firstip" value="src"/>
+					<assign-variable name="$secondip" value="dst"/>
+				</if-true>
+				<if-false>
+					<assign-variable name="$firstip" value="dst"/>
+					<assign-variable name="$secondip" value="src"/>
+				</if-false>
+			</if>
+		</after>
+
+		<!-- If we're on Ethernet, update the packet length -->
+		<after when="$linklayer == 1">
+			<assign-variable name="$packetlength" value="$currentoffset + buf2int(plen)"/>
+		</after>
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="bit" name="ver" longname="Version" mask="0xF0000000" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="tos" longname="Type of service" mask="0x0F000000" size="4" showtemplate="FieldHex"/>
+			<field type="bit" name="flabel" longname="Flow label" mask="0x00FFFFFF" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="plen" longname="Payload Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="nexthdr" longname="Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="hop" longname="Hop limit" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="src" longname="Source address" size="16" showtemplate="ip6addr"/>
+			<field type="fixed" name="dst" longname="Destination address" size="16" showtemplate="ip6addr"/>
+
+			<loop type="while" expr="1">
+				<!-- Loop until we find a 'break' -->
+				<switch expr="buf2int(nexthdr)">
+					<case value="0">
+						<includeblk name="HBH"/>
+					</case>
+					<case value="43">
+						<includeblk name="RH"/>
+					</case>
+					<case value="44">
+						<includeblk name="FH"/>
+					</case>
+					<case value="51">
+						<includeblk name="AH"/>
+					</case>
+					<case value="60">
+						<includeblk name="DOH"/>
+					</case>
+					<default>
+						<loopctrl type="break"/>
+					</default>
+				</switch>
+			</loop>
+		</fields>
+
+
+		<block name="HBH" longname="Hop By Hop Option">
+			<field type="fixed" name="nexthdr" longname="Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="helen" longname="Length (multiple of 8 bytes, not including the first 8)" size="1" showtemplate="ipv6.hbhlen"/>
+			<loop type="size" expr="(buf2int(helen) * 8) + 6">	<!-- '6' because the first two bytes are nexthdr and helen -->
+				<includeblk name="Option"/>
+			</loop>
+		</block>
+
+		<block name="FH" longname="Fragment Header">
+			<field type="fixed" name="nexthdr" longname="Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="reserved" longname="Reserved (multiple of 8 bytes)" comment="This is in multiple of 8 bytes" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="frag_off" longname="Fragment Offset" mask="0xFFF0" size="2" showtemplate="FieldDec"/>
+			<field type="bit" name="res" longname="Res" mask="0x0004" size="2" showtemplate="FieldHex"/>
+			<field type="bit" name="m" longname="M" mask="0x0001" size="2" showtemplate="FieldBin"/>
+			<field type="fixed" name="identification" longname="Identification" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="AH" longname="Authentication Header">
+			<field type="fixed" name="nexthdr" longname="Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="payload_len" longname="Payload Len" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="reserved" longname="Reserved" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="spi" longname="Security Parameters Index" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="snf" longname="Sequence Number Field" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="DOH" longname="Destination Option Header">
+			<field type="fixed" name="nexthdr" longname="Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="helen" longname="Length (multiple of 8 bytes, not including the first 8)" size="1" showtemplate="ipv6.hbhlen"/>
+			<loop type="size" expr="(buf2int(helen) * 8)+6"> <!-- '6' because the first two bytes are nexthdr and helen -->
+				<includeblk name="Option"/>
+			</loop>
+		</block>
+
+		<block name="RH" longname="Routing Header">
+			<field type="fixed" name="nexthdr" longname="Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="hlen" longname="Length (multiple of 8 bytes)" comment="This is in multiple of 8 bytes" size="1" showtemplate="FieldDec"/>	
+			<field type="fixed" name="rtype" longname="Routing Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="segm_left" longname="Segment Left" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="res" longname="Reserved (must be zero)" size="4" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(rtype)">
+				<case value="0">
+					<loop type="times2repeat" expr="(buf2int(hlen) div 2)">
+						<field type="fixed" name="address" longname="Address" size="16" showtemplate="ip6addr"/>
+					</loop>
+				</case>
+				<default>
+					<field type="variable" name="tsd" longname="Type Specific Data" expr="(buf2int(hlen) * 8)" showtemplate="Field4BytesHex"/>
+				</default>
+			</switch>
+		</block>
+
+
+		<block name="Option" longname="Option">
+			<field type="fixed" name="opttype" longname="Option Type" size="1" showtemplate="ipv6.opttype">
+				<field type="bit" name="act" longname="Action (action if Option Type is unrecognized)" mask="0xC0" size="1" showtemplate="ipv6.optact"/> 
+				<field type="bit" name="chg" longname="Change (whether or not option data can change while packet is en-route)" mask="0x20" size="1" showtemplate="ipv6.optchg"/> 
+				<field type="bit" name="res" longname="Option Code" mask="0x1F" size="1" showtemplate="FieldDec"/> 
+			</field>
+
+			<switch expr="buf2int(opttype)">
+				<case value="0">
+					<!-- No fields are present if the option is not 'Pad1'-->
+				</case>
+
+				<case value="5">	<!-- Router Alert -->
+					<field type="fixed" name="optlen" longname="Option Length" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="value" size="2" longname="Option Value" showtemplate="ipv6.optroutalert"/>
+				</case>
+
+				<default>
+					<field type="fixed" name="optlen" longname="Option Length" size="1" showtemplate="FieldDec"/>
+					<field type="variable" name="optval" longname="Option Value" expr="buf2int(optlen)" showtemplate="Field4BytesHex"/>
+				</default>
+			</switch>
+		</block>
+	</format>
+
+
+	<encapsulation>
+		<switch expr="buf2int(nexthdr)">
+			<case value="4"> <nextproto proto="#ip" preferred="true"/> </case>
+			<case value="6"> <nextproto proto="#tcp" preferred="true"/> </case>
+			<case value="17"> <nextproto proto="#udp" preferred="true"/> </case>
+<!--			<case value="29"> <nextproto proto="#TP4"/> </case> -->
+<!--			<case value="45"> <nextproto proto="#IDRP"/> </case> -->
+			<case value="50"> <nextproto proto="#esp"/> </case>
+			<case value="58"> <nextproto proto="#icmp6" preferred="true"/> </case>
+			<case value="89"> <nextproto proto="#ospf6"/> </case>
+			<case value="103"> <nextproto proto="#pim6"/> </case>
+		</switch>
+	</encapsulation>
+
+
+	<visualization>
+		<showtemplate name="ipv6.nexthdr" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Hop By Hop Option Header"/>
+					<case value="43" show="Fragment Header"/>
+					<case value="44" show="Authentication Header"/>
+					<case value="51" show="Destination Option Header"/>
+					<case value="60" show="Routing Header"/>
+					<case value="50" show="Encapsulating Security Payload"/>
+					<case value="58" show="Internet Control Message Protocol (ICMPv6)"/>
+					<case value="59" show="No next Header"/>
+					<default show="Upper Layer Header"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv6.opttype" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Pad1 Option"/>
+					<case value="1" show="PadN Option"/>
+					<case value="5" show="Router Alert Option"/>
+					<default show="Error in IPv6 Option Type lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv6.optact" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Skip over option"/>
+					<case value="1" show="Discard packet silently"/>
+					<case value="2" show="Discard packet and send ICMP"/>
+					<case value="3" show="Discard packet and send ICMP if packet was unicast"/>
+					<default show="Error in IPv6 Option Action lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv6.optchg" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Option data does not change en-route"/>
+					<case value="1" show="Option data may change en-route"/>
+					<default show="Error in IPv6 Option Change lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv6.optroutalert" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Datagram contains a Multicast Listener Discovery message"/>
+					<case value="1" show="Datagram contains RSVP message"/>
+					<case value="2" show="Datagram contains an Active Networks message"/> 
+					<default show="Error in IPv6 Router Alert Option lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+
+		<!-- Length of the hop by hop option header -->
+		<showtemplate name="ipv6.hbhlen" showtype="dec">
+			<showdtl>
+				<text expr="(buf2int(this) * 8) + 8"/>
+				<text value=" (field value = "/>
+				<protofield showdata="showvalue"/>
+				<text value=")"/>
+			</showdtl>
+		</showtemplate>
+
+
+		<showsumtemplate name="ipv6">
+			<if expr="($prevproto == #ip) or ($prevproto == #ipv6) or ($prevproto == #ppp) or ($prevproto == #pppoe) or ($prevproto == #gre)">
+				<if-true>
+					<text value=" - "/>
+				</if-true>
+				<if-false>
+					<section name="next"/>
+				</if-false>
+			</if>
+
+			<text value="IPv6: "/>
+			<protofield name="src" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dst" showdata="showvalue"/>
+			<text value=" (Len " expr="buf2int(plen) + 40"/>
+			<text value=")"/>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>
+

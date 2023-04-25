@@ -1,0 +1,151 @@
+<protocol name="dce_rpc_udp" longname="Remote Call Procedure over UDP" showsumtemplate="rpcudp">
+	<execute-code>
+		<verify>
+			<!--<if expr="hasstring($packet[$currentoffset:0],'^\x04[\0-\x10]',0) and (($packetlength - $currentoffset - 80) == buf2int(changebyteorder($packet[$currentoffset+74:2])))">-->
+			<if expr="hasstring($packet[$currentoffset:0],'^\x04[\0-\x10]',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#dce_rpc_udp"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#dce_rpc_udp"/>
+			</update-lookuptable>
+		</before>		
+	</execute-code>
+
+	<format>
+		<fields>
+			<block name="header" longname="Header">
+				<field type="fixed" name="ver" longname="Version" size="1" showtemplate="FieldAscii"/>
+				<field type="fixed" name="type" longname="Type" size="1" showtemplate="rpc.type"/>
+				<field type="fixed" name="flag1" longname="Flag1" size="1" showtemplate="FieldHex"/>
+				<field type="fixed" name="flag2" longname="Flag2" size="1" showtemplate="FieldHex"/>
+				<field type="fixed" name="drep" longname="Drep" size="3" showtemplate="FieldHex"/>
+				<field type="fixed" name="serial_hi" longname="Serial High" size="1" showtemplate="FieldHex"/>
+				<field type="fixed" name="object" longname="Object" size="16" showtemplate="FieldHex"/>
+				<field type="fixed" name="if_id" longname="Interface ID" size="16" showtemplate="FieldHex"/>
+				<field type="fixed" name="act_id" longname="Activity ID" size="16" showtemplate="FieldHex"/>
+				<field type="fixed" name="server_boot" longname="Server Boot" size="4" showtemplate="FieldHex"/>
+				<field type="fixed" name="if_ver" longname="Interface Versione" size="4" showtemplate="FieldHex"/>
+				<field type="fixed" name="seqnum" longname="Sequence Number" size="4" showtemplate="FieldHex"/>
+				<field type="fixed" name="opnum" longname="Operation Number" size="2" showtemplate="FieldHex"/>
+				<field type="fixed" name="ihint" longname="Interface Hint" size="2" showtemplate="FieldHex"/>
+				<field type="fixed" name="ahint" longname="Activity Hint" size="2" showtemplate="FieldHex"/>
+				<field type="fixed" name="len" longname="Length" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="fragnum" longname="Fragment Number" size="2" showtemplate="FieldHex"/>
+				<field type="fixed" name="auth_proto" longname="Authentication Protocol" size="1" showtemplate="FieldHex"/>
+				<field type="fixed" name="serial_lo" longname="Serial Low" size="1" showtemplate="FieldHex"/>
+			</block>
+			
+			<switch expr="buf2int(type)">
+				<case value="0x00"> <includeblk name="request"/>  </case>
+				<case value="0x02"> <includeblk name="response"/> </case>
+				<case value="0x03"> <includeblk name="fault"/> </case>
+				<case value="0x05"> <includeblk name="nocall"/> </case>
+				<case value="0x06"> <includeblk name="reject"/> </case>
+				<case value="0x08"> <includeblk name="cancel"/> </case>
+				<case value="0x09"> <includeblk name="fack"/> </case>
+				<case value="0x0a"> <includeblk name="cancel_ack"/> </case>
+			</switch>
+		</fields>
+		
+		<block name="request" longname="Request">
+			<field type="variable" name="input" longname="Input Parameter" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/> 
+		</block>
+		
+		<block name="response" longname="Response">
+			<field type="variable" name="output" longname="Output Parameter" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/> 
+		</block>
+		
+		<block name="cancel_ack" longname="Cancel ACK">
+			<field type="fixed" name="version" longname="Version" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="cancel_id" longname="Cancel ID" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="server_is_accepting" longname="Server is Accepting" size="1" showtemplate="FieldDec"/>-->
+		</block>
+	
+		<block name="cancel" longname="Cancel">
+			<field type="fixed" name="version" longname="Version" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="cancel_id" longname="Cancel ID" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="fack" longname="Fack">
+			<field type="fixed" name="vers" longname="Vers" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="pad1" longname="PAD1" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="window_size" longname="Window Size" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="max_tsdu" longname="Max TSDU" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="max_frag_size" longname="Max Fragment Size" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="serial_num" longname="Serial Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="selack_len" longname="# Selack Array" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="selack" longname="Selack Array" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="fault" longname="Fault">
+			<field type="fixed" name="st" longname="Status Code" size="4" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="nocall" longname="No Call">
+			<if expr="$packetlength - $currentoffset">
+				<if-true>
+					<includeblk name="fack"/>
+				</if-true>
+			</if>
+		</block>
+		
+		<block name="reject" longname="Reject">
+			<includeblk name="fault"/>
+		</block>
+
+	</format>
+	
+	<visualization>
+		<showtemplate name="rpc.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x00" show="Request"></case>
+					<case value="0x01" show="Ping"></case>
+					<case value="0x02" show="Response"></case>
+					<case value="0x03" show="Fault"></case>
+					<case value="0x04" show="Working"></case>
+					<case value="0x05" show="No call"></case>
+					<case value="0x06" show="Reject"></case>
+					<case value="0x07" show="Ack"></case>
+					<case value="0x08" show="Cl_Cancel"></case>
+					<case value="0x09" show="Fack"></case>
+					<case value="0x0a" show="Cancel_ack"></case>
+					<case value="0x0b" show="Bind"></case>
+					<case value="0x0c" show="Bind_ack"></case>
+					<case value="0x0d" show="Bind_nack"></case>
+					<case value="0x0e" show="Alter_context"></case>
+					<case value="0x0f" show="Alter_context_resp"></case>
+					<case value="0x11" show="Shoutdown"></case>
+					<case value="0x12" show="Co_Cancel"></case>
+					<case value="0x13" show="Orphaned"></case>
+					<default show="Unkown messagge"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+			
+		
+		<showsumtemplate name="rpcudp">
+			<section name="next"/>
+			<text value="DCE RPC over UDP "/>
+			<protofield name="type" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

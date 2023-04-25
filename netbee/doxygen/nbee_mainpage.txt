@@ -1,0 +1,132 @@
+/**	\mainpage NetBee Library API
+
+	This section lists the complete set of classes and methods that are implemented in NetBee.
+	Use this section if you want to use the NetBee API.
+
+	<strong>Warning 1:</strong>
+	We strongly suggest to have a look at the <a href="../../misc/samples.htm" target="_top">examples</a>
+	(which are very simple indeed) in order to understand which (and how) functions are 
+	required to use the NetBee library.
+
+	<strong>Warning 2:</strong> Remember to Initialize and Cleanup the library.
+	You MUST initialize the NetBee library before using any function defined into it.
+	This can be done by means of the nbInitialize() function. This must be done once per program.
+	In the same way, you have to call nbCleanup() before leaving the program.
+
+	<strong>Warning 3:</strong> Do not allocate the exported classes directly.
+	Please take care that most of these exported classes cannot be instantiated directly;
+	you must use the proper nbGetxxx() function instead. This trick allows you to use a wrapper
+	(instead of the real class) most of the time avoiding to to deal with the internal structure
+	of the exported class (i.e. it avoids the knowledge of XML objects that are used internally, and such).
+
+
+	<h2>NetBee Exported Modules</h2>
+
+	<table class="mainpage">
+	<tr>
+		<th class="mainpage">Module Name</th>
+		<th class="mainpage">Description</th>
+	</tr>
+	<tr>
+		<td valign="top" class="mainpage">\ref NetBeeInitCleanup</td>
+		<td class="mainpage">These function must be used to initialize (and deallocate) the whole NetBee library. Any other function
+		or class within the library must be preceeded by the nbInitialize(), called once per program.
+
+		In the same way, the user has to call the nbCleanup() to free all the internal structures of the NetBee library.</td>
+	</tr>
+	<tr>
+		<td valign="top">\ref NetBeePacketDecoder</td>
+		<td>Class nbPacketDecoder can be used to decode a packet according to the NetPDL syntax. This class accepts 
+		the the hex dump of a packet, decodes it, and generates the proper PDML and PSML structures.<p>
+		However, this class is not able to manage PDML and PSML files. For that, you have to use the functions
+		and classes present in the \ref NetBeePxMLReader section.</td>
+	</tr>
+	<tr>
+		<td valign="top">\ref NetBeePxMLReader</td>
+		<td>Class nbPSMLReader can be used to create, parse and manage PSML files, i.e. files that contain a a summary
+		of a given packet according to the PSML language. This class must be instantiated through the nbGetPSMLReader()
+		function.<p>
+		Class nbPDMLReader can be used to create, parse and manage PDML files, i.e. files that contain a decoded packet
+		according to the PDML language. This class must be instantiated through the nbGetPDMLReader() function.</td>
+	</tr>
+<!--
+	<tr>
+		<td valign="top"><a href="../nbprotodb/index.htm" target="_top">NetPDL Protocol Database Manager module</a></td>
+		<td>Structure _nbNetPDLDatabase is used to organize the information related to
+		the protocols contained in the NetPDL XML file in a more 'friendly' way.<p>
+		This structure is created by the <a href="../nbprotodb/index.htm" target="_top">NetPDL Protocol Database Manager module</a>.
+		Since the NetPDLProtoDB module is independent from NetBee, a program that needs this structure can link
+		directly against this module and avoid linking against NetBee.
+		For more details, please check the <a href="../nbprotodb/index.htm" target="_top">NetPDLProtoDB</a> documentation.<p>
+		In any case, this structure can be used also within a NetBee-based program by calling the nbGetNetPDLProtoDB() function.</td>
+	</tr>
+-->
+	<tr>
+		<td valign="top">\ref NetBeePacketEngine</td>
+		<td> <p>
+		This section defines some classes that can be used to filter packets and to extract selected fields from network
+		packets.<p>
+		These classes include also a wrapper to the NetPFL Compiler module, which allows using those primitives
+		seamlessly for generating packet filters and field extractors.<p>
+		In case you need a lower level access to the NetPFL compiler, you can simply link against this module; the exported
+		interface is available <a href="../nbpflcompiler/index.htm" target="_top">here</a>.
+		</td>
+	</tr>
+	<tr>
+		<td valign="top">\ref NetBeePacketDumpFiles</td>
+		<td> <p>
+		This section defines some classes that can be used to manage packet dump files. Those classes can be used to 
+		open/create dump files, and to write/read data to/from them. Additionally, some advanced feature (e.g. keep
+		the packet list) can be enabled, in order to provide random access to the packets in those files.<p>
+		</td>
+	</tr>	<tr>
+		<td valign="top">\ref NetBeeUtils</td>
+		<td>Class nbNetPDLUtils provides some utilities which can be useful to manipulate field value (e.g. in
+		PDML files. For instance, this class contains some methods to convert the hex dump of a field into 
+		its 'printable' form (e.g. from the hex value '0A010101' to the IP address 10.1.1.1) and viceversa.<p>
+		Additionally, some methods allow to convert an hex value into a decimal one, or an entire hex dump
+		into its ascii counterpart (and vice versa).<p>
+		This class must be instantiated through the nbGetNetPDLUtils() function.</td>
+	</tr>
+	<tr>
+		<td valign="top">\ref NetBeeProfiling</td>
+		<td> <p>
+		This section defines some classes and functions that can be used to profile execution code at the CPU tick level.<p>
+		These classes provide a cleaner and easier interface (albeit efficient) that allow the programmer to get the measures and to 
+		process the resulting data (in order to calculate statistical variables).<p>
+		</td>
+	</tr>
+<!-- OM Removed temporary those classes from the build system; so, we comment this text out as well -->
+<!--
+	<tr>
+		<td valign="top">\ref NetBeeNetVM</td>
+		<td> <p>
+		This section defines some classes that can be used to interact with the NetVM virtual machine. These
+		classes are rather low-level classes because basically provides a C++ interface to the NetVM and it defines
+		some components (NetVM, NetPEs, Ports) that must be used to control the machine.<p>
+		These classes provides the maximum flexibility in terms of controlling the behaviour of the NetVM, e.g. in
+		terms of NetPE installed and the program executed by each of them, altough they are not very simple to use.<p>
+		For standard applications, programmers do not have to use the primitives defined in this section; they should use the 
+		classes defined in section \ref NetBeePacketProcessing, which are appropriate for most of the needs of
+		standard network applications.
+
+		In case you need even a lower level access to the NetVM, you can use the 
+		<a href="../nbnetvm/index.htm" target="_top">NetVM module</a>.
+		This module is the best choice in case you want to have a lightweight and fast module 
+		implementing the NetVM, e.g. for inclusion in the Operating System kernel.</td>
+	</tr>
+	<tr>
+		<td valign="top">\ref NetBeeNetVmPorts</td>
+		<td> <p>
+		This section defines some classes that can be used to terminate NetVM connections to physical ports.
+		These classes help using physical devices (e.g. a network card, a file, etc) by defining an abstraction layer
+		that hides most of their differences.<p>
+		These classes can be used to initiate and terminate a connection to the NetVM. For instance, a packet capture
+		process usually starts from the network card, then packets go to the NetVM, and results are received by the
+		application. In this example, both the network card and the application handler can be virtualized by these classes.<p>
+		Please note that these classes are highly experimental.</td>
+	</tr>
+-->
+</table>
+
+*/

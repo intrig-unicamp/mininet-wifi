@@ -1,0 +1,300 @@
+<protocol name="pptp" longname="PPTP (Point-to-Point Tunnelling Protocol)" showsumtemplate="pptp">
+	<execute-code>
+		<verify>
+			<if expr="buf2int($packet[$currentoffset+4:4]) == 0x1A2B3C4D">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="fixed" name="len" longname="Lenght" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="msgtype" longname="Message Type" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="magiccookie" longname="Magic Cookie" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="ctrlmsgtype" longname="Control Message Type" size="2"  showtemplate="pptp.ctrlmsgtype"/>
+			<field type="fixed" name="res0" longname="Reserved 0" size ="2" showtemplate="FieldHex"/>
+
+			<switch expr="buf2int(ctrlmsgtype)">
+				<case value="1"> <includeblk name="Start_CC_Req"/></case>
+				<case value="2"> <includeblk name="Start_CC_Rep"/></case>
+				<case value="3"> <includeblk name="Stop_CC_Req"/></case>
+				<case value="4"> <includeblk name="Stop_CC_Rep"/></case>
+				<case value="5"> <includeblk name="Echo_Req"/></case>
+				<case value="6"> <includeblk name="Echo_Rep"/></case>
+				<case value="7"> <includeblk name="Out_C_Req"/></case>	
+				<case value="8"> <includeblk name="Out_C_Rep"/></case>
+				<case value="9"> <includeblk name="In_C_Req"/></case>	
+				<case value="10"> <includeblk name="In_C_Rep"/></case> 
+				<case value="11"> <includeblk name="In_C_Conn"/></case>
+				<case value="15"> <includeblk name="Set-Link-Info"/></case>
+			</switch>
+		</fields>
+
+		<block name="Start_CC_Req" longname="Start Connection Request">
+			<field type="fixed" name="ProtocolVersion" longname="Protocol Version" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="res1" longname="Reserved 1" size ="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="Framing_Cap" longname="Framing Capabilities" size ="4" showtemplate="pptp.fc"/>
+			<field type="fixed" name="Bearer_Cap" longname="Bearer Capabilities" size ="4" showtemplate="pptp.bc"/>
+			<field type="fixed" name="Maximum_ch" longname="Maximum Channels" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="firmware" longname="Firmware revision" size ="2" showtemplate="FieldDec"/>         
+			<field type="fixed" name="hname" longname="Host Name" size ="64" showtemplate="FieldAscii"/>         
+			<field type="fixed" name="vname" longname="Vendor Name" size ="64" showtemplate="FieldAscii"/>   
+		</block>
+			
+		<block name="Start_CC_Rep" longname="Start Connection Reply">
+			<field type="fixed" name="protover" longname="Protocol Version" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="result_start_conn" longname="Result code" size ="1" showtemplate="pptp.rc_start_conn"/>
+			<field type="fixed" name="error" longname="Error code" size ="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="framing_cap" longname="Framing Capability" size ="4" showtemplate="pptp.fc"/>
+			<field type="fixed" name="bearer_cap" longname="Bearer Capability" size ="4" showtemplate="pptp.bc"/>
+			<field type="fixed" name="max_ch" longname="Maximum Channels" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="firmware" longname="Firmware revision" size ="2" showtemplate="FieldDec"/>         
+			<field type="fixed" name="hname" longname="Host Name" size ="64" showtemplate="FieldAscii"/>         
+			<field type="fixed" name="vname" longname="Vendor Name" size ="64" showtemplate="FieldAscii"/>   
+		</block>
+			
+		<block name="Stop_CC_Req" longname="Stop Control Connection Request">
+			<field type="fixed" name="reason" longname="Reason" size ="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="res1" longname="Reserved 1" size ="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="res2" longname="Reserved 2" size ="2" showtemplate="FieldHex"/>                
+		</block>
+			
+		<block name="Stop_CC_Rep" longname="Stop Control Connection Reply">
+			<field type="fixed" name="result_stop_conn" longname="Result code" size ="1" showtemplate="pptp.rc_stop_conn"/>
+			<field type="fixed" name="error" longname="Error code" size ="1" showtemplate="pptp.ec"/>
+			<field type="fixed" name="res1" longname="Reserved 1" size ="2" showtemplate="FieldHex"/>                             
+		</block> 
+			
+		<block name="Echo_Req" longname="Echo Request">
+			<field type="fixed" name="identifier" longname="Identifier" size ="4" showtemplate="FieldHex"/>                       
+		</block> 
+
+		<block name="Echo_Rep" longname="Echo Reply">
+			<field type="fixed" name="identifier" longname="Identifier" size ="4" showtemplate="FieldHex"/> 
+			<field type="fixed" name="result" longname="Result code" size ="1" showtemplate="pptp.rc_echo"/>
+			<field type="fixed" name="error" longname="Error code" size ="1" showtemplate="pptp.ec"/>
+			<field type="fixed" name="res1" longname="Reserved 1" size ="2" showtemplate="FieldHex"/>                                                   
+		</block>  
+			
+		<block name="Out_C_Req" longname="Outgoing Call Request">
+			<field type="fixed" name="call_id" longname="Call ID" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="call_sn" longname="Call Serial Number" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="min_bps" longname="Minimum BPS" size ="4" showtemplate="FieldDec"/> 
+			<field type="fixed" name="max_bps" longname="Maximum BPS" size ="4" showtemplate="FieldDec"/> 
+			<field type="fixed" name="bearer_Type" longname="Bearer Type" size ="4" showtemplate="pptp.ocbt"/> 
+			<field type="fixed" name="framing_Type" longname="Framing Type" size ="4" showtemplate="pptp.ocft"/>
+			<field type="fixed" name="packet_rec_win" longname="Packet Recv. Window Size" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="packet_proc_del" longname="Packet Processing Delay" size ="2" showtemplate="FieldDec"/>
+                        <field type="fixed" name="phone_number_length" longname="Phone Number Length" size="2" showtemplate="FieldDec"/>
+                        <field type="fixed" name="res1" longname="reserved1" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="phone_number" longname="Phone Number" size ="64" showtemplate="FieldDec"/> 
+			<field type="fixed" name="subaddress" longname="Subaddress" size ="64" showtemplate="FieldAscii"/>                           
+		</block>             
+			
+		<block name="Out_C_Rep" longname="Outgoing Call Reply">
+			<field type="fixed" name="call_id" longname="Call ID" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="peer_call_id" longname="Peer's Call ID" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="result" longname="Result code" size ="1" showtemplate="pptp.ocrc"/>
+			<field type="fixed" name="error" longname="Error code" size ="1" showtemplate="pptp.ec"/>
+			<field type="fixed" name="cause_code" longname="Cause code" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="conn_speed" longname="Connection Speed" size ="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="packet_rec_win_size" longname="Packet Receive Window Size" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="packet_transmit_delay" longname="Packet Processing Delay" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="ph_ch_ID" longname="Physical Channel ID" size ="4" showtemplate="FieldDec"/>
+		</block>
+			
+		<block name="In_C_Req" longname="Incoming Call Request">
+			<field type="fixed" name="call_id" longname="Call ID" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="call_sn" longname="Call Serial Number" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="physical_id" longname="Physical Channel ID" size ="4" showtemplate="FieldDec"/> 
+			<field type="fixed" name="bearer_Type" longname="Call Bearer Type" size ="4" showtemplate="pptp.icbt"/> 
+			<field type="fixed" name="dialed_len" longname="Dialer Number Length" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="dialing_len" longname="Dialing Number Length" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="dialed_number" longname="Dialer Number" size ="8" showtemplate="FieldDec"/> 
+			<field type="fixed" name="dialing_number" longname="Dialing Number" size ="8" showtemplate="FieldDec"/> 
+			<field type="fixed" name="subaddress" longname="Subaddress" size ="8" showtemplate="FieldAscii"/>               
+		</block>           
+			
+		<block name="In_C_Rep" longname="Incoming Call Reply">
+			<field type="fixed" name="call_id" longname="Call ID" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="peer_call_id" longname="Peer's Call ID" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="result" longname="Result code" size ="1" showtemplate="pptp.icrc"/>
+			<field type="fixed" name="error" longname="Error code" size ="1" showtemplate="pptp.ec"/>
+			<field type="fixed" name="packet_rec_win_size" longname="Packet Receive Window Size" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="packet_transmit_delay" longname="Packet Transmit Delay" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="res1" longname="Reserved 1" size ="2" showtemplate="FieldHex"/>
+		</block>
+			
+		<block name="In_C_Conn" longname="Incoming Call Connected">
+			<field type="fixed" name="peer_call_id" longname="Peer's Call ID" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="res1" longname="Reserved 1" size ="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="conn_speed" longname="Connection Speed" size ="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="packet_rec_win_size" longname="Packet Receive Window Size" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="packet_transmit_delay" longname="Packet Transmit Delay" size ="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="framing_type" longname="Framing Type" size ="4" showtemplate="pptp.icft"/>              
+		</block>
+
+		<block name="Set-Link-Info" longname="Set Link Info">
+			<field type="fixed" name="peer_call_id" longname="Peer's Call ID" size ="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="res1" longname="Reserved 1" size ="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="sendACCM" longname="Send ACCM" size ="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="recACCM" longname="Receive ACCM" size ="4" showtemplate="FieldHex"/>  
+		</block>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="pptp">
+			<section name="next"/>
+			<text value="PPTP "/>
+			<protofield name="ctrlmsgtype" showdata="showmap"/>
+		</showsumtemplate>
+
+		<showtemplate name="pptp.ctrlmsgtype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Start-Control-Connection-Request"/>
+					<case value="2" show="Start-Control-Connection-Reply"/>
+					<case value="3" show="Stop-Control-Connection-Request"/>
+					<case value="4" show="Stop-Control-Connection-Reply"/>
+					<case value="5" show="Echo-Request"/>
+					<case value="6" show="Echo-Reply"/>
+					<case value="7" show="Outgoing-Call-Request"/>
+					<case value="8" show="Outgoing-Call-Reply"/>
+					<case value="9" show="Incoming-Call-Request"/>
+					<case value="10" show="Incoming-Call-Reply"/>
+					<case value="11" show="Incoming-Call-Connected"/>
+					<case value="15" show="Set-Link-Info"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="pptp.rc_start_conn" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Successful channel establishment"/>
+					<case value="2" show="General error: Error Code indicates the problem"/>
+					<case value="3" show="Requester is not authorized to establish a command channel"/>
+					<case value="4" show="The protocol version of the requester is not supported"/>
+					<case value="5" show="The protocol version of the requester is not supported"/>			
+				</switch>
+			</showmap>
+		</showtemplate>
+				
+		<showtemplate name="pptp.fc" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Asynchronous Framing supported"/>
+					<case value="2" show="Synchronous Framing supported"/>
+                                        <case value="3" show="Either Framing Supported"/>
+					<default show="Error in pptp.fc code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>		
+				
+		<showtemplate name="pptp.bc" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Analog access supported"/>
+					<case value="2" show="Digital access supported"/>
+					<case value="3" show="Either Framing Supported"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+				
+		<showtemplate name="pptp.rc_stop_conn" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="(OK) - Control connection closed"/>
+					<case value="2" show="(General Error) - Control connection not closed for reason indicated in Error Code"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+				
+		<showtemplate name="pptp.rc_echo" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="(OK) - The Echo-Reply is valid"/>
+					<case value="2" show="(General Error) - Echo-Request not accepted for the reason indicated in Error Code"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+				
+		<showtemplate name="pptp.ocbt" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Call to be placed on an analog channel"/>
+					<case value="2" show="Call to be placed on a digital channel"/>
+					<case value="3" show="Call to be placed on any type of channel"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+				
+		<showtemplate name="pptp.ocft" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Call to use Asynchronous framing"/>
+					<case value="2" show="all to use Synchronous framing"/>
+					<case value="3" show="Call can use either type of framing"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="pptp.ocrc" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="(Connected) - Call established with no errors"/>
+					<case value="2" show="General Error) - Outgoing Call not established for the reason indicated in Error Code"/>
+					<case value="3" show="(No Carrier) - Outgoing Call failed due to no carrier detected"/>
+					<case value="4" show="(Busy) - Outgoing Call failed due to detection of a busy signal"/>
+					<case value="5" show="(Busy) -   (No Dial Tone) - Outgoing Call  failed due to lack of a dial tone"/>
+					<case value="6" show="(Time-out) - Outgoing Call was not established within time allotted by PAC"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="pptp.icbt" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Call is on an analog channel"/>
+					<case value="2" show="Call is on a digital channel"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="pptp.icrc" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="(Connect) - The PAC should answer the incoming call"/>
+					<case value="2" show="(General Error) - The Incoming Call should not be established due to the reason indicated in Error Code"/>
+					<case value="3" show="(Do Not Accept) - The PAC should not accept the incoming call.  It should hang up or issue a busy indication"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+ 		<showtemplate name="pptp.icft" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Call uses asynchronous framing"/>
+					<case value="2" show="Call uses synchronous framing"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="pptp.ec" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="No error"/>
+					<case value="1" show="Not-Connected"/>
+					<case value="2" show="Bad-Format"/>
+					<case value="3" show="Bad-Value"/>
+					<case value="4" show="No-Resource"/>
+					<case value="5" show="Bad-Call ID"/>   
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>
+

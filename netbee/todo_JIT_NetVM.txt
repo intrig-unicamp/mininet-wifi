@@ -1,0 +1,52 @@
+TODO JIT/NetVM: 
+
+* Bytecode Analysis:
+	- Implementare SWITCH e verificare CALL e CALLW
+
+* IR Code Selection:
+	- Finire di implementare tutti gli opcodes NetIL
+	- In particolare IRND, TSTAMP, SLEEP che producono una chiamata alla NetVM
+	- Verificare l'implementazione degli accessi in memoria.
+	  Livio fa un endian-swap per l'accesso a qualsiasi memoria...
+	- Di conseguenza bisogna verificare le MEMCOPY
+	(secondo me bisognerebbe mantenere in Host Byte-Order gli accessi a memoria normale
+	e ovviamente usare il Network Byte-Order per gli accessi a Exch Buff. Quindi
+	su Intel le memorie (data, shared e stack) rimangono little-endian e quando
+	si trasferisce da o verso Exch-Buff (su Intel) si fa l'endian swap)
+
+* GC Regalloc:
+	- Implementare "spill-registers"
+	- Implementare un test sulla correttezza dell'allocazione
+
+* x86 Code Selection:
+	- Implementare un algoritmo di code selection (peephole instruction selection)
+
+* x86 Emit:
+	- Riscrivere le funzioni di emit come macro.
+	- Verificare se lo spazio allocato per la funzione compilata e' adeguato
+	- Mettere una free dei native-code-buffer  nella deallocazione del netPE
+
+* Verificare la generazione di prologue e epilogue con __fastcall
+
+* Optimizations:
+	- Implementare constant propagation/folding e dead code
+	  elimination.
+
+* Cercare il modo di non compilare un segmento vuoto (pop+ret o ret)
+	 e di generare direttamente una ret
+	(la compilazione di un segmento vuoto usa comunque inutilmente 5Kb di memoria 
+	in strutture dati interne)
+
+* Sistemare i commenti
+* Sistemare le funzioni di dump delle strutture interne per il debug
+* Sistemare il bytecode-dump (disassembler) e commentarlo
+* Rivedere il ritorno dei valori di errore da parte di tutte le funzioni
+	(in release se qualcosa nel back end va storto (emit non implementato o altro)
+	non se ne viene a conoscenza e puo' essere considerato valido del 
+	codice jittato completamente sbagliato) 
+
+
+Todo DOCS:
+	  
+* NetIL specifications (formato e verifica del codice NetIL)
+* Decidere come integrare la documentazione doxygen del jit in quella di netvm

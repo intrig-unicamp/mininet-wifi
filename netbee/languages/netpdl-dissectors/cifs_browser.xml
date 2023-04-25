@@ -1,0 +1,79 @@
+<protocol name="cifs_browser" longname="CIFS/E Browser Protocol" showsumtemplate="cifs_browser">
+	<format>
+		<fields>
+			<field type="fixed" name="opcode" longname="Opcode" size="1" showtemplate="cifs.opcode"/>
+			<field type="fixed" name="count_up" longname="Update Count" size="1" showtemplate="FieldDec"/>
+			<if expr="buf2int(opcode) == 12">
+				<if-true>
+					<field type="fixed" name="period_up" longname="Update Periodicity" size="4" showtemplate="FieldDec"/>
+					<field type="fixed" name="domain" longname="Domain/Workgroup" size="16" showtemplate="FieldAscii"/>
+					<field type="fixed" name="os_max" longname="OS Major Version" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="os_min" longname="OS Minor Version" size="1" showtemplate="FieldDec"/>
+					<includeblk name="srv_type"/>
+					<field type="fixed" name="mystery" longname="Misterious Field" size="4" showtemplate="FieldHex"/>
+					<field type="variable" name="mastername" longname="Master Browser Server Name" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-true>
+				<if-false>
+					<includeblk name="srv_type"/>
+					<field type="fixed" name="os_max" longname="OS Major Version" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="os_min" longname="OS Minor Version" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="period_up" longname="Update Periodicity" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="srv" longname="Server Name" size="10" showtemplate="FieldAscii"/>
+					<field type="fixed" name="comment" longname="Host Comment" size="1" showtemplate="FieldAscii"/>
+				</if-false>
+			</if>
+		</fields>
+
+		<block name="srv_type" longname="Server Type">
+			<field type="bit" name="op_domain" longname="Domain Enum Request"         mask="0x80000000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_reqonly" longname="Local List Only Request"    mask="0x40000000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_w95" longname="Windows 95 or above host"       mask="0x00400000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_vms" longname="VMS host"                       mask="0x00200000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_osf" longname="OSF host"                       mask="0x00100000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_domain" longname="Domain Master Browser"       mask="0x00080000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_master" longname="Master Browser"              mask="0x00040000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_backup" longname="Backup Browser"              mask="0x00020000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_potential" longname="Potential Browser"        mask="0x00010000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_nt" longname="NT Server"                       mask="0x00008000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_wfw" longname="Wfw Host"                       mask="0x00002000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_ntworkstation" longname="NT Workstation"       mask="0x00001000" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_xenix" longname="Xenix Server"                 mask="0x00000800" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_dialin" longname="Dialin Server"               mask="0x00000400" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_print" longname="Print Queue Server"           mask="0x00000200" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_domainmember" longname="Domain Member Server"  mask="0x00000100" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_novell" longname="Novell Server"               mask="0x00000080" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_apple" longname="Apple host"                   mask="0x00000040" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_timesource" longname="Time Source"             mask="0x00000020" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_backupcontr" longname="Backup Controller"      mask="0x00000010" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_domaincontr" longname="Domain Controller"      mask="0x00000008" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_sqlserver" longname="SQL Server"               mask="0x00000004" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_server" longname="Server"                      mask="0x00000002" size="4" showtemplate="TrueFalse"/>
+			<field type="bit" name="op_workstation" longname="Workstation"            mask="0x00000001" size="4" showtemplate="TrueFalse"/>
+		</block>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="cifs_browser">
+			<section name="next"/>
+			<text value="CIFS Browser"/>
+		</showsumtemplate>
+
+		<showtemplate name="cifs.opcode" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x01" show="Host Announcement"/>
+					<case value="0x02" show="Announcement Request"/>
+					<case value="0x08" show="Request Election"/>
+					<case value="0x09" show="Get Backup List Request"/>
+					<case value="0x0a" show="Get Backup List Response"/>
+					<case value="0x0b" show="Become Backup"/>
+					<case value="0x0c" show="Domain Announcement"/>
+					<case value="0x0d" show="Master Announcement"/>
+					<case value="0x0f" show="Local Master Announcement"/>
+					<default show="Unknown opcode"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>
+

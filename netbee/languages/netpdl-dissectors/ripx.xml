@@ -1,0 +1,32 @@
+<protocol name="ripx" longname="RIPX" showsumtemplate="ripx">
+	<format>
+		<fields>
+			<field type="fixed" name="oper" longname="Operation" size="2" showtemplate="oper"/>
+				<loop type="while" expr="buf2int($packet[$currentoffset:1])!=0">
+					<block name="entry" longname="Entry">
+						<field type="fixed" name="netno" longname="Network Number" size="4" showtemplate="FieldHex"/>
+						<field type="fixed" name="HopCount" longname="Hop Count" size="2" showtemplate="FieldDec"/>
+						<field type="fixed" name="TickCount" longname="Tick Count" size="2" showtemplate="FieldDec"/>
+					</block>	
+				</loop>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showtemplate name="oper" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x01" show="Request"/>
+					<case value="0x02" show="Response"/>
+					<default show="Unknown operation"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="ripx">
+			<section name="next"/>
+			<text value="RIPX"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

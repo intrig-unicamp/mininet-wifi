@@ -1,0 +1,2090 @@
+/*****************************************************************************/
+/*                                                                           */
+/* Copyright notice: please read file license.txt in the NetBee root folder. */
+/*                                                                           */
+/*****************************************************************************/
+
+#include "mirnode.h"
+#include "opcodes.h"
+#include "cfg.h"
+#include "../../../nbee/globals/debug.h"
+#include "x11-ir.h"
+#include "x11-emit.h"
+#include "x11-util.h"
+#include "x11-coprocessor.h"
+#include <nbnetvm.h>
+#include "rt_environment.h"
+#include <iostream>
+#include <set>
+#include <map>
+
+extern jit::X11::X11EmissionContext *ctx;
+
+#define MBMAX_OPCODES 256
+#define MBTREE_TYPE jit::MIRNode
+#define MBREG_TYPE jit::MIRNode::RegType
+#define MBTREE_LEFT(t) ((t)->getKid(0))
+#define MBTREE_RIGHT(t) ((t)->getKid(1))
+#define MBTREE_OP(t) ((t)->getOpcode())
+#define MBTREE_STATE(t) ((t)->state)
+#define MBTREE_VALUE(t) ((t)->getDefReg())
+#define MBALLOC_STATE   new MBState()
+#define MBGET_OP_NAME(opcode) nvmOpCodeTable[opcode].CodeName
+
+#define MBTREE_GET_CONST_VALUE(t) (((ConstNode *)t)->getValue())
+
+typedef jit::X11::X11IRNode IR;
+
+using namespace jit;
+using std::cout;
+
+using X11::reg_part_t;
+using X11::r_low;
+using X11::r_high;
+using X11::r_16lo;
+using X11::r_16hi;
+
+#if 0
+using X11::byte8;
+using X11::word16;
+using X11::dword32;
+#endif
+
+using X11::sp_const;
+using X11::sp_virtual;
+using X11::sp_offset;
+using X11::sp_pkt_mem;
+using X11::sp_reg_mem;
+using X11::sp_sw_help;
+using X11::sp_sw_table;
+using X11::sp_device;
+
+using X11::off_pkt;
+using X11::off_reg;
+
+%%
+
+%term CNST CNST8 CNST16 RET ADD AND PHI STREG PBSTR PSLDU PSSTR PILD PISTR PBLDU IINC_1 IDEC_1 SNDPKT JUMPW LDREG LDREG8 LDREG16 SWITCH ISSTR IISTR  IMUL
+%term ADDUOV SHL SUB NOT
+%term JNE JCMPEQ JCMPNEQ
+%term ISSSLD
+%term SUBUOV USHR
+%term PBL
+%term COPRUN
+%term DILD DISTR
+
+%start stmt
+
+;stmt: NOP
+;{
+;	cout << "NOP\n";
+;}
+
+;dummy: NOP
+;{
+;	cout << "NOP (dummy)\n";
+;}
+
+;dummy: NOP(dummy)
+;{
+;	cout << "dummy: NOP(dummy)\n";
+;}
+
+reg_addr: reg16
+{
+	cout << "\treg.16 to address\n";
+}
+
+reg_addr: reg8
+{
+	cout << "\treg.8 to address\n";
+}
+
+address: CNST
+{
+	ConstNode *n(dynamic_cast<ConstNode *>(tree));
+	cout << "\taddress " << n->getValue() << "   \t: CNST\n";
+}
+
+address: CNST16
+{
+	ConstNode *n(dynamic_cast<ConstNode *>(tree));
+	cout << "\taddress " << n->getValue() << "   \t: CNST16\n";
+}
+
+address: CNST8
+{
+	ConstNode *n(dynamic_cast<ConstNode *>(tree));
+	cout << "\taddress " << n->getValue() << "   \t: CNST8\n";
+}
+
+con32: CNST
+{
+	ConstNode *n(dynamic_cast<ConstNode *>(tree));
+	cout << "\tcon.32 " << n->getValue() << "   \t: CNST\n";
+}
+
+con16: CNST16
+{
+	ConstNode *n(dynamic_cast<ConstNode *>(tree));
+	cout << "\tcon.16 " << n->getValue() << "   \t: CNST16\n";
+}
+
+con8: CNST8
+{
+	ConstNode *n(dynamic_cast<ConstNode *>(tree));
+	cout << "\tcon.8 " << n->getValue() << "   \t: CNST8\n";
+}
+
+con16: CNST8
+{
+	cout << "CAST CONSTANT 8 -> 16\n";
+}
+
+;con32: con16 10
+;{
+;	cout << "CAST CONSTANT 16 -> 32\n";
+;}
+
+stmt: RET
+{
+	/* Drop the packet! */
+	IR::RegType srcReg(X11::REG_SPACE(sp_const), 1, 0), dstReg(X11::REG_SPACE(sp_device), 3);
+	dstReg.setProperty<operand_size_t>("size", word16);
+	srcReg.setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, srcReg));
+}
+
+
+stmt: ISSTR(address, PSLDU(reg16))
+{
+	std::cerr << "MATCH WITH NEW RULE - ISSTR!\n";
+
+	/* Info Short SToRe (composed with Packet Short LoaD Unsigned) */
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(MBTREE_RIGHT(tree))));
+
+		IR::RegType dstReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType idstReg(MBTREE_VALUE(tree));
+		idstReg.setProperty<operand_size_t>("size", word16);
+
+		uint32_t val;
+		val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		assert(val % 2 == 0 && "Unaligned accesses not allowed");
+		IR::RegType addrReg(X11::REG_SPACE(sp_const), val/2, 0);
+
+
+		IR::RegType offPktReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType offRegReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_reg), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+		IR::RegType regReg(X11::REG_SPACE(sp_reg_mem), 0, 0);
+
+		// Load the packet offset register
+		BB.addNewInstruction(new X11::Load(BB.getId(), offPktReg, srcReg));
+
+		// Copy to the original destination
+		BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, pktReg));
+
+		// Load the register offset register
+		BB.addNewInstruction(new X11::Load(BB.getId(), offRegReg, addrReg));
+
+		// Copy to the register file indirectly
+		BB.addNewInstruction(new X11::Copy(BB.getId(), regReg, pktReg));
+	}
+}
+
+
+
+stmt: ISSTR(address, ADDUOV(reg16, con16))
+{
+	/* Info Short SToRe (composed with addition) */
+
+	std::cerr << "MATCH WITH NEW RULE!\n";
+
+	/* get addition data */
+	IR::RegType addReg0(MBTREE_VALUE(MBTREE_LEFT(MBTREE_RIGHT(tree))));
+	addReg0.setProperty<operand_size_t>("size", word16);
+
+	uint16_t addVal;
+	addVal = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(MBTREE_RIGHT(tree))))->getValue() & 0xFFFF;
+	IR::RegType addReg1(X11::REG_SPACE(sp_const), addVal, 0);
+
+	IR::RegType addDst(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	addDst.setProperty<operand_size_t>("size", word16);
+
+	/* get the destination value */
+	uint32_t val;
+
+	val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+	assert(val % 2 == 0 && "Unaligned accesses not allowed");
+	IR::RegType baseReg(X11::REG_SPACE(sp_const), val/2, 0);
+
+	IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_reg), 0);
+	IR::RegType regReg(X11::REG_SPACE(sp_reg_mem), 0, 0);
+
+	// Emit load offset and then the addition to rf[ro]
+	BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+	BB.addNewInstruction(new X11::Add(BB.getId(), regReg, addReg0, addReg1));
+
+	// Emit the same addition to the intermediate register
+	BB.addNewInstruction(new X11::Add(BB.getId(), addDst, addReg0, addReg1));
+}
+
+stmt: ISSTR(address, SUBUOV(reg16, reg16))
+{
+	/* Info Short SToRe (composed with subtraction) */
+
+	std::cerr << "MATCH WITH NEW RULE - SUBUOV!\n";
+
+	/* get addition data */
+	IR::RegType subReg0(MBTREE_VALUE(MBTREE_LEFT(MBTREE_RIGHT(tree))));
+	subReg0.setProperty<operand_size_t>("size", word16);
+
+	IR::RegType subReg1(MBTREE_VALUE(MBTREE_RIGHT(MBTREE_RIGHT(tree))));
+	subReg1.setProperty<operand_size_t>("size", word16);
+
+	IR::RegType subDst(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	subDst.setProperty<operand_size_t>("size", word16);
+
+	/* get the destination value */
+	uint32_t val;
+
+	val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+	assert(val % 2 == 0 && "Unaligned accesses not allowed");
+	IR::RegType baseReg(X11::REG_SPACE(sp_const), val/2, 0);
+
+	IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_reg), 0);
+	IR::RegType regReg(X11::REG_SPACE(sp_reg_mem), 0, 0);
+
+	// Emit load offset and then the addition to rf[ro]
+	BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+	BB.addNewInstruction(new X11::Sub(BB.getId(), regReg, subReg0, subReg1));
+
+	// Emit the same addition to the intermediate register
+	BB.addNewInstruction(new X11::Sub(BB.getId(), subDst, subReg0, subReg1));
+}
+
+
+reg16: IMUL(con16, reg8)
+{
+	// Hack: we only support power-of-two values
+	uint16_t val0;
+	uint8_t shift_count;
+	val0 = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+	for(shift_count = 0; shift_count < 16 && (val0 >> shift_count & 1) == 0; ++shift_count)
+		;
+	assert(1 << shift_count == val0); // Otherwise we should implement a more complicated system.
+	IR::RegType srcVal(X11::REG_SPACE(sp_const), shift_count, 0);
+
+	IR::RegType dstReg, srcReg1;
+
+	dstReg = MBTREE_VALUE(tree);
+	srcReg1 = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+	dstReg.setProperty<operand_size_t>("size", word16);
+	srcReg1.setProperty<operand_size_t>("size", byte8);
+
+	BB.addNewInstruction(new X11::Shift(BB.getId(), dstReg, srcReg1, srcVal, X11::left));
+}
+
+
+reg16: IMUL(reg8, con8)
+{
+	// Hack: we only support power-of-two values
+	uint16_t val0;
+	uint8_t shift_count;
+	val0 = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFF;
+	for(shift_count = 0; shift_count < 8 && (val0 >> shift_count & 1) == 0; ++shift_count)
+		;
+	assert(1 << shift_count == val0); // Otherwise we should implement a more complicated system.
+	IR::RegType srcVal(X11::REG_SPACE(sp_const), shift_count, 0);
+
+	IR::RegType dstReg, srcReg1;
+
+	dstReg = MBTREE_VALUE(tree);
+	srcReg1 = MBTREE_VALUE(MBTREE_LEFT(tree));
+
+	dstReg.setProperty<operand_size_t>("size", word16);
+	srcReg1.setProperty<operand_size_t>("size", byte8);
+
+	BB.addNewInstruction(new X11::Shift(BB.getId(), dstReg, srcReg1, srcVal, X11::left));
+}
+
+
+
+reg32: ADD(reg32, reg32)
+{
+	{
+		IR::RegType dstReg, srcReg0, srcReg1;
+
+		dstReg = MBTREE_VALUE(tree);
+		srcReg0 = MBTREE_VALUE(MBTREE_LEFT(tree));
+		srcReg1 = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+		IR::RegType dstRegLow(dstReg), srcReg0Low(srcReg0), srcReg1Low(srcReg1);
+		dstRegLow = dstReg;
+		dstRegLow.setProperty<X11::reg_part_t>("part", r_low);
+		srcReg0Low.setProperty<X11::reg_part_t>("part", r_low);
+		srcReg1Low.setProperty<X11::reg_part_t>("part", r_low);
+		dstRegLow.setProperty<operand_size_t>("size", dword32);
+		srcReg0Low.setProperty<operand_size_t>("size", dword32);
+		srcReg1Low.setProperty<operand_size_t>("size", dword32);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(), dstRegLow, srcReg0Low, srcReg1Low));
+
+		IR::RegType dstRegHi(dstReg), srcReg0Hi(srcReg0), srcReg1Hi(srcReg1);
+		dstRegHi. setProperty<X11::reg_part_t>("part", r_high);
+		srcReg0Hi. setProperty<X11::reg_part_t>("part", r_high);
+		srcReg1Hi. setProperty<X11::reg_part_t>("part", r_high);
+		dstRegHi. setProperty<operand_size_t>("size", dword32);
+		srcReg0Hi. setProperty<operand_size_t>("size", dword32);
+		srcReg1Hi. setProperty<operand_size_t>("size", dword32);
+
+		BB.addNewInstruction(new X11::Addc(BB.getId(), dstRegHi, srcReg0Hi, srcReg1Hi));
+	}
+}
+
+reg32: ADD(con32, con32)
+{
+	{
+		uint32_t val0, val1;
+
+		val0 = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue();
+		val1 = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue();
+
+		IR::RegType src0Low(X11::REG_SPACE(sp_const), val0 & 0xFFFF, 0);
+		IR::RegType src1Low(X11::REG_SPACE(sp_const), val1 & 0xFFFF, 0);
+		IR::RegType src0High(X11::REG_SPACE(sp_const), val0 >> 16, 0);
+		IR::RegType src1High(X11::REG_SPACE(sp_const), val1 >> 16, 0);
+
+		IR::RegType dst(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+		dst. setProperty<operand_size_t>("size", dword32);
+
+		IR::RegType dstLow(dst), dstHigh(dst);
+		dstLow. setProperty<X11::reg_part_t>("part", r_low);
+		dstHigh. setProperty<X11::reg_part_t>("part", r_high);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(), dstLow, src0Low, src1Low));
+		BB.addNewInstruction(new X11::Addc(BB.getId(), dstHigh, src0High, src1High));
+	}
+}
+
+reg16: ADD(con16, con16)
+{
+	{
+		uint16_t val0, val1;
+
+		val0 = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue();
+		val1 = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue();
+
+		IR::RegType src0(X11::REG_SPACE(sp_const), val0, 0);
+		IR::RegType src1(X11::REG_SPACE(sp_const), val1, 0);
+
+		IR::RegType dst(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+		dst. setProperty<operand_size_t>("size", word16);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(), dst, src0, src1));
+	}
+}
+
+reg8: ADD(con8, con8)
+{
+	{
+		uint16_t val0, val1;
+
+		val0 = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue();
+		val1 = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue();
+
+		IR::RegType src0(X11::REG_SPACE(sp_const), val0, 0);
+		IR::RegType src1(X11::REG_SPACE(sp_const), val1, 0);
+
+		IR::RegType dst(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+		dst. setProperty<operand_size_t>("size", byte8);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(), dst, src0, src1));
+	}
+}
+
+reg32: ADD(reg32, con32)
+{
+	{
+		uint32_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue();
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", dword32);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", dword32);
+
+		IR::RegType valLow(X11::REG_SPACE(sp_const), val & 0xFFFF, 0);
+		IR::RegType valHigh(X11::REG_SPACE(sp_const), val >> 16, 0);
+
+		IR::RegType srcLow(srcReg), srcHigh(srcReg), dstLow(dstReg), dstHigh(dstReg);
+
+		srcLow. setProperty<X11::reg_part_t>("part", r_low);
+		dstLow. setProperty<X11::reg_part_t>("part", r_low);
+		srcHigh. setProperty<X11::reg_part_t>("part", r_high);
+		dstHigh. setProperty<X11::reg_part_t>("part", r_high);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(), dstLow, srcLow, valLow));
+		BB.addNewInstruction(new X11::Addc(BB.getId(),dstHigh, srcHigh, valHigh));
+	}
+}
+
+reg16: ADD(reg16, con16)
+{
+	{
+		uint16_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", word16);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(), dstReg, srcReg, valReg));
+	}
+}
+
+reg16: SHL(con16, reg16)
+{
+	uint16_t val;
+	val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+
+	IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+	IR::RegType dstReg(MBTREE_VALUE(tree));
+	dstReg. setProperty<operand_size_t>("size", word16);
+
+	IR::RegType srcReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	srcReg. setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Shift(BB.getId(), dstReg, valReg, srcReg, X11::left));
+}	
+
+reg16: ADDUOV(reg16, con16)
+{
+	{
+		uint16_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", word16);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(), dstReg, srcReg, valReg));
+	}
+}
+
+reg16: NOT(reg16)
+{
+	IR::RegType dstReg(MBTREE_VALUE(tree));
+	dstReg. setProperty<operand_size_t>("size", word16);
+
+	IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	srcReg. setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Not(BB.getId(), dstReg, srcReg));
+}
+
+reg16: SUB(reg16, con16)
+{
+	uint16_t val;
+	val = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+
+	IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+	IR::RegType dstReg(MBTREE_VALUE(tree));
+	dstReg. setProperty<operand_size_t>("size", word16);
+
+	IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	srcReg. setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Sub(BB.getId(), dstReg, srcReg, valReg));
+}
+
+
+reg16: ADD(reg16, reg16)
+{
+	IR::RegType srcReg0(MBTREE_VALUE(MBTREE_LEFT(tree))), srcReg1(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	srcReg0.setProperty<operand_size_t>("size", word16);
+	srcReg1.setProperty<operand_size_t>("size", word16);
+
+	IR::RegType dstReg(MBTREE_VALUE(tree));
+	dstReg. setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Add(BB.getId(), dstReg, srcReg0, srcReg1));
+}
+
+reg8: ADD(reg8, con8)
+{
+	{
+		uint8_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFF;
+
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", byte8);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(), dstReg, srcReg, valReg));
+	}
+}
+
+reg32: ADD(con32, reg32)
+{
+	{
+		uint32_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue();
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", dword32);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		srcReg. setProperty<operand_size_t>("size", dword32);
+
+		IR::RegType valLow(X11::REG_SPACE(sp_const), val & 0xFFFF, 0);
+		IR::RegType valHigh(X11::REG_SPACE(sp_const), val >> 16, 0);
+
+		IR::RegType srcLow(srcReg), srcHigh(srcReg), dstLow(dstReg), dstHigh(dstReg);
+
+		srcLow. setProperty<X11::reg_part_t>("part", r_low);
+		dstLow. setProperty<X11::reg_part_t>("part", r_low);
+		srcHigh. setProperty<X11::reg_part_t>("part", r_high);
+		dstHigh. setProperty<X11::reg_part_t>("part", r_high);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(), dstLow, srcLow, valLow));
+		BB.addNewInstruction(new X11::Addc(BB.getId(), dstHigh, srcHigh, valHigh));
+	}
+}
+
+reg16: ADD(con16, reg16)
+{
+	{
+		uint16_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		srcReg. setProperty<operand_size_t>("size", word16);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(),dstReg, srcReg, valReg));
+	}
+}
+
+reg16: SUBUOV(con16, reg16)
+{
+	/* FIXME: order of operands?!? */
+
+	IR::RegType dstReg(MBTREE_VALUE(tree));
+	dstReg. setProperty<operand_size_t>("size", word16);
+
+	uint16_t val;
+	val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+	IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+	IR::RegType srcReg1(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	srcReg1.setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Sub(BB.getId(), dstReg, srcReg1, valReg));
+}
+
+reg16: SUBUOV(reg16, reg16)
+{
+	IR::RegType dstReg(MBTREE_VALUE(tree));
+	dstReg. setProperty<operand_size_t>("size", word16);
+
+	IR::RegType srcReg0(MBTREE_VALUE(MBTREE_LEFT(tree))), srcReg1(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	srcReg0.setProperty<operand_size_t>("size", word16);
+	srcReg1.setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Sub(BB.getId(), dstReg, srcReg0, srcReg1));
+}
+
+reg16: AND(reg16, con16)
+{
+	{
+		uint16_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", word16);
+
+		BB.addNewInstruction(new X11::Boolean(BB.getId(),dstReg, srcReg, valReg, X11::alu_and));
+	}
+}
+
+
+reg16: AND(con16, reg16)
+{
+	{
+		uint16_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		srcReg. setProperty<operand_size_t>("size", word16);
+
+		BB.addNewInstruction(new X11::Boolean(BB.getId(),dstReg, srcReg, valReg, X11::alu_and));
+	}
+}
+
+reg8: AND(reg8, con8)
+{
+	{
+		uint8_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFF;
+
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", byte8);
+
+		BB.addNewInstruction(new X11::Boolean(BB.getId(),dstReg, srcReg, valReg, X11::alu_and));
+	}
+}
+
+
+
+reg8: ADD(con8, reg8)
+{
+	{
+		uint8_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFF;
+
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		srcReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", byte8);
+
+		BB.addNewInstruction(new X11::Add(BB.getId(), dstReg, srcReg, valReg));
+	}
+}
+
+stmt: reg32
+{
+	// XXX: THIS IS NEEDED or BURG will refuse to generate code for non-statements nodes!!!
+}
+
+stmt: reg16
+{
+	// XXX: same as above
+}
+
+stmt: reg8
+{
+	// XXX: same as above
+}
+
+stmt: con32
+{
+	// XXX: same as above
+}
+
+stmt: con16
+{
+	// XXX: same as above
+}
+
+stmt: con8
+{
+	// XXX: same as above
+}
+
+stmt: PHI
+{
+	// nop
+}
+
+stmt: STREG(con32)
+{
+	uint32_t val;
+
+	val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue();
+	IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+	IR::RegType dstReg(MBTREE_VALUE(tree));
+	dstReg. setProperty<operand_size_t>("size", dword32);
+
+	BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, valReg));
+}
+
+stmt: STREG(con8)
+{
+	uint8_t val;
+
+	val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFF;
+	IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+	IR::RegType dstReg(MBTREE_VALUE(tree));
+	dstReg. setProperty<operand_size_t>("size", byte8);
+
+	BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, valReg));
+}
+
+stmt: STREG(con16)
+{
+	uint16_t val;
+
+	val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+	IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+	IR::RegType dstReg(MBTREE_VALUE(tree));
+	dstReg. setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, valReg));
+}
+
+stmt: STREG(reg32)
+{
+	{
+		IR::RegType dstReg(MBTREE_VALUE(tree)), srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		dstReg. setProperty<operand_size_t>("size", dword32);
+		srcReg. setProperty<operand_size_t>("size", dword32);
+
+		BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, srcReg));
+	}
+}
+
+stmt: STREG(reg16)
+{
+	{
+		IR::RegType dstReg(MBTREE_VALUE(tree)), srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		dstReg. setProperty<operand_size_t>("size", word16);
+		srcReg. setProperty<operand_size_t>("size", word16);
+
+		BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, srcReg));
+	}
+}
+
+stmt: STREG(reg8)
+{
+	{
+		IR::RegType dstReg(MBTREE_VALUE(tree)), srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		dstReg. setProperty<operand_size_t>("size", byte8);
+		srcReg. setProperty<operand_size_t>("size", byte8);
+
+		BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, srcReg));
+	}
+}
+
+reg16: PSLDU(address)
+{
+	/* Packet Short LoaD Unsigned */
+	{
+		uint32_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, valReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstReg, pktReg));
+	}
+}
+
+reg16: PSLDU(reg_addr)
+{
+	/* Packet Short LoaD Unsigned */
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+//		srcReg. setProperty<operand_size_t>("size", dword32);
+//		srcReg. setProperty<X11::reg_part_t>("part", r_low);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, srcReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstReg, pktReg));
+	}
+}
+
+stmt: ISSTR(address, con16)
+{
+	/* Info Short SToRe */
+	{
+		uint32_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		assert(val % 2 == 0 && "Unaligned accesses not allowed");
+		IR::RegType baseReg(X11::REG_SPACE(sp_const), val/2, 0);
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+		valReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_reg), 0);
+		IR::RegType regReg(X11::REG_SPACE(sp_reg_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  regReg, valReg));
+	}
+}
+
+
+stmt: ISSTR(address, reg16)
+{
+	/* Info Short SToRe */
+	{
+		uint32_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		assert(val % 2 == 0 && "Unaligned accesses not allowed");
+		IR::RegType baseReg(X11::REG_SPACE(sp_const), val/2, 0);
+
+		IR::RegType valReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		valReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_reg), 0);
+		IR::RegType regReg(X11::REG_SPACE(sp_reg_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  regReg, valReg));
+	}
+}
+
+
+stmt: PSSTR(address, reg16)
+{
+	/* Packet Short SToRe */
+	{
+		uint32_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		IR::RegType baseReg(X11::REG_SPACE(sp_const), val, 0);
+
+		IR::RegType valReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		valReg. setProperty<operand_size_t>("size", word16);
+//		valReg. setProperty<X11::reg_part_t>("part", r_low);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, valReg));
+	}
+}
+
+stmt: PSSTR(reg16, reg32)
+{
+	/* Packet Short SToRe */
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType baseReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		baseReg. setProperty<operand_size_t>("size", dword32);
+		baseReg. setProperty<X11::reg_part_t>("part", r_low);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, srcReg));
+	}
+}
+
+stmt: PSSTR(con16, address)
+{
+	/* Packet Short SToRe */
+	{
+		uint32_t baseVal;
+		uint16_t val;
+
+		val = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), val, 0);
+
+		baseVal = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+		IR::RegType baseValReg(X11::REG_SPACE(sp_const), baseVal, 0);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseValReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, valReg));
+	}
+}
+
+stmt: PSSTR(reg16, address)
+{
+	/* Packet Short SToRe */
+	{
+		uint32_t baseVal;
+
+		baseVal = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+		IR::RegType baseValReg(X11::REG_SPACE(sp_const), baseVal, 0);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseValReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, srcReg));
+	}
+}
+
+reg32: PILD(address)
+{
+	/* Packet Integer LoaD */
+	{
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", dword32);
+
+		uint32_t baseVal;
+		baseVal = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		IR::RegType baseValReg(X11::REG_SPACE(sp_const), baseVal, 0);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseValReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstReg, pktReg));
+	}
+}
+
+reg32: PILD(reg_addr)
+{
+	/* Packet Integer LoaD */
+	{
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", dword32);
+
+		IR::RegType baseReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+//		baseReg. setProperty<operand_size_t>("size", dword32);
+//		baseReg. setProperty<X11::reg_part_t>("part", r_low);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstReg, pktReg));
+	}
+}
+
+stmt: PISTR(address, reg32)
+{
+	/* Packet Integer SToRe */
+	{
+		IR::RegType valReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		valReg. setProperty<operand_size_t>("size", dword32);
+		valReg. setProperty<X11::reg_part_t>("part", r_low);
+
+		uint32_t value;
+		value = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue();
+		IR::RegType baseReg(X11::REG_SPACE(sp_const), value, 0);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, valReg));
+	}
+}
+
+stmt: PISTR(reg32, reg32)
+{
+	/* Packet Integer SToRe */
+	{
+		IR::RegType baseReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		baseReg. setProperty<operand_size_t>("size", dword32);
+		baseReg. setProperty<X11::reg_part_t>("part", r_low);
+
+		IR::RegType valReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		valReg. setProperty<operand_size_t>("size", dword32);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, valReg));
+	}
+}
+
+stmt: PISTR(con32, address)
+{
+	/* Packet Integer SToRe */
+	{
+		uint32_t base;
+		base = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+		IR::RegType baseReg(X11::REG_SPACE(sp_const), base, 0);
+
+		uint32_t value;
+		value = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue();
+		IR::RegType valReg(X11::REG_SPACE(sp_const), value, 0);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, valReg));
+	}
+}
+
+stmt: IISTR(con32, address)
+{
+	/* Info Integer SToRe */
+	{
+		uint32_t base;
+		base = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+		IR::RegType baseReg(X11::REG_SPACE(sp_const), base, 0);
+
+		uint32_t value;
+		value = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue();
+		IR::RegType valReg(X11::REG_SPACE(sp_const), value, 0);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_reg), 0);
+		IR::RegType regReg(X11::REG_SPACE(sp_reg_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  regReg, valReg));
+	}
+}
+
+stmt: PISTR(reg32, address)
+{
+	/* Packet Integer SToRe */
+	{
+		uint32_t base;
+		base = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+		IR::RegType baseReg(X11::REG_SPACE(sp_const), base, 0);
+
+		IR::RegType valReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		valReg. setProperty<operand_size_t>("size", dword32);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, valReg));
+	}
+}
+
+reg16: ISSSLD(reg16)
+{
+	/* Info Short Signed Load */
+	{
+//		uint32_t base;
+
+		IR::RegType baseReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		baseReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_reg), 0);
+		IR::RegType regReg(X11::REG_SPACE(sp_reg_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, regReg));
+	}
+}
+
+
+reg16: ISSSLD(address)
+{
+	/* Info Short Signed LoaD */
+
+	uint32_t base;
+	base = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+	assert(base % 2 == 0 && "Unaligned access not supported");
+	IR::RegType baseReg(X11::REG_SPACE(sp_const), base/2, 0);
+
+	IR::RegType dstReg(MBTREE_VALUE(tree));
+	dstReg. setProperty<operand_size_t>("size", word16);
+
+	IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_reg), 0);
+	IR::RegType regReg(X11::REG_SPACE(sp_reg_mem), 0, 0);
+
+	BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+	BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, regReg));
+}
+
+
+;IBSTR
+; ISSLD ISSILD
+
+stmt: IISTR(address, reg32)
+{
+	/* Info Integer SToRe */
+
+	uint32_t base;
+	base = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+	assert(base % 2 == 0 && "Unaligned access not supported");
+	IR::RegType baseReg0(X11::REG_SPACE(sp_const), base/2, 0);
+	IR::RegType baseReg1(X11::REG_SPACE(sp_const), base/2+1, 0);
+
+	IR::RegType valReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	valReg.setProperty<operand_size_t>("size", dword32);
+	IR::RegType valRegLo(valReg), valRegHi(valReg);
+	valRegLo.setProperty<reg_part_t>("part", r_16lo);
+	valRegHi.setProperty<reg_part_t>("part", r_16hi);
+
+	IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_reg), 0);
+	IR::RegType regReg(X11::REG_SPACE(sp_reg_mem), 0, 0);
+
+	BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg0));
+	BB.addNewInstruction(new X11::Copy(BB.getId(),  regReg, valRegLo));
+	BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg1));
+	BB.addNewInstruction(new X11::Copy(BB.getId(), regReg, valRegHi));
+}
+
+reg8: PBLDU(address)
+{
+	/* Packet Byte LoaD Unsigned */
+	{
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+
+		dstReg. setProperty<operand_size_t>("size", byte8);
+
+		uint32_t base;
+		base = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		IR::RegType baseValReg(X11::REG_SPACE(sp_const), base, 0);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseValReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstReg, pktReg));
+	}
+}
+
+reg8: PBLDU(reg_addr)
+{
+	{
+		IR::RegType dstReg(MBTREE_VALUE(tree)), baseReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		dstReg. setProperty<operand_size_t>("size", byte8);
+
+		if(baseReg.getProperty<operand_size_t>("size") == dword32)
+			baseReg. setProperty<X11::reg_part_t>("part", r_low);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstReg, pktReg));
+	}
+}
+
+stmt: PBSTR(con8, reg32)
+{
+	/* Packet Byte SToRe */
+	{
+		IR::RegType baseReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		baseReg. setProperty<operand_size_t>("size", dword32);
+		baseReg. setProperty<X11::reg_part_t>("part", r_low);
+
+		uint8_t value;
+		value = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), value, 0);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, valReg));
+	}
+}
+
+stmt: PBSTR(reg8, reg32)
+{
+	/* Packet Byte SToRe */
+	{
+		IR::RegType baseReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		baseReg. setProperty<operand_size_t>("size", dword32);
+		baseReg. setProperty<X11::reg_part_t>("part", r_low);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, srcReg));
+	}
+}
+
+
+;stmt: PBSTR(address, reg8)
+;{
+;	/* Packet Byte SToRe */
+;	{
+;		uint32_t base;
+;		base = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+;		IR::RegType baseReg(X11::REG_SPACE(sp_const), base, 0);
+;
+;		uint8_t value;
+;		value = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFF;
+;		IR::RegType valReg(X11::REG_SPACE(sp_const), value, 0);
+;
+;		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+;		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+;
+;		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+;		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, valReg));
+;	}
+;}
+
+stmt: PBSTR(address, reg8)
+{
+	{
+		uint32_t base;
+		base = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		IR::RegType baseReg(X11::REG_SPACE(sp_const), base, 0);
+
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		srcReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType offReg(X11::REG_SPACE(sp_offset), X11::OFF_SPACE(off_pkt), 0);
+		IR::RegType pktReg(X11::REG_SPACE(sp_pkt_mem), 0, 0);
+
+		BB.addNewInstruction(new X11::Load(BB.getId(), offReg, baseReg));
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  pktReg, srcReg));
+	}
+}
+
+reg32: IINC_1(con32)
+{
+	{
+		uint32_t srcVal;
+		srcVal = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue();
+		IR::RegType valRegLow(X11::REG_SPACE(sp_const), srcVal & 0xFFFF, 0);
+		IR::RegType valRegHigh(X11::REG_SPACE(sp_const), srcVal >> 16, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", dword32);
+
+		IR::RegType dstRegLo(dstReg), dstRegHi(dstReg);
+		dstRegLo. setProperty<X11::reg_part_t>("part", r_low);
+		dstRegHi. setProperty<X11::reg_part_t>("part", r_high);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+		IR::RegType zero(X11::REG_SPACE(sp_const), 0, 0);
+
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstRegLo, valRegLow));
+		BB.addNewInstruction(new X11::Add (BB.getId(), dstRegLo, dstRegLo, one));
+		BB.addNewInstruction(new X11::Addc(BB.getId(), dstRegHi, valRegHigh, zero));
+	}
+}
+
+reg16: IINC_1(con16)
+{
+	{
+		uint16_t srcVal;
+		srcVal = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstReg, valReg));
+		BB.addNewInstruction(new X11::Add (BB.getId(), dstReg, dstReg, one));
+	}
+}
+
+reg8: IINC_1(con8)
+{
+	{
+		uint8_t srcVal;
+		srcVal = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+
+		BB.addNewInstruction(new X11::Add (BB.getId(), dstReg, valReg, one));
+	}
+}
+
+reg32: IINC_1(reg32)
+{
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", dword32);
+		IR::RegType srcRegLo(srcReg), srcRegHi(srcReg);
+		srcRegLo. setProperty<X11::reg_part_t>("part", r_low);
+		srcRegHi. setProperty<X11::reg_part_t>("part", r_high);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", dword32);
+		IR::RegType dstRegLo(dstReg), dstRegHi(dstReg);
+		dstRegLo. setProperty<X11::reg_part_t>("part", r_low);
+		dstRegHi. setProperty<X11::reg_part_t>("part", r_high);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+		IR::RegType zero(X11::REG_SPACE(sp_const), 0, 0);
+
+		BB.addNewInstruction(new X11::Add (BB.getId(), dstRegLo, srcRegLo, one));
+		BB.addNewInstruction(new X11::Addc(BB.getId(), dstRegHi, srcRegHi, zero));
+	}
+}
+
+reg16: IINC_1(reg16)
+{
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+
+		BB.addNewInstruction(new X11::Add (BB.getId(), dstReg, srcReg, one));
+	}
+}
+
+reg8: IINC_1(reg8)
+{
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+
+		BB.addNewInstruction(new X11::Add (BB.getId(), dstReg, srcReg, one));
+	}
+}
+
+reg32: IDEC_1(con32)
+{
+	{
+		uint32_t srcVal;
+		srcVal = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue();
+		IR::RegType valRegLow(X11::REG_SPACE(sp_const), srcVal & 0xFFFF, 0);
+		IR::RegType valRegHigh(X11::REG_SPACE(sp_const), srcVal >> 16, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", dword32);
+
+		IR::RegType dstRegLo(dstReg), dstRegHi(dstReg);
+		dstRegLo. setProperty<X11::reg_part_t>("part", r_low);
+		dstRegHi. setProperty<X11::reg_part_t>("part", r_high);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+		IR::RegType zero(X11::REG_SPACE(sp_const), 0, 0);
+
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstRegLo, valRegLow));
+		BB.addNewInstruction(new X11::Sub (BB.getId(), dstRegLo, dstRegLo, one));
+		BB.addNewInstruction(new X11::Subc(BB.getId(), dstRegHi, valRegHigh, zero));
+	}
+}
+
+reg16: IDEC_1(con16)
+{
+	{
+		uint16_t srcVal;
+		srcVal = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstReg, valReg));
+		BB.addNewInstruction(new X11::Sub (BB.getId(), dstReg, dstReg, one));
+	}
+}
+
+reg8: IDEC_1(con8)
+{
+	{
+		uint8_t srcVal;
+		srcVal = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal, 0);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+
+		BB.addNewInstruction(new X11::Copy(BB.getId(),  dstReg, valReg));
+		BB.addNewInstruction(new X11::Sub (BB.getId(), dstReg, dstReg, one));
+	}
+}
+
+reg32: IDEC_1(reg32)
+{
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", dword32);
+		IR::RegType srcRegLo(srcReg), srcRegHi(srcReg);
+		srcRegLo. setProperty<X11::reg_part_t>("part", r_low);
+		srcRegHi. setProperty<X11::reg_part_t>("part", r_high);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", dword32);
+		IR::RegType dstRegLo(dstReg), dstRegHi(dstReg);
+		dstRegLo. setProperty<X11::reg_part_t>("part", r_low);
+		dstRegHi. setProperty<X11::reg_part_t>("part", r_high);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+		IR::RegType zero(X11::REG_SPACE(sp_const), 0, 0);
+
+		BB.addNewInstruction(new X11::Sub (BB.getId(), dstRegLo, srcRegLo, one));
+		BB.addNewInstruction(new X11::Subc(BB.getId(), dstRegHi, srcRegHi, zero));
+	}
+}
+
+reg16: IDEC_1(reg16)
+{
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+
+		BB.addNewInstruction(new X11::Sub (BB.getId(), dstReg, srcReg, one));
+	}
+}
+
+reg8: IDEC_1(reg8)
+{
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType dstReg(MBTREE_VALUE(tree));
+		dstReg. setProperty<operand_size_t>("size", byte8);
+
+		IR::RegType one(X11::REG_SPACE(sp_const), 1, 0);
+
+		BB.addNewInstruction(new X11::Sub (BB.getId(), dstReg, srcReg, one));
+	}
+}
+
+stmt: SNDPKT
+{
+	// TODO: implement the send packet operator
+}
+
+stmt: JNE(reg16)
+{
+
+	{
+		IR::RegType srcReg0(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg0. setProperty<operand_size_t>("size", word16);
+
+		IR::RegType valReg(X11::REG_SPACE(sp_const), 0, 0);
+
+		BB.addNewInstruction(new X11::Compare(BB.getId(), srcReg0, valReg));
+
+		JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::not_zero));
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+	}
+}
+
+
+stmt: JCMPEQ(con8, reg8)
+{
+
+	{
+		IR::RegType srcReg0(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+		srcReg0. setProperty<operand_size_t>("size", byte8);
+
+		uint8_t srcVal1;
+		srcVal1 = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal1, 0);
+
+		BB.addNewInstruction(new X11::Compare(BB.getId(), srcReg0, valReg));
+
+		JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::equal));
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+	}
+}
+
+stmt: JCMPEQ(reg8, con8)
+{
+
+	{
+		IR::RegType srcReg0(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg0. setProperty<operand_size_t>("size", byte8);
+
+		uint8_t srcVal1;
+		srcVal1 = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal1, 0);
+
+		BB.addNewInstruction(new X11::Compare(BB.getId(), srcReg0, valReg));
+
+		JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::equal));
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+	}
+}
+
+stmt: JCMPEQ(reg16, con16)
+{
+
+	{
+		IR::RegType srcReg0(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg0. setProperty<operand_size_t>("size", word16);
+
+		uint16_t srcVal1;
+		srcVal1 = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal1, 0);
+
+		BB.addNewInstruction(new X11::Compare(BB.getId(), srcReg0, valReg));
+
+		JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::equal));
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+	}
+}
+
+
+stmt: JCMPEQ(reg32, con32)
+{
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", dword32);
+		IR::RegType srcRegLo(srcReg), srcRegHi(srcReg);
+		srcRegLo.setProperty<X11::reg_part_t>("part", r_16lo);
+		srcRegLo.setProperty<operand_size_t>("size", dword32);
+		srcRegHi.setProperty<X11::reg_part_t>("part", r_16hi);
+		srcRegHi.setProperty<operand_size_t>("size", dword32);
+
+		// Temporaries to hold intermediate results
+		IR::RegType tmpReg0(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+		tmpReg0.setProperty<operand_size_t>("size", word16);
+		IR::RegType tmpReg1(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+		tmpReg1.setProperty<operand_size_t>("size", word16);
+
+
+		// Separate the constant into 2 16-bit values
+		uint16_t srcValLo, srcValHi;
+		srcValLo = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+		srcValHi = ((dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() >> 16) & 0xFFFF;
+		IR::RegType valRegLo(X11::REG_SPACE(sp_const), srcValLo, 0);
+		IR::RegType valRegHi(X11::REG_SPACE(sp_const), srcValHi, 0);
+		IR::RegType valRegZr(X11::REG_SPACE(sp_const), 0, 0);
+
+		JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+		// compare the lower portion and higher portions
+		BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg0, srcRegLo, valRegLo, X11::alu_xor));
+		BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg1, srcRegHi, valRegHi, X11::alu_xor));
+
+		// Merge together
+		BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg0, tmpReg0, tmpReg1, X11::alu_or));
+
+		// XXX: Or performs an implicit comparison with zero but there's a bug w/ SRE
+		BB.addNewInstruction(new X11::Compare(BB.getId(), tmpReg0, valRegZr)); 
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::equal));
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+	}
+}
+
+stmt: JCMPNEQ(reg32, con8)
+{
+	IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	srcReg. setProperty<operand_size_t>("size", dword32);
+	IR::RegType srcRegLo(srcReg), srcRegHi(srcReg);
+	srcRegLo.setProperty<X11::reg_part_t>("part", r_low);
+	srcRegLo.setProperty<operand_size_t>("size", dword32);
+	srcRegHi.setProperty<X11::reg_part_t>("part", r_high);
+	srcRegHi.setProperty<operand_size_t>("size", dword32);
+
+	// Temporaries to hold intermediate results
+	IR::RegType tmpReg0(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+	tmpReg0.setProperty<operand_size_t>("size", word16);
+	IR::RegType tmpReg1(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+	tmpReg1.setProperty<operand_size_t>("size", word16);
+
+
+	// Separate the constant into 2 16-bit values
+	uint16_t srcValLo, srcValHi;
+	srcValLo = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFF;
+	srcValHi = 0;
+	IR::RegType valRegLo(X11::REG_SPACE(sp_const), srcValLo, 0);
+	IR::RegType valRegHi(X11::REG_SPACE(sp_const), srcValHi, 0);
+	IR::RegType valRegZr(X11::REG_SPACE(sp_const), 0, 0);
+
+	JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+	// compare the lower and higher portions
+	BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg0, srcRegLo, valRegLo, X11::alu_xor));
+	BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg1, srcRegHi, valRegHi, X11::alu_xor));
+
+	// Merge together
+	BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg0, tmpReg0, tmpReg1, X11::alu_or));
+
+	// XXX: Or performs an implicit comparison with zero, but there's a bug w/ SRE
+	BB.addNewInstruction(new X11::Compare(BB.getId(), tmpReg0, valRegZr));
+	BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::not_equal));
+	BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+
+}
+
+stmt: JCMPEQ(reg32, con8)
+{
+	IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	srcReg. setProperty<operand_size_t>("size", dword32);
+	IR::RegType srcRegLo(srcReg), srcRegHi(srcReg);
+	srcRegLo.setProperty<X11::reg_part_t>("part", r_low);
+	srcRegLo.setProperty<operand_size_t>("size", dword32);
+	srcRegHi.setProperty<X11::reg_part_t>("part", r_high);
+	srcRegHi.setProperty<operand_size_t>("size", dword32);
+
+	// Temporaries to hold intermediate results
+	IR::RegType tmpReg0(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+	tmpReg0.setProperty<operand_size_t>("size", word16);
+	IR::RegType tmpReg1(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+	tmpReg1.setProperty<operand_size_t>("size", word16);
+
+
+	// Separate the constant into 2 16-bit values
+	uint16_t srcValLo, srcValHi;
+	srcValLo = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFF;
+	srcValHi = 0;
+	IR::RegType valRegLo(X11::REG_SPACE(sp_const), srcValLo, 0);
+	IR::RegType valRegHi(X11::REG_SPACE(sp_const), srcValHi, 0);
+	IR::RegType valRegZr(X11::REG_SPACE(sp_const), 0, 0);
+
+	JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+	// compare the lower and higher portions
+	BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg0, srcRegLo, valRegLo, X11::alu_xor));
+	BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg1, srcRegHi, valRegHi, X11::alu_xor));
+
+	// Merge together
+	BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg0, tmpReg0, tmpReg1, X11::alu_or));
+
+	// XXX: Or performs an implicit comparison with zero, but there's a bug w/ SRE
+	BB.addNewInstruction(new X11::Compare(BB.getId(), tmpReg0, valRegZr));
+	BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::equal));
+	BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+}
+
+
+stmt: JCMPEQ(reg32, reg16)
+{
+	IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	srcReg. setProperty<operand_size_t>("size", dword32);
+	IR::RegType srcRegLo(srcReg), srcRegHi(srcReg);
+	srcRegLo.setProperty<X11::reg_part_t>("part", r_low);
+	srcRegLo.setProperty<operand_size_t>("size", dword32);
+	srcRegHi.setProperty<X11::reg_part_t>("part", r_high);
+	srcRegHi.setProperty<operand_size_t>("size", dword32);
+	
+	IR::RegType srcReg1(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	srcReg1.setProperty<operand_size_t>("size", word16);
+
+	// Temporaries to hold intermediate results
+	IR::RegType tmpReg0(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+	tmpReg0.setProperty<operand_size_t>("size", word16);
+	IR::RegType tmpReg1(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+	tmpReg1.setProperty<operand_size_t>("size", word16);
+
+
+	// Separate the constant into 2 16-bit values
+	uint16_t srcValHi;
+	srcValHi = 0;
+	IR::RegType valRegHi(X11::REG_SPACE(sp_const), srcValHi, 0);
+	IR::RegType valRegZr(X11::REG_SPACE(sp_const), 0, 0);
+
+	JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+	// compare the lower and higher portions
+	BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg0, srcRegLo, srcReg1, X11::alu_xor));
+	BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg1, srcRegHi, valRegHi, X11::alu_xor));
+
+	// Merge together
+	BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg0, tmpReg0, tmpReg1, X11::alu_or));
+
+	// XXX: Or performs an implicit comparison with zero, but there's a bug w/ SRE
+	BB.addNewInstruction(new X11::Compare(BB.getId(), tmpReg0, valRegZr));
+	BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::equal));
+	BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+}
+
+
+stmt: JCMPNEQ(reg32, con32)
+{
+	{
+		IR::RegType srcReg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg. setProperty<operand_size_t>("size", dword32);
+		IR::RegType srcRegLo(srcReg), srcRegHi(srcReg);
+		srcRegLo.setProperty<X11::reg_part_t>("part", r_low);
+		srcRegLo.setProperty<operand_size_t>("size", dword32);
+		srcRegHi.setProperty<X11::reg_part_t>("part", r_high);
+		srcRegHi.setProperty<operand_size_t>("size", dword32);
+
+		// Temporaries to hold intermediate results
+		IR::RegType tmpReg0(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+		tmpReg0.setProperty<operand_size_t>("size", word16);
+		IR::RegType tmpReg1(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+		tmpReg1.setProperty<operand_size_t>("size", word16);
+
+
+		// Separate the constant into 2 16-bit values
+		uint16_t srcValLo, srcValHi;
+		srcValLo = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFFFF;
+		srcValHi = ((dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() >> 16) & 0xFFFF;
+		IR::RegType valRegLo(X11::REG_SPACE(sp_const), srcValLo, 0);
+		IR::RegType valRegHi(X11::REG_SPACE(sp_const), srcValHi, 0);
+		IR::RegType valRegZr(X11::REG_SPACE(sp_const), 0, 0);
+
+		JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+		// compare the lower and higher portions
+		BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg0, srcRegLo, valRegLo, X11::alu_xor));
+		BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg1, srcRegHi, valRegHi, X11::alu_xor));
+
+		// Merge together
+		BB.addNewInstruction(new X11::Boolean(BB.getId(), tmpReg0, tmpReg0, tmpReg1, X11::alu_or));
+
+		// XXX: Or performs an implicit comparison with zero, but there's a bug w/ SRE
+		BB.addNewInstruction(new X11::Compare(BB.getId(), tmpReg0, valRegZr));
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::not_equal));
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+	}
+}
+
+stmt: JCMPNEQ(reg16, con8)
+{
+	{
+		IR::RegType srcReg0(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg0. setProperty<operand_size_t>("size", word16);
+
+		uint16_t srcVal1;
+		srcVal1 = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal1, 0);
+
+		BB.addNewInstruction(new X11::Compare(BB.getId(), srcReg0, valReg));
+
+		JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::not_equal));
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+	}
+}
+
+
+stmt: JCMPNEQ(reg16, con16)
+{
+	{
+		IR::RegType srcReg0(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg0. setProperty<operand_size_t>("size", word16);
+
+		uint16_t srcVal1;
+		srcVal1 = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue();
+		IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal1, 0);
+
+		BB.addNewInstruction(new X11::Compare(BB.getId(), srcReg0, valReg));
+
+		JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::not_equal));
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+	}
+}
+
+stmt: JCMPNEQ(reg8, con8)
+{
+	{
+		IR::RegType srcReg0(MBTREE_VALUE(MBTREE_LEFT(tree)));
+		srcReg0. setProperty<operand_size_t>("size", byte8);
+
+		uint16_t srcVal1;
+		srcVal1 = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(tree)))->getValue() & 0xFF;
+		IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal1, 0);
+
+		BB.addNewInstruction(new X11::Compare(BB.getId(), srcReg0, valReg));
+
+		JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::not_equal));
+		BB.addNewInstruction(new X11::Branch(BB.getId(), n->getFalseTarget(), X11::always));
+	}
+}
+
+stmt: JUMPW
+{
+	JumpMIRNode *n(dynamic_cast<JumpMIRNode *>(tree));
+	BB.addNewInstruction(new X11::Branch(BB.getId(), n->getTrueTarget(), X11::always));
+}
+
+reg32: LDREG
+{
+	cout << "\t[ldreg " << MBTREE_VALUE(tree) << "]\t; LDREG\n";
+}
+
+reg16: LDREG16
+{
+	cout << "\t[ldreg.16 " << MBTREE_VALUE(tree) << "]\t; LDREG16\n";}
+
+reg8: LDREG8
+{
+	cout << "\t[ldreg.8 " << MBTREE_VALUE(tree) << "]\t; LDREG8\n";
+}
+
+stmt: SWITCH(reg8)
+{
+	uint16_t table(ctx->get_tcam().new_table()+1);
+
+	SwitchMIRNode *sw(dynamic_cast<SwitchMIRNode *>(tree));
+	SwitchMIRNode::targets_iterator i;
+
+	for (i = sw->TargetsBegin(); i < sw->TargetsEnd(); ++i) {
+		uint8_t key(i->first);
+		ctx->get_tcam().add_entry(key, "00RIP(L" + stringify(i->second) + ")", table);
+	}
+
+	/* add in the default value as well */
+	std::vector<uint8_t> empty;
+	ctx->get_tcam().add_entry(empty, empty, "00RIP(L" + stringify(sw->getDefaultTarget())
+		+ ")", table);
+
+	IR::RegType helperReg(X11::REG_SPACE(sp_sw_table), table);
+	helperReg.setProperty<operand_size_t>("size", byte8);
+	IR::RegType tableReg(X11::REG_SPACE(sp_const), table);
+	tableReg.setProperty<operand_size_t>("size", byte8);
+
+	BB.addNewInstruction(new X11::Copy(BB.getId(), helperReg, tableReg));
+
+	IR::RegType srcReg0(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	IR::RegType swReg(X11::REG_SPACE(sp_sw_help),
+		helperReg.get_model()->get_name());
+	srcReg0.setProperty<operand_size_t>("size", byte8);
+	swReg.setProperty<operand_size_t>("size", byte8);
+
+	BB.addNewInstruction(new X11::Copy(BB.getId(), swReg, srcReg0));
+
+	IR::RegType dstReg0(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+	dstReg0.setProperty<operand_size_t>("size", byte8);
+
+	std::set<IR::RegType> uses;
+	uses.insert(helperReg);
+	uses.insert(swReg);
+
+	BB.addNewInstruction(new X11::Prepare(BB.getId(), "switch_lookup_" + stringify(table),
+		dstReg0, uses));
+}
+
+
+stmt: SWITCH(reg16)
+{
+	uint16_t table(ctx->get_tcam().new_table()+1);
+
+	SwitchMIRNode *sw(dynamic_cast<SwitchMIRNode *>(tree));
+	SwitchMIRNode::targets_iterator i;
+
+	for (i = sw->TargetsBegin(); i < sw->TargetsEnd(); ++i) {
+		uint16_t key(i->first);
+//		cout << "SWITCH(reg16) first: " << i->first << ", second: " << i->second << '\n';
+		ctx->get_tcam().add_entry(key, "00RIP(L" + stringify(i->second) + ")", table);
+	}
+
+	/* add in the default value as well */
+	std::vector<uint8_t> empty;
+	ctx->get_tcam().add_entry(empty, empty, "00RIP(L" + stringify(sw->getDefaultTarget())
+		+ ")", table);
+
+	IR::RegType helperReg(X11::REG_SPACE(sp_sw_table), table);
+	helperReg.setProperty<operand_size_t>("size", word16);
+	IR::RegType tableReg(X11::REG_SPACE(sp_const), table);
+	tableReg.setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Copy(BB.getId(), helperReg, tableReg));
+
+	IR::RegType srcReg0(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	IR::RegType swReg(X11::REG_SPACE(sp_sw_help),
+		helperReg.get_model()->get_name());
+	srcReg0.setProperty<operand_size_t>("size", word16);
+	swReg.setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Copy(BB.getId(), swReg, srcReg0));
+
+	IR::RegType dstReg0(RegisterModel::get_new(X11::REG_SPACE(sp_virtual)));
+	dstReg0.setProperty<operand_size_t>("size", word16);
+
+	std::set<IR::RegType> uses;
+	uses.insert(helperReg);
+	uses.insert(swReg);
+
+	BB.addNewInstruction(new X11::Prepare(BB.getId(), "switch_lookup_" + stringify(table),
+		dstReg0, uses));
+}
+
+reg16: PBL
+{
+	IR::RegType dstReg(MBTREE_VALUE(tree)), srcReg(X11::REG_SPACE(sp_device), 1);
+	dstReg.setProperty<operand_size_t>("size", word16);
+	srcReg.setProperty<operand_size_t>("size", word16);
+
+	BB.addNewInstruction(new X11::Copy(BB.getId(), dstReg, srcReg));
+}
+
+; FIXME: operand size propagation gets the result size WRONG.
+reg8: USHR(con8, reg8)
+{
+	IR::RegType dstReg(MBTREE_VALUE(tree)), srcReg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	dstReg.setProperty<operand_size_t>("size", byte8);
+	srcReg.setProperty<operand_size_t>("size", byte8);
+
+	uint8_t srcVal;
+	srcVal = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFF;
+	IR::RegType valReg(X11::REG_SPACE(sp_const), srcVal, 0);
+
+	BB.addNewInstruction(new X11::Shift(BB.getId(), dstReg, srcReg, valReg, X11::right));
+}
+
+stmt: COPRUN
+{
+	CopMIRNode *n(dynamic_cast<CopMIRNode *>(tree));
+
+	// Offload emission to the appropriate module
+	X11::Coprocessor::emit(n, BB, ctx);
+
+	std::cout << "COPRUN!\n";
+	std::cout << "Registri coinvolti:\n";
+
+	for(uint32_t i(0); i < n->regNo(); ++i) {
+		if(n->isDefdReg(i)) {
+			std::cout << "DEF: " << i << " -> " << n->getCoproReg(i, false) << '\n';
+		}
+
+		if(n->isUsedReg(i)) {
+			std::cout << "USE: " << i << " -> " << n->getCoproReg(i, true) << '\n';
+		}
+	}
+}
+
+stmt: DISTR(address, ADD(con16, DILD(address)))
+{
+	std::cout << "stmt: DISTR(address, ADD(con16, DILD(address)))\n";
+
+	uint16_t dstAddr, srcAddr;
+	dstAddr = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+	srcAddr = (dynamic_cast<ConstNode *>(MBTREE_LEFT(MBTREE_RIGHT(MBTREE_RIGHT(tree)))))->getValue()
+		& 0xFFFF;
+
+	std::cout << "srcAddr: " << srcAddr << ", dstAddr: " << dstAddr << '\n';
+
+	assert(srcAddr == dstAddr && "Cannot compile this kind of memory access");
+
+	uint16_t con;
+	con = (dynamic_cast<ConstNode *>(MBTREE_LEFT(MBTREE_RIGHT(tree))))->getValue() & 0xFFFF;
+
+	std::cout << "increment: " << con << '\n';
+
+	IR::RegType low(MBTREE_VALUE(MBTREE_RIGHT(MBTREE_RIGHT(tree))));
+	low.setProperty<operand_size_t>("size", dword32);
+	IR::RegType high(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	high.setProperty<operand_size_t>("size", dword32);
+
+	// Emit increment
+	X11::DataMemory::add(con, srcAddr, low, high, BB, ctx);
+}
+
+
+; DISTR
+; |   +-+
+; ad    |
+;     +ADD+
+;     |   |
+;    DILD con
+;	 |
+;	 ad
+; source address: right, left, left
+
+stmt: DISTR(address, ADD(DILD(address), con16))
+{
+	std::cout << "stmt: DISTR(address, ADD(DILD(address), con16))\n";
+
+	uint16_t dstAddr, srcAddr;
+	dstAddr = (dynamic_cast<ConstNode *>(MBTREE_LEFT(tree)))->getValue() & 0xFFFF;
+	srcAddr = (dynamic_cast<ConstNode *>(MBTREE_LEFT(MBTREE_LEFT(MBTREE_RIGHT(tree)))))->getValue()
+		& 0xFFFF;
+
+	std::cout << "srcAddr: " << srcAddr << ", dstAddr: " << dstAddr << '\n';
+
+	assert(srcAddr == dstAddr && "Cannot compile this kind of memory access");
+
+	uint16_t con;
+	con = (dynamic_cast<ConstNode *>(MBTREE_RIGHT(MBTREE_RIGHT(tree))))->getValue() & 0xFFFF;
+
+	std::cout << "increment: " << con << '\n';
+
+	IR::RegType low(MBTREE_VALUE(MBTREE_LEFT(MBTREE_RIGHT(tree))));
+	low.setProperty<operand_size_t>("size", dword32);
+	IR::RegType high(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	high.setProperty<operand_size_t>("size", dword32);
+
+	// Emit increment
+	X11::DataMemory::add(con, srcAddr, low, high, BB, ctx);
+}
+
+%%
+
+jit::X11::X11EmissionContext *ctx(0);

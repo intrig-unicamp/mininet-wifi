@@ -1,0 +1,168 @@
+/** \example packetdecoder.cpp
+
+<hr>
+
+This program can be used to see how to use the Packet Decoder module and how to save the results of this process on disk.
+
+This program opens a capture dump file, it decodes all the packets, and it creates the corresponding PSML (containing a summary view of al the packets) and PDML (containing the detailed view of each packet) files. These PDML and PSML files are saved on disk in the current folder. The dump file is decoded according to the instructions contained into the NetPDL description file.
+
+This sample includes also a small NetPDL file (with limited decoding capabilitied, basically limited to Ethernet, ARP, IP and ICMP protocols) in order to test it properly, and a capture dump file (<code>samplecapturedump.acp</code>) that can be used to test this sample.
+*/
+
+
+
+/** \example pdmlfieldextractor.cpp
+
+<hr>
+
+This program can be used to see how to extract fields properties (e.g. the field value) from within a decoded packet. This program requires that the packet is decoded first (hence transformed in a PDML document), then it extracts a given field from it.
+
+This program may be very slow because it is based on the PacketDecoder module. In case speed is required, better refer to the \ref fieldextractor.cpp sample, which used the NetVM technology.
+
+This program operates according to the following steps:
+
+- decodes the first packet contained within a given capture file 
+- looks for the protocol field specified by the user; then, it prints the value of each field on screen 
+- continues decoding all the packets contained in the capture file and, for each packet, it prints the value of the protocol field selected by the user. 
+
+When the capture file ens this program saves the PDML file and it scans it again (packet after packet) printing the value of the protocol fields selected by the user. This second step is done in order to show how to extract the value of protocol fields when they have already been decoded and saved on disk.
+
+A file (<code>samplecapturedump.acp</code>) is included that can be used as source file for decoding packets.
+*/
+
+
+
+/** \example fieldextractor.cpp
+
+<hr>
+
+This program can be used to see how to extract fields properties (e.g. the field value and field offset) from within a capture dump / live capture. This program uses the NetVM technology and it is capable to compile a the list of fields to be extracted in NetIL assembly (and in native code, if available), hence creating a true executable program at run-time. Then, this program is executed on each new packet.
+
+The technology used by sample is very fast, but it may not be able to extract all the data (e.g. some complex fields) that are available in the packet. In this case please refer to the \ref pdmlfieldextractor.cpp sample, based on the PacketDecoder module, which is definitely slower because it is based on interpreted code, but it may have more flexibility.
+
+This program uses the NetPFL language for defining the list of fields to be extracted and to define an optional filter to select only a subset of the packets (e.g. only "ip" ones). Please refer to the NetPFL documentation in order to get the syntax.
+
+This program operates according to the following steps:
+
+- opens a capture dump or starts a live capture
+- processes each packet looking for the set of fields the user is interested for and prints their values on screen.
+
+
+A file (<code>samplecapturedump.acp</code>) is included that can be used as source file for extracting data.
+
+*/
+
+
+
+/** \example pdmlreader.cpp
+
+<hr>
+
+This program can be used to see how to create and manage PDML (Packet Details Markup Language) files. These files keep fully decoded network packets, i.e. they are made up of set of records in the form protocol <code>field - value</code> (e.g. <code>tcp.srcport - 80</code>).
+
+This program creates and displays network packets according to the PDML syntax through three steps:
+
+- It reads and decodes a capture file and it displays the decoded packets on screen as soon as they get decoded 
+- Once, this has ended, it scans the decoded packets starting from the beginning and it displays them again 
+- It closes the PDML file, it opens it again, it scans all the packets and displays them on screen for the third time. 
+
+These steps are required to demostrate the three ways you can use to display PDML packet: you can create and display PDML packets either during the decoding, after the decoding, or "offline" by opening a file that contains PDML packets.
+
+A file (<code>samplecapturedump.acp</code>) is included that can be used as source file for decoding packets.
+*/
+
+
+
+/** \example psmlreader.cpp
+
+<hr>
+This program can be used to see how to create and manage PSML (Packet Summary Markup Language) files. These files keep a brief summary of each decoded packet and can be used to give a brief overview of the most important data contained into it.
+
+This program creates and displays network packets according to the PSML syntax through three steps:
+
+- It reads and decodes a capture file and it displays a summary related the decoded packets on screen as soon as they get decoded 
+- Once, this has ended, it scans the decoded packets starting from the beginning and it displays a summary of them again 
+- It closes the PSML file, it opens it again, it scans all the packet summaried and displays them on screen for the third time.
+
+These steps are required to demostrate the three ways you can use to display PSML records: you can create and display PSML records either during the decoding, after the decoding, or "offline" by opening a file that contains PSML records.
+
+A file (<code>samplecapturedump.acp</code>) is included that can be used as source file for decoding packets.
+*/
+
+
+
+/** \example netpdlutils.cpp
+
+<hr>
+
+This program can be used to see how to use the conversion functions provided by NetBee, which aims at converting the value of a field from its 'printable' format to the 'internal' format used by machines, i.e. the hexadecimal dump.
+
+This program converts the value of some protocol fields (e.g. <code>ip.source</code>) from the 'printable' form (e.g. <code>10.1.1.1</code>) into its hex form (e.g. the binary buffer containing the value <code>0A010101</code>), and then back to its 'printable' form.
+
+Please note that the the field value must be typed in the expected format. For instance, if the NetPDL database expects this field to be printed in hexadecimal, the user must give the program an hexadeximal number.
+*/
+
+
+
+/** \example downloadnetpdldb.cpp
+
+<hr>
+
+This program shows how to use the NetBee function that allow to download automatically a new NetPDL database from the online repository.
+*/
+
+
+
+/** \example interfacelist.cpp
+
+<hr>
+
+This program shows how to get the list of network devices installed in a system.
+These devices can be either local network interfaces, or network interfaces installed on a remote system, or a list of files containing packet dumps present within a given folder on the system.
+
+This program lists the local network interfaces and it prints their characteristics (list of addresses configured on them, and more).
+*/
+
+
+
+/** \example packetcapture.cpp
+
+<hr>
+
+This program can be used to capture and filter packets from a network device.
+
+This program uses the nbPacketCapture class, which provides the basic interface for packet capturing and filtering.
+This class allows to define a source for network packets (i.e. a network adapter, a file), a destination (another network adapter, a file, the application itself), and a filter that allows delivering to the destination only a subset of the packets received by the source.
+
+This example shows a typical packet capture application, where the user selects the source (chosing from the available network adapters), defines a user-level filter (e.g. "capture only ip packets"), and it defines if the packets must be received through a callback function (i.e. when the operating System receives packets, it calls a callback function in the application space delivering the newly received packet to it) or a "manual" reading (i.e. the application loops over a read() function, requesting packets to the Operating System).
+*/
+
+
+/** \example nbnetvmpush.cpp
+
+<hr>
+This program uses the NetBee interface for the NetVM, which provides the basic interfaces for create the NetVM engine module.
+
+This example shows a typical NetVM application using the internal PUSH connection behavior, where the user selects one application as source of packet, create the internal NetVM topology (NetPE interconnection), defines and inject a user-level filter (e.g. "capture only ip packets") inside the NetPEs, and defines the callback function (i.e. when the operating System receives packets, it calls a callback function in the application space delivering the newly received packet to it) 
+*/
+
+
+
+/** \example nbnetvmpull.cpp
+
+<hr>
+
+This program uses the NetBee interface for the NetVM, which provides the basic interfaces for create the NetVM engine module.
+
+This example shows a typical NetVM application using the internal PULL connection behavior, where the user selects one application as source of packet, create the internal NetVM topology (NetPE interconnection), defines and inject a user-level filter (e.g. "capture only ip packets") inside the NetPEs, and defines the polling function (i.e. the application loops over a read() function, requesting packets to the Operating System).
+*/
+
+
+
+/** \example nbnetvmpcap.cpp
+
+<hr>
+This program uses the NetBee interface for the NetVM, which provides the basic interfaces for create the NetVM engine module.
+
+This example shows a typical NetVM application using the internal PULL connection behavior, where the user selects the source (chosing from the available network adapters), create the internal NetVM topology (NetPE interconnection), defines and inject a user-level filter (e.g. "capture only ip packets") inside the NetPEs, and defines the polling function (i.e. the application loops over a read() function, requesting packets to the Operating System).
+*/

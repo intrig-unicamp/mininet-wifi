@@ -1,0 +1,31 @@
+This is the license related to the languages included in the NetBee library.
+
+
+/*
+ * Copyright (c) 2003 - 2011
+ * NetGroup, Politecnico di Torino (Italy)
+ * All rights reserved.
+ * 
+ * The NetGroup hereby grants to you a free of charge, nonexclusive, 
+ * nontransferable, perpetual, worldwide limited license (without the right
+ * to sublicense) under NetGroup's intellectual property rights.
+ * This license allows and is limited to the creation and distribution of 
+ * clean room implementations of this specification or portions of it.
+ *
+ * THIS SPECIFICATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, 
+ * EITHER EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+ * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR
+ * NON-INFRINGEMENT.
+ *
+ * THIS SPECIFICATION COULD INCLUDE TECHNICAL INACCURACIES OR TYPOGRAPHICAL
+ * ERRORS. CHANGES ARE PERIODICALLY ADDED TO THE INFORMATION HEREIN; THESE 
+ * CHANGES WILL BE INCORPORATED IN NEW EDITIONS OF THE SPECIFICATION.
+ * NETGROUP MAY MAKE IMPROVEMENTS AND/OR CHANGES IN THE SPECIFICATION AT ANY 
+ * TIME.
+ *
+ *
+ * Please contact the NetGroup at Politecnico di Torino for any further
+ * information.
+ * 
+ */
+

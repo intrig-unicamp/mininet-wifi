@@ -1,0 +1,1190 @@
+<visualization>
+
+	<!-- Defines the structure of the summary view of each packet -->
+	<showsumstruct>
+		<sumsection name="NUMBER" longname="N."/>
+		<sumsection name="TIME" longname="Time"/>
+		<sumsection name="L2" longname="Data Link"/>
+		<sumsection name="L3" longname="Network"/>
+		<sumsection name="L4" longname="Transport"/>
+		<sumsection name="L7" longname="Application"/>
+	</showsumstruct>
+
+
+	<!-- Very simple and common templates -->
+	<showtemplate name="FieldBin" showtype="bin"/>
+	<showtemplate name="FieldDec" showtype="dec"/>
+	<showtemplate name="FieldHex" showtype="hex"/>
+	<showtemplate name="FieldAscii" showtype="ascii" showgrp="1"/>
+
+	<showtemplate name="FieldHexBin" showtype="hex">
+		<showdtl>
+		    <text value="0x"/>
+			<protofield showdata="value"/>
+			<text value=" ("/>
+			<text expr="buf2int(this)"/>
+			<text value=")"/>					
+		</showdtl>
+	</showtemplate>	
+
+
+
+	<!-- Templates that prints a field as a continuous string of hex numbers (e.g. '0xAABBCCDDEE...') -->
+	<!-- with a delimiter every N bytes (in order to improve readability) -->
+	<showtemplate name="Field4BytesHex" showtype="hex" showgrp="4" showsep=" "/>			<!-- E.g. "AABBCCDD AABBCCDD" -->
+	<showtemplate name="Field1BytesHex" showtype="hex" showgrp="1" showsep=" "/>			<!-- E.g. "AA BB CC DD" -->
+	<showtemplate name="Field2BytesHexDash" showtype="hex" showgrp="2" showsep="-"/>		<!-- E.g. "AABB CCDD" -->
+	<showtemplate name="Field2BytesHexColon" showtype="hex" showgrp="2" showsep=":"/>		<!-- E.g. "AABB:CCDD" -->
+
+	<!-- Templates for fields that cannot be printed with standard NetPDL primitives -->
+	<showtemplate name="ip4addr" showtype="dec" showgrp="1" showsep="." showplg="IP46Name"/>
+
+	<showtemplate name="ip6addr" showtype="hexnox" showgrp="2" showsep=":" showplg="IP46Name">
+		<showdtl>
+			<protofield showdata="showvalue"/>
+			<if expr="this == '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'">
+				<if-true>
+					<text value=" (Unspecified Address)"/>
+				</if-true>
+			</if>
+			<if expr="this == '\xFF\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01'">
+				<if-true>
+					<text value=" (All nodes multicast address)"/>
+				</if-true>
+			</if>
+			<if expr="this[0:12] == '\xFF\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01'">
+				<if-true>
+					<text value=" (Multicast solicited node)"/>
+				</if-true>
+			</if>
+
+<!-- FULVIO: questo non funz perche' non ci sono funzioni di traduzione in stampa, per cui quando -->
+<!-- voglio far stampare una stringa dal "text", questo me la stampa come se fosse codificata in ascii -->
+<!--
+			<if expr="(this[11:2] == '\xFF\xFE')">
+				<if-true>
+					<text value=" (Originating MAC address: "/>
+					<text expr="this[8:3]"/>
+					<text value="-"/>
+					<text expr="this[13:3]"/>
+					<text value=")"/>
+				</if-true>
+			</if>
+-->
+		</showdtl>
+	</showtemplate>
+
+	<showtemplate name="netbios-name" showplg="NetBIOSName"/>
+
+
+	<!-- Template for printing IPv4 address using only numbers (e.g. netmasks) -->
+	<showtemplate name="ip4addr-noplg" showtype="dec" showgrp="1" showsep="."/>
+
+	<!-- Template for printing IPv6 address using only numbers (e.g. prefixes) -->
+	<showtemplate name="ip6addr-noplg" showtype="hexnox" showgrp="2" showsep=":"/>
+
+	<!-- Templates specific for MAC addresses -->
+	<showtemplate name="MAC-colon" showtype="hexnox" showgrp="1" showsep=":"/>
+	<showtemplate name="MAC-dash" showtype="hexnox" showgrp="3" showsep="-"/>
+
+
+
+
+	<!-- *********************************************************** -->
+	<!-- Generic templates with some common visualization primitives -->
+	<!-- *********************************************************** -->
+
+	<!-- Generic template that prints a field timed by '4' -->
+	<showtemplate name="FieldMul4Dec" showtype="dec">
+		<showdtl>
+			<text expr="buf2int(this) * 4"/>
+			<text value=" (field value = "/>
+			<protofield showdata="showvalue"/>
+			<text value=")"/>
+		</showdtl>
+	</showtemplate>
+
+	<!-- Generic template that prints a short-field timed by '8' -->
+	<showtemplate name="ShortMul8Dec" showtype="dec">
+		<showdtl>
+			<text expr="buf2int(this) * 8"/>
+			<text value=" (field value = "/>
+			<protofield showdata="showvalue"/>
+			<text value=")"/>
+		</showdtl>
+	</showtemplate>
+
+	<showtemplate name="ShortDiv256Dec" showtype="dec">
+		<showdtl>
+			<text expr="buf2int(this) div 256"/>
+			<text value=" sec (field value = "/>
+			<protofield showdata="showvalue"/>
+			<text value=")"/>
+		</showdtl>
+	</showtemplate>
+
+	<showtemplate name="TrueFalse" showtype="dec">
+		<showmap>
+			<switch expr="buf2int(this)">
+				<case value="0" show="False"/>
+				<case value="1" show="True"/>
+			</switch>
+		</showmap>
+	</showtemplate>
+
+
+
+	<!-- ************************************************ -->
+	<!-- Generic templates used by more than one protocol -->
+	<!-- ************************************************ -->
+
+	<showtemplate name="eth.typelength" showtype="dec">
+		<showdtl>
+			<if expr="buf2int(this) le 1500">				
+				<if-true>
+					<protofield showdata="showvalue"/>
+					<text value=" (Length)"/>
+				</if-true>
+
+				<if-false>
+					<text value="0x"/>
+					<protofield showdata="value"/>
+					<text value=" (Ethertype)"/>
+				</if-false>
+			</if>
+		</showdtl>
+	</showtemplate>
+
+	<showtemplate name="dhcp.code" showtype="dec">
+		<showmap>
+			<switch expr="buf2int(this)">
+				<case value="1" show="Request"/> 
+				<case value="2" show="Reply"/> 
+				<default show="Error in DHCP / BOOTP code lookup"/> 
+			</switch>
+		</showmap>
+	</showtemplate>
+
+	<showtemplate name="pppoe.code" showtype="hex">
+		<showmap>
+			<switch expr="buf2int(this)">
+				<case value="0" show="Session"/> 
+				<case value="7" show="PADO"/> 
+				<case value="9" show="PADI"/> 
+				<case value="25" show="PADR"/> 
+				<case value="101" show="PADS"/> 
+				<case value="167" show="PADT"/> 
+				<default show="Error in PPPoe code lookup"/> 
+			</switch>
+		</showmap>
+	</showtemplate>
+
+	<showtemplate name="rip.cmd" showtype="dec">
+		<showmap>
+			<switch expr="buf2int(this)">
+				<case value="1" show="Request"/> 
+				<case value="2" show="Update"/> 
+				<default show="Error in RIP command lookup"/> 
+			</switch>
+		</showmap>
+	</showtemplate>
+
+	<showtemplate name="bluetooth.page_scan_mode" showtype="dec">
+		<showmap>
+			<switch expr="buf2int(this)">
+				<case value="0" show="Mandatory Page Scan Mode"/>
+				<case value="1" show="Optional Page Scan Mode 1"/>
+				<case value="2" show="Optional Page Scan Mode 2"/>
+				<case value="3" show="Optional Page Scan Mode 3"/>
+				<default show="Reserved"/>
+			</switch>
+		</showmap>
+	</showtemplate>
+
+	<showtemplate name="bluetooth.encryption_enable" showtype="dec">
+		<showmap>
+			<switch expr="buf2int(this)">
+				<case value="0" show="Link Level Encryption OFF"/>
+				<case value="1" show="Link Level Encryption ON"/>
+				<default show="Invalid Code"/>
+			</switch>
+		</showmap>
+	</showtemplate>
+	
+
+	<!-- Generic template for visualizing Ethernet MAC addresses -->
+	<showtemplate name="MACaddressEth" showtype="hexnox" showgrp="3" showsep="-">
+		<showdtl>
+			<protofield showdata="showvalue"/>
+			<if expr="(buf2int(this[0:1]) bitwand 0b00000001) == 0b00000001">
+				<!-- It extracts the first byte of the MAC address, then it matches the result against -->
+				<!-- the 'xxxxxxx1' pattern -->
+				<!-- Extract the first byte of the MAC address -->
+				<!-- If it is a broadcast address, the last char will be '1' (due to network/host byte order)-->
+				
+				<if-true>
+					<if expr="this == '\xFF\xFF\xFF\xFF\xFF\xFF'">
+						<if-true>
+							<text value=" (Broadcast address)"/>
+						</if-true>
+
+						<if-false>
+							<text value=" (Multicast address)"/>
+						</if-false>		
+					</if>
+				</if-true>
+
+				<if-false>
+					<text value=" (Unicast address, vendor "/>
+					<protofield showdata="showmap"/>
+					<text value=")"/>
+				</if-false>
+			</if>
+		</showdtl>
+
+		<showmap>
+			<switch expr="buf2int(this[0:3])">		<!-- Extracts the first 3 bytes of the MAC address -->
+				<case value="0xFFFFFF" show="Broadcast address"/>
+				<case value="0x000001" show="SuperLAN-2U"/> 
+				<case value="0x000002" show="BBN (was internal usage only, no longer used)"/>
+				<case value="0x000009" show="powerpipes?"/> 
+				<case value="0x00000C" show="Cisco"/> 
+				<case value="0x00000E" show="Fujitsu"/> 
+				<case value="0x00000F" show="NeXT"/> 
+				<case value="0x000010" show="Sytek (Hughes LAN Systems)"/> 
+				<case value="0x000011" show="Tektronix"/> 
+				<case value="0x000015" show="Datapoint Corporation"/> 
+				<case value="0x000018" show="Webster Computer Corporation Appletalk/Ethernet Gateway"/> 
+				<case value="0x00001A" show="AMD (?)"/> 
+				<case value="0x00001B" show="Novell (now Eagle Technology)"/> 
+				<case value="0x00001C" show="JDR Microdevices generic, NE2000 drivers"/> 
+				<case value="0x00001D" show="Cabletron"/> 
+				<case value="0x00001F" show="Cryptall Communications Corp."/> 
+				<case value="0x000020" show="DIAB (Data Intdustrier AB)"/> 
+				<case value="0x000021" show="SC&amp;C (PAM Soft&amp;Hardware also reported)"/> 
+				<case value="0x000022" show="Visual Tecnology"/> 
+				<case value="0x000023" show="ABB Automation AB, Dept. Q"/> 
+				<case value="0x000024" show="Olicom"/> 
+				<case value="0x000029" show="IMC"/> 
+				<case value="0x00002A" show="TRW"/> 
+				<case value="0x00002C" show="NRC - Network Resources Corporation - MultiGate Hub1+, Hub2, etc"/> 
+				<case value="0x000032" show="GPT Limited (reassigned from GEC Computers Ltd)"/> 
+				<case value="0x000037" show="Oxford Metrics Ltd"/> 
+				<case value="0x00003B" show="Hyundai/Axil Sun clones"/> 
+				<case value="0x00003C" show="Auspex"/> 
+				<case value="0x00003D" show="AT&amp;T"/> 
+				<case value="0x00003F" show="Syntrex Inc"/> 
+				<case value="0x000044" show="Castelle"/> 
+				<case value="0x000046" show="ISC-Bunker Ramo, An Olivetti Company"/> 
+				<case value="0x000048" show="Epson"/> 
+				<case value="0x000049" show="Apricot Ltd."/> 
+				<case value="0x00004B" show="APT -ICL also reported"/> 
+				<case value="0x00004C" show="NEC Corporation"/> 
+				<case value="0x00004F" show="Logicraft 386-Ware P.C. Emulator"/> 
+				<case value="0x000051" show="Hob Electronic Gmbh &amp; Co. KG"/> 
+				<case value="0x000052" show="Optical Data Systems (ODS)"/> 
+				<case value="0x000055" show="AT&amp;T"/> 
+				<case value="0x000058" show="Racore Computer Products Inc"/> 
+				<case value="0x00005A" show="S&amp;Koch (Schneider &amp; Koch in Europe and Syskonnect outside of Europe) OR Xerox 806 (unregistered)"/> 
+				<case value="0x00005B" show="Eltec"/> 
+				<case value="0x00005D" show="RCE"/> 
+				<case value="0x00005E" show="IANA (U.S. Department of Defense)"/> 
+				<case value="0x00005F" show="Sumitomo"/> 
+				<case value="0x000061" show="Gateway Communications"/> 
+				<case value="0x000062" show="Honeywell"/> 
+				<case value="0x000063" show="Hewlett-Packard LanProbe"/> 
+				<case value="0x000064" show="Yokogawa Digital Computer Corp"/> 
+				<case value="0x000065" show="Network General"/> 
+				<case value="0x000066" show="Talaris"/> 
+				<case value="0x000068" show="Rosemount Controls"/> 
+				<case value="0x000069" show="Concord Communications, Inc (although someone said Silicon Graphics)"/> 
+				<case value="0x00006B" show="MIPS"/> 
+				<case value="0x00006D" show="Case"/> 
+				<case value="0x00006E" show="Artisoft, Inc."/> 
+				<case value="0x00006F" show="Madge Networks Ltd. Token-ring adapters"/> 
+				<case value="0x000073" show="DuPont"/> 
+				<case value="0x000075" show="Bell Northern Research (BNR)"/> 
+				<case value="0x000077" show="Interphase Corporation [Used in other systems, e.g. MIPS, Motorola]"/> 
+				<case value="0x000078" show="Labtam Australia"/> 
+				<case value="0x000079" show="Networth Incorporated [bought by Compaq, used in Netelligent series]"/> 
+				<case value="0x00007A" show="Ardent"/> 
+				<case value="0x00007B" show="Research Machines"/> 
+				<case value="0x00007D" show="Cray Research Superservers,Inc [Also Harris (3M) (old)]"/> 
+				<case value="0x00007E" show="NetFRAME multiprocessor network servers"/> 
+				<case value="0x00007F" show="Linotype-Hell AG Linotronic typesetters"/> 
+				<case value="0x000080" show="Cray Communications A/S (formerly Dowty Network Services) [Also shows as Harris (3M) (new) and/or Imagen(?) elsewhere]"/> 
+				<case value="0x000081" show="Synoptics"/> 
+				<case value="0x000083" show="Tadpole Technology [had Optical Data Systems which is wrong according to both]"/> 
+				<case value="0x000084" show="Aquila (?), ADI Systems Inc.(?)"/> 
+				<case value="0x000086" show="Gateway Communications Inc. (then Megahertz &amp; now 3com)"/> 
+				<case value="0x000087" show="Hitachi"/> 
+				<case value="0x000089" show="Cayman Systems Gatorbox"/> 
+				<case value="0x00008A" show="Datahouse Information Systems"/> 
+				<case value="0x00008E" show="Solbourne(?), Jupiter(?) (I've had confirming mail on Solbourne)"/> 
+				<case value="0x000092" show="Unisys, Cogent (both reported)"/> 
+				<case value="0x000093" show="Proteon"/> 
+				<case value="0x000094" show="Asante MAC"/> 
+				<case value="0x000095" show="Sony/Tektronix"/> 
+				<case value="0x000097" show="Epoch"/> 
+				<case value="0x000098" show="Cross Com"/> 
+				<case value="0x000099" show="Memorex Telex Corporations"/> 
+				<case value="0x00009F" show="Ameristar Technology"/> 
+				<case value="0x0000A0" show="Sanyo Electronics"/> 
+				<case value="0x0000A2" show="Wellfleet"/> 
+				<case value="0x0000A3" show="Network Application Tech. (NAT)"/> 
+				<case value="0x0000A4" show="Acorn"/> 
+				<case value="0x0000A5" show="Compatible Systems Corporation"/> 
+				<case value="0x0000A6" show="Network General (internal assignment, not for products)"/> 
+				<case value="0x0000A7" show="NCD (Network Computing Devices) X-terminals"/> 
+				<case value="0x0000A8" show="Stratus Computer, Inc."/> 
+				<case value="0x0000A9" show="Network Systems"/> 
+				<case value="0x0000AA" show="Xerox (Xerox machines)"/> 
+				<case value="0x0000AC" show="Conware Netzpartner [had Apollo, claimed incorrect]"/> 
+				<case value="0x0000AE" show="Dassault Automatismes et Telecommunications"/> 
+				<case value="0x0000AF" show="Nuclear Data Acquisition Interface Modules (AIM)"/> 
+				<case value="0x0000B0" show="RND (RAD Network Devices)"/> 
+				<case value="0x0000B1" show="Alpha Microsystems Inc."/> 
+				<case value="0x0000B3" show="CIMLinc"/> 
+				<case value="0x0000B4" show="Edimax"/> 
+				<case value="0x0000B5" show="Datability Terminal Servers"/> 
+				<case value="0x0000B6" show="Micro-matic Research"/> 
+				<case value="0x0000B7" show="Dove Fastnet"/> 
+				<case value="0x0000BB" show="TRI-DATA Systems Inc. Netway products, 3274 emulators"/> 
+				<case value="0x0000BC" show="Allen-Bradley, now SMC (Standard Microsystems Corp.)"/> 
+				<case value="0x0000C0" show="Western Digital"/> 
+				<case value="0x0000C1" show="Olicom A/S"/> 
+				<case value="0x0000C5" show="Farallon Computing Inc (Phone Net Card)"/> 
+				<case value="0x0000C6" show="HP Intelligent Networks Operation (formerly Eon Systems)"/> 
+				<case value="0x0000C8" show="Altos"/> 
+				<case value="0x0000C9" show="Emulex Terminal Servers, Print Servers"/> 
+				<case value="0x0000CA" show="LANcity Cable Modems (now owned by BayNetworks)"/> 
+				<case value="0x0000CC" show="Densan Co., Ltd."/> 
+				<case value="0x0000CD" show="Industrial Research Limited"/> 
+				<case value="0x0000D0" show="Develcon Electronics, Ltd."/> 
+				<case value="0x0000D1" show="Adaptec, Inc. Nodem product"/> 
+				<case value="0x0000D2" show="SBE Inc"/> 
+				<case value="0x0000D3" show="Wang Labs"/> 
+				<case value="0x0000D4" show="PureData"/> 
+				<case value="0x0000D7" show="Dartmouth College (NED Router)"/> 
+				<case value="0x0000D8" show="3Com? old Novell NE1000's (before about 1987?)? PS/2"/> 
+				<case value="0x0000DD" show="Gould"/> 
+				<case value="0x0000DE" show="Unigraph"/> 
+				<case value="0x0000E1" show="Hitachi (laptop built-in)"/> 
+				<case value="0x0000E2" show="Acer Counterpoint"/> 
+				<case value="0x0000E3" show="Integrated Micro Products Ltd"/> 
+				<case value="0x0000E4" show="mips?"/> 
+				<case value="0x0000E6" show="Aptor Produits De Comm Indust"/> 
+				<case value="0x0000E8" show="Accton Technology Corporation"/> 
+				<case value="0x0000E9" show="ISICAD, Inc."/> 
+				<case value="0x0000ED" show="April"/> 
+				<case value="0x0000EE" show="Network Designers Limited [also KNX Ltd, a former division]"/> 
+				<case value="0x0000EF" show="Alantec (now owned by ForeSystems)"/> 
+				<case value="0x0000F0" show="Samsung"/> 
+				<case value="0x0000F2" show="Spider Communications (Montreal, not Spider Systems)"/> 
+				<case value="0x0000F3" show="Gandalf Data Ltd. - Canada"/> 
+				<case value="0x0000F4" show="Allied Telesis, Inc."/> 
+				<case value="0x0000F6" show="A.M.C. (Applied Microsystems Corp.)"/> 
+				<case value="0x0000F8" show="DEC"/> 
+				<case value="0x0000FB" show="Rechner zur Kommunikation"/> 
+				<case value="0x0000FD" show="High Level Hardarware (Orion, UK)"/> 
+				<case value="0x0000FF" show="Camtec Electronics (UK) Ltd."/> 
+				<case value="0x000102" show="BBN (Bolt Beranek and Newman, Inc.) internal usage (not registered)"/> 
+				<case value="0x000143" show="IEEE 802"/> 
+				<case value="0x000150" show="Megahertz (now 3com) modem"/> 
+				<case value="0x000163" show="NDC (National Datacomm Corporation)"/> 
+				<case value="0x000168" show="W&amp;G (Wandel &amp; Goltermann) [incorrect according to W&amp;G]"/> 
+				<case value="0x0001C8" show="Thomas Conrad Corp."/> 
+				<case value="0x0001FA" show="Compaq (PageMarq printers)"/> 
+				<case value="0x000204" show="Novell NE3200"/> 
+				<case value="0x000205" show="Hamilton (Sparc Clones)"/> 
+				<case value="0x000216" show="ESI (Extended Systems, Inc) print servers"/> 
+				<case value="0x000288" show="Global Village (PCcard in Mac portable)"/> 
+				<case value="0x0003C6" show="Morning Star Technologies Inc"/> 
+				<case value="0x000400" show="Lexmark (Print Server)"/> 
+				<case value="0x0004AC" show="IBM (Intel 82557-based Ethernet 10/100) PCMCIA Ethernet adapter"/> 
+				<case value="0x000502" show="Apple (PCI bus Macs)"/> 
+				<case value="0x00059A" show="PowerComputing (Mac clone)"/> 
+				<case value="0x0005A8" show="PowerComputing Mac clones"/> 
+				<case value="0x00060D" show="Hewlett-Packard JetDirect token-ring interfaces"/> 
+				<case value="0x000629" show="IBM RISC6000 system"/> 
+				<case value="0x00067C" show="Cisco"/> 
+				<case value="0x0006C1" show="Cisco"/> 
+				<case value="0x000701" show="Racal-Datacom"/> 
+				<case value="0x00070D" show="Cisco 2511 Token Ring"/> 
+				<case value="0x000852" show="Technically Elite Concepts"/> 
+				<case value="0x000855" show="Fermilab"/> 
+				<case value="0x0008C7" show="Compaq"/> 
+				<case value="0x000A8A" show="Cisco Systems Aironet (802.11)"/> 
+				<case value="0x001007" show="Cisco Systems Catalyst 1900"/> 
+				<case value="0x00100B" show="Cisco Systems"/> 
+				<case value="0x00100D" show="Cisco Systems Catalyst 2924-XL"/> 
+				<case value="0x001011" show="Cisco Systems Cisco 75xx"/> 
+				<case value="0x00101F" show="Cisco Systems Catalyst 2901"/> 
+				<case value="0x001029" show="Cisco Systems Catalyst 5000"/> 
+				<case value="0x00102F" show="Cisco Systems Cisco 5000"/> 
+				<case value="0x00104B" show="3Com 3C905-TX PCI"/> 
+				<case value="0x00105A" show="3Com Fast Etherlink XL in a Gateway 2000"/> 
+				<case value="0x001060" show="Billington Novell NE200 Compatible"/> 
+				<case value="0x001079" show="Cisco 5500 Router"/> 
+				<case value="0x00107A" show="Ambicom (was Tandy?)"/> 
+				<case value="0x00107B" show="Cisco Systems"/> 
+				<case value="0x001083" show="HP-UX E 9000/889"/> 
+				<case value="0x0010A4" show="Xircom RealPort 10/100 PC Card"/> 
+				<case value="0x0010A6" show="Cisco"/> 
+				<case value="0x0010D1" show="BlazeNet"/> 
+				<case value="0x0010D7" show="Argosy EN 220 Fast Ethernet PCMCIA"/> 
+				<case value="0x0010F6" show="Cisco"/> 
+				<case value="0x001700" show="Kabel"/> 
+				<case value="0x002000" show="Lexmark (Print Server)"/> 
+				<case value="0x002005" show="simpletech"/> 
+				<case value="0x002008" show="Cable &amp; Computer Technology"/> 
+				<case value="0x00200C" show="Adastra Systems Corp"/> 
+				<case value="0x002011" show="Canopus Co Ltd"/> 
+				<case value="0x002017" show="Orbotech"/> 
+				<case value="0x002018" show="Realtek"/> 
+				<case value="0x00201A" show="Nbase"/> 
+				<case value="0x002025" show="Control Technology Inc (Industrial Controls and Network Interfaces)"/> 
+				<case value="0x002028" show="Bloomberg"/> 
+				<case value="0x002029" show="TeleProcessing CSU/DSU (now owned by ADC/Kentrox)"/> 
+				<case value="0x00202B" show="ATML (Advanced Telecommunications Modules, Ltd.)"/> 
+				<case value="0x002035" show="IBM (International Business Machines) mainframes, Etherjet printers"/> 
+				<case value="0x002036" show="BMC Software"/> 
+				<case value="0x002042" show="Datametrics Corp"/> 
+				<case value="0x002045" show="SolCom Systems Limited"/> 
+				<case value="0x002048" show="Fore Systems Inc"/> 
+				<case value="0x00204B" show="Autocomputer Co Ltd"/> 
+				<case value="0x00204C" show="Mitron Computer Pte Ltd"/> 
+				<case value="0x002056" show="Neoproducts"/> 
+				<case value="0x002061" show="Dynatech Communications Inc"/> 
+				<case value="0x002063" show="Wipro Infotech Ltd"/> 
+				<case value="0x002066" show="General Magic Inc"/> 
+				<case value="0x002067" show="Node Runner Inc"/> 
+				<case value="0x00206B" show="Minolta Co., Ltd Network printers"/> 
+				<case value="0x002078" show="Runtop Inc"/> 
+				<case value="0x002085" show="3COM SuperStack II UPS management module"/> 
+				<case value="0x00208A" show="Sonix Communications Ltd"/> 
+				<case value="0x00208B" show="Focus Enhancements"/> 
+				<case value="0x00208C" show="Galaxy Networks Inc"/> 
+				<case value="0x002094" show="Cubix Corporation"/> 
+				<case value="0x00209C" show="PRIMARY ACCESS CORP."/> 
+				<case value="0x0020A5" show="Newer Technology"/> 
+				<case value="0x0020A6" show="Proxim Inc"/> 
+				<case value="0x0020A7" show="Pairgain Technologies, Inc."/> 
+				<case value="0x0020AF" show="3COM Corporation ?"/> 
+				<case value="0x0020B2" show="CSP (Printline Multiconnectivity converter)"/> 
+				<case value="0x0020B6" show="Agile Networks Inc"/> 
+				<case value="0x0020B9" show="Metricom, Inc."/> 
+				<case value="0x0020C5" show="Eagle NE2000"/> 
+				<case value="0x0020C6" show="NECTEC"/> 
+				<case value="0x0020C9" show="Victron"/> 
+				<case value="0x0020D0" show="Versalynx Corp. The One Port terminal server"/> 
+				<case value="0x0020D2" show="RAD Data Communications Ltd"/> 
+				<case value="0x0020D3" show="OST (Ouet Standard Telematique)"/> 
+				<case value="0x0020D8" show="NetWave"/> 
+				<case value="0x0020DA" show="Xylan"/> 
+				<case value="0x0020DC" show="Densitron Taiwan Ltd"/> 
+				<case value="0x0020E0" show="PreMax PE-200 (PCMCIA NE2000-clone card, sold by InfoExpress)"/> 
+				<case value="0x0020E5" show="Apex Data"/> 
+				<case value="0x0020EE" show="Gtech Corporation"/> 
+				<case value="0x0020F6" show="Net Tek &amp; Karlnet Inc"/> 
+				<case value="0x0020F8" show="Carrera Computers Inc"/> 
+				<case value="0x0020FC" show="Matrox"/> 
+				<case value="0x004001" show="Zero One Technology Co Ltd (ZyXEL?)"/> 
+				<case value="0x004005" show="TRENDware International Inc.; Linksys; Simple Net; all three reported"/> 
+				<case value="0x004009" show="Tachibana Tectron Co Ltd"/> 
+				<case value="0x00400B" show="Crescendo (now owned by Cisco)"/> 
+				<case value="0x00400C" show="General Micro Systems, Inc."/> 
+				<case value="0x00400D" show="LANNET Data Communications"/> 
+				<case value="0x004010" show="Sonic Mac Ethernet interfaces"/> 
+				<case value="0x004011" show="Facilities Andover Environmental Controllers"/> 
+				<case value="0x004013" show="NTT Data Communication Systems Corp"/> 
+				<case value="0x004014" show="Comsoft Gmbh"/> 
+				<case value="0x004015" show="Ascom"/> 
+				<case value="0x004017" show="XCd XJet - HP printer server card"/> 
+				<case value="0x00401C" show="AST Pentium/90 PC (emulating AMD EISA card)"/> 
+				<case value="0x00401F" show="Colorgraph Ltd"/> 
+				<case value="0x004020" show="Pilkington Communication"/> 
+				<case value="0x004023" show="Logic Corporation"/> 
+				<case value="0x004025" show="Molecular Dynamics"/> 
+				<case value="0x004026" show="Melco Inc"/> 
+				<case value="0x004027" show="SMC Massachusetts [Had:Sigma (?), maybe the S?]"/> 
+				<case value="0x004028" show="Netcomm"/> 
+				<case value="0x00402A" show="Canoga-Perkins"/> 
+				<case value="0x00402B" show="TriGem"/> 
+				<case value="0x00402F" show="Xlnt Designs Inc (XDI)"/> 
+				<case value="0x004030" show="GK Computer"/> 
+				<case value="0x004032" show="Digital Communications"/> 
+				<case value="0x004033" show="Addtron Technology Co., Ltd."/> 
+				<case value="0x004036" show="TribeStar"/> 
+				<case value="0x004039" show="Optec Daiichi Denko Co Ltd"/> 
+				<case value="0x00403C" show="Forks, Inc."/> 
+				<case value="0x004041" show="Fujikura Ltd."/> 
+				<case value="0x004043" show="Nokia Data Communications"/> 
+				<case value="0x004048" show="SMD Informatica S.A."/> 
+				<case value="0x00404C" show="Hypertec Pty Ltd."/> 
+				<case value="0x00404D" show="Telecomm Techniques"/> 
+				<case value="0x00404F" show="Space &amp; Naval Warfare Systems"/> 
+				<case value="0x004050" show="Ironics, Incorporated"/> 
+				<case value="0x004052" show="Star Technologies Inc"/> 
+				<case value="0x004053" show="Datum [Bancomm Division] TymServe 2000"/> 
+				<case value="0x004054" show="Thinking Machines Corporation"/> 
+				<case value="0x004057" show="Lockheed-Sanders"/> 
+				<case value="0x004059" show="Yoshida Kogyo K.K."/> 
+				<case value="0x00405B" show="Funasset Limited"/> 
+				<case value="0x00405D" show="Star-Tek Inc"/> 
+				<case value="0x004066" show="Hitachi Cable, Ltd."/> 
+				<case value="0x004067" show="Omnibyte Corporation"/> 
+				<case value="0x004068" show="Extended Systems"/> 
+				<case value="0x004069" show="Lemcom Systems Inc"/> 
+				<case value="0x00406A" show="Kentek Information Systems Inc"/> 
+				<case value="0x00406E" show="Corollary, Inc."/> 
+				<case value="0x00406F" show="Sync Research Inc"/> 
+				<case value="0x004072" show="Applied Innovation"/> 
+				<case value="0x004074" show="Cable and Wireless"/> 
+				<case value="0x004076" show="AMP Incorporated"/> 
+				<case value="0x004078" show="Wearnes Automation Pte Ltd"/> 
+				<case value="0x00407F" show="Agema Infrared Systems AB"/> 
+				<case value="0x004082" show="Laboratory Equipment Corp"/> 
+				<case value="0x004085" show="SAAB Instruments AB"/> 
+				<case value="0x004086" show="Michels &amp; Kleberhoff Computer"/> 
+				<case value="0x004087" show="Ubitrex Corporation"/> 
+				<case value="0x004088" show="Mobuis NuBus (Mac) combination video/EtherTalk"/> 
+				<case value="0x00408A" show="TPS Teleprocessing Sys. Gmbh"/> 
+				<case value="0x00408C" show="Axis Communications AB"/> 
+				<case value="0x00408E" show="CXR/Digilog"/> 
+				<case value="0x00408F" show="WM-Data Minfo AB"/> 
+				<case value="0x004090" show="Ansel Communications PC NE2000 compatible twisted-pair ethernet cards"/> 
+				<case value="0x004091" show="Procomp Industria Eletronica"/> 
+				<case value="0x004092" show="ASP Computer Products, Inc."/> 
+				<case value="0x004094" show="Shographics Inc"/> 
+				<case value="0x004095" show="Eagle Technologies [UMC also reported]"/> 
+				<case value="0x004096" show="Telesystems SLW Inc"/> 
+				<case value="0x00409A" show="Network Express Inc"/> 
+				<case value="0x00409C" show="Transware"/> 
+				<case value="0x00409D" show="DigiBoard Ethernet-ISDN bridges"/> 
+				<case value="0x00409E" show="Concurrent Technologies Ltd."/> 
+				<case value="0x00409F" show="Lancast/Casat Technology Inc"/> 
+				<case value="0x0040A4" show="Rose Electronics"/> 
+				<case value="0x0040A6" show="Cray Research Inc."/> 
+				<case value="0x0040AA" show="Valmet Automation Inc"/> 
+				<case value="0x0040AD" show="SMA Regelsysteme Gmbh"/> 
+				<case value="0x0040AE" show="Delta Controls, Inc."/> 
+				<case value="0x0040AF" show="Digital Products, Inc. (DPI)."/> 
+				<case value="0x0040B4" show="3COM K.K."/> 
+				<case value="0x0040B5" show="Video Technology Computers Ltd"/> 
+				<case value="0x0040B6" show="Computerm Corporation"/> 
+				<case value="0x0040B9" show="MACQ Electronique SA"/> 
+				<case value="0x0040BD" show="Starlight Networks Inc"/> 
+				<case value="0x0040C1" show="Bizerba-Werke Wilheim Kraut"/> 
+				<case value="0x0040C2" show="Applied Computing Devices"/> 
+				<case value="0x0040C3" show="Fischer and Porter Co."/> 
+				<case value="0x0040C5" show="Micom Communications Corp."/> 
+				<case value="0x0040C6" show="Fibernet Research, Inc."/> 
+				<case value="0x0040C7" show="Danpex Corporation"/> 
+				<case value="0x0040C8" show="Milan Technology Corp."/> 
+				<case value="0x0040CC" show="Silcom Manufacturing Technology Inc"/> 
+				<case value="0x0040CF" show="Strawberry Tree Inc"/> 
+				<case value="0x0040D0" show="DEC/Compaq"/> 
+				<case value="0x0040D2" show="Pagine Corporation"/> 
+				<case value="0x0040D4" show="Gage Talker Corp."/> 
+				<case value="0x0040D7" show="Studio Gen Inc"/> 
+				<case value="0x0040D8" show="Ocean Office Automation Ltd"/> 
+				<case value="0x0040DC" show="Tritec Electronic Gmbh"/> 
+				<case value="0x0040DF" show="Digalog Systems, Inc."/> 
+				<case value="0x0040E1" show="Marner International Inc"/> 
+				<case value="0x0040E2" show="Mesa Ridge Technologies Inc"/> 
+				<case value="0x0040E3" show="Quin Systems Ltd"/> 
+				<case value="0x0040E5" show="Sybus Corporation"/> 
+				<case value="0x0040E7" show="Arnos Instruments &amp; Computer"/> 
+				<case value="0x0040E9" show="Accord Systems, Inc."/> 
+				<case value="0x0040EA" show="PlainTree Systems Inc"/> 
+				<case value="0x0040ED" show="Network Controls International Inc"/> 
+				<case value="0x0040F0" show="Micro Systems Inc"/> 
+				<case value="0x0040F1" show="Chuo Electronics Co., Ltd."/> 
+				<case value="0x0040F4" show="Cameo Communications, Inc."/> 
+				<case value="0x0040F5" show="OEM Engines"/> 
+				<case value="0x0040F6" show="Katron Computers Inc"/> 
+				<case value="0x0040F9" show="Combinet"/> 
+				<case value="0x0040FA" show="Microboards Inc"/> 
+				<case value="0x0040FB" show="Cascade Communications Corp."/> 
+				<case value="0x0040FD" show="LXE"/> 
+				<case value="0x0040FF" show="Telebit Corporation Personal NetBlazer"/> 
+				<case value="0x004854" show="Digital SemiConductor 21143/2 based 10/100"/> 
+				<case value="0x004F49" show="Realtek"/> 
+				<case value="0x004F4B" show="Pine Technology Ltd."/> 
+				<case value="0x005004" show="3com 3C90X"/> 
+				<case value="0x00500F" show="Cisco"/> 
+				<case value="0x00504D" show="Repotec Group"/> 
+				<case value="0x00504E" show="UMC UM9008 NE2000-compatible ISA Card for PC"/> 
+				<case value="0x005050" show="Cisco"/> 
+				<case value="0x005069" show="PixStream Incorporated"/> 
+				<case value="0x0050BD" show="Cisco"/> 
+				<case value="0x0050E2" show="Cisco"/> 
+				<case value="0x005500" show="Xerox"/> 
+				<case value="0x006008" show="3Com (Etherlink III PCMCIA 3C589X) 3Com PCI form factor 3C905 TX board"/> 
+				<case value="0x006009" show="Cisco Catalyst 5000 Ethernet switch"/> 
+				<case value="0x006025" show="Active Imaging Inc."/> 
+				<case value="0x00602F" show="Cisco"/> 
+				<case value="0x006030" show="VillageTronic used on Amiga"/> 
+				<case value="0x00603E" show="Cisco 100Mbps interface"/> 
+				<case value="0x006047" show="Cisco"/> 
+				<case value="0x00604E" show="Cycle Computer (Sun MotherBoard Replacements)"/> 
+				<case value="0x006052" show="Realtek (RTL 8029 == PCI NE2000)"/> 
+				<case value="0x00605C" show="Cisco"/> 
+				<case value="0x006067" show="Acer Lan"/> 
+				<case value="0x006070" show="Cisco routers (2524 and 4500)"/> 
+				<case value="0x006083" show="Cisco Systems, Inc. 3620/3640 routers"/> 
+				<case value="0x00608C" show="3Com (1990 onwards)"/> 
+				<case value="0x006094" show="AMD PCNET PCI"/> 
+				<case value="0x006097" show="3Com"/> 
+				<case value="0x0060B0" show="Hewlett-Packard"/> 
+				<case value="0x0060F5" show="Phobos FastEthernet for Unix WS"/> 
+				<case value="0x008000" show="Multitech Systems Inc"/> 
+				<case value="0x008001" show="Periphonics Corporation"/> 
+				<case value="0x008004" show="Antlow Computers, Ltd."/> 
+				<case value="0x008005" show="Cactus Computer Inc."/> 
+				<case value="0x008006" show="Compuadd Corporation"/> 
+				<case value="0x008007" show="Dlog NC-Systeme"/> 
+				<case value="0x008009" show="Jupiter Systems (older MX-600 series machines)"/> 
+				<case value="0x00800D" show="Vosswinkel FU"/> 
+				<case value="0x00800F" show="SMC (Standard Microsystem Corp.)"/> 
+				<case value="0x008010" show="Commodore"/> 
+				<case value="0x008012" show="IMS Corp. IMS failure analysis tester"/> 
+				<case value="0x008013" show="Thomas Conrad Corp."/> 
+				<case value="0x008015" show="Seiko Systems Inc"/> 
+				<case value="0x008016" show="Wandel &amp; Goltermann"/> 
+				<case value="0x008017" show="PFU"/> 
+				<case value="0x008019" show="Dayna Communications Etherprint product"/> 
+				<case value="0x00801A" show="Bell Atlantic"/> 
+				<case value="0x00801B" show="Kodiak Technology"/> 
+				<case value="0x00801C" show="Cisco"/> 
+				<case value="0x008021" show="Newbridge Networks Corporation"/> 
+				<case value="0x008023" show="Integrated Business Networks"/> 
+				<case value="0x008024" show="Kalpana"/> 
+				<case value="0x008026" show="Network Products Corporation"/> 
+				<case value="0x008029" show="Microdyne Corporation"/> 
+				<case value="0x00802A" show="Test Systems &amp; Simulations Inc"/> 
+				<case value="0x00802B" show="IMAC ???"/> 
+				<case value="0x00802C" show="The Sage Group PLC"/> 
+				<case value="0x00802D" show="Xylogics Inc. Annex terminal servers"/> 
+				<case value="0x00802E" show="Plexcom, Inc."/> 
+				<case value="0x008033" show="Formation (?)"/> 
+				<case value="0x008034" show="SMT-Goupil"/> 
+				<case value="0x008035" show="Technology Works"/> 
+				<case value="0x008037" show="Ericsson Business Comm."/> 
+				<case value="0x008038" show="Data Research &amp; Applications"/> 
+				<case value="0x00803B" show="APT Communications, Inc."/> 
+				<case value="0x00803D" show="Surigiken Co Ltd"/> 
+				<case value="0x00803E" show="Synernetics"/> 
+				<case value="0x00803F" show="Hyundai Electronics"/> 
+				<case value="0x008042" show="Force Computers"/> 
+				<case value="0x008043" show="Networld Inc"/> 
+				<case value="0x008045" show="Matsushita Electric Ind Co"/> 
+				<case value="0x008046" show="University of Toronto"/> 
+				<case value="0x008048" show="Compex, used by Commodore and DEC at least"/> 
+				<case value="0x008049" show="Nissin Electric Co Ltd"/> 
+				<case value="0x00804C" show="Contec Co., Ltd."/> 
+				<case value="0x00804D" show="Cyclone Microsystems, Inc."/> 
+				<case value="0x008051" show="ADC Fibermux"/> 
+				<case value="0x008052" show="Network Professor"/> 
+				<case value="0x008057" show="Adsoft Ltd"/> 
+				<case value="0x00805A" show="Tulip Computers International BV"/> 
+				<case value="0x00805B" show="Condor Systems, Inc."/> 
+				<case value="0x00805C" show="Agilis(?)"/> 
+				<case value="0x00805F" show="Compaq Computer Corporation"/> 
+				<case value="0x008060" show="Network Interface Corporation"/> 
+				<case value="0x008062" show="Interface Co."/> 
+				<case value="0x008063" show="Richard Hirschmann Gmbh &amp; Co"/> 
+				<case value="0x008064" show="Wyse Technology / Link Technologies"/> 
+				<case value="0x008067" show="Square D Company"/> 
+				<case value="0x008069" show="Computone Systems"/> 
+				<case value="0x00806A" show="ERI (Empac Research Inc.)"/> 
+				<case value="0x00806B" show="Schmid Telecommunication"/> 
+				<case value="0x00806C" show="Cegelec Projects Ltd"/> 
+				<case value="0x00806D" show="Century Systems Corp."/> 
+				<case value="0x00806E" show="Nippon Steel Corporation"/> 
+				<case value="0x00806F" show="Onelan Ltd"/> 
+				<case value="0x008071" show="SAI Technology"/> 
+				<case value="0x008072" show="Microplex Systems Ltd"/> 
+				<case value="0x008074" show="Fisher Controls"/> 
+				<case value="0x008079" show="Microbus Designs Ltd"/> 
+				<case value="0x00807B" show="Artel Communications Corp."/> 
+				<case value="0x00807C" show="FiberCom"/> 
+				<case value="0x00807D" show="Equinox Systems Inc"/> 
+				<case value="0x008082" show="PEP Modular Computers Gmbh"/> 
+				<case value="0x008086" show="Computer Generation Inc."/> 
+				<case value="0x008087" show="Okidata"/> 
+				<case value="0x00808A" show="Summit (?)"/> 
+				<case value="0x00808B" show="Dacoll Limited"/> 
+				<case value="0x00808C" show="Frontier Software Dev. (Netscout Systems)"/> 
+				<case value="0x00808D" show="Westcove Technology BV"/> 
+				<case value="0x00808E" show="Radstone Technology"/> 
+				<case value="0x008090" show="Microtek International Inc"/> 
+				<case value="0x008092" show="Japan Computer Industry, Inc."/> 
+				<case value="0x008093" show="Xyron Corporation"/> 
+				<case value="0x008094" show="Sattcontrol AB"/> 
+				<case value="0x008096" show="HDS (Human Designed Systems) X terminals"/> 
+				<case value="0x008098" show="TDK Corporation"/> 
+				<case value="0x00809A" show="Novus Networks Ltd"/> 
+				<case value="0x00809B" show="Justsystem Corporation"/> 
+				<case value="0x00809D" show="Datacraft Manufactur'g Pty Ltd"/> 
+				<case value="0x00809F" show="Alcatel Business Systems"/> 
+				<case value="0x0080A1" show="Microtest"/> 
+				<case value="0x0080A3" show="Lantronix (see also 0800A3)"/> 
+				<case value="0x0080A6" show="Republic Technology Inc"/> 
+				<case value="0x0080A7" show="Measurex Corp"/> 
+				<case value="0x0080AD" show="CNet Technology Used by Telebit (among others)"/> 
+				<case value="0x0080AE" show="Hughes Network Systems"/> 
+				<case value="0x0080AF" show="Allumer Co., Ltd."/> 
+				<case value="0x0080B1" show="Softcom A/S"/> 
+				<case value="0x0080B2" show="NET (Network Equipment Technologies)"/> 
+				<case value="0x0080B6" show="Themis corporation"/> 
+				<case value="0x0080BA" show="Specialix (Asia) Pte Ltd"/> 
+				<case value="0x0080C0" show="Penril Datability Networks"/> 
+				<case value="0x0080C2" show="IEEE 802.1 Committee"/> 
+				<case value="0x0080C6" show="Soho"/> 
+				<case value="0x0080C7" show="Xircom, Inc."/> 
+				<case value="0x0080C8" show="D-Link (also Solectek Pocket Adapters, and LinkSys PCMCIA)"/> 
+				<case value="0x0080C9" show="Alberta Microelectronic Centre"/> 
+				<case value="0x0080CE" show="Broadcast Television Systems"/> 
+				<case value="0x0080D0" show="Computer Products International"/> 
+				<case value="0x0080D3" show="Shiva Appletalk-Ethernet interface"/> 
+				<case value="0x0080D4" show="Chase Limited"/> 
+				<case value="0x0080D6" show="Apple Mac Portable(?)"/> 
+				<case value="0x0080D7" show="Fantum Electronics"/> 
+				<case value="0x0080D8" show="Network Peripherals"/> 
+				<case value="0x0080DA" show="Bruel &amp; Kjaer"/> 
+				<case value="0x0080E0" show="XTP Systems Inc"/> 
+				<case value="0x0080E3" show="Coral (?)"/> 
+				<case value="0x0080E7" show="Lynwood Scientific Dev Ltd"/> 
+				<case value="0x0080EA" show="The Fiber Company"/> 
+				<case value="0x0080F0" show="Kyushu Matsushita Electric Co"/> 
+				<case value="0x0080F1" show="Opus"/> 
+				<case value="0x0080F3" show="Sun Electronics Corp"/> 
+				<case value="0x0080F4" show="Telemechanique Electrique"/> 
+				<case value="0x0080F5" show="Quantel Ltd"/> 
+				<case value="0x0080F7" show="Zenith Communications Products"/> 
+				<case value="0x0080FB" show="BVM Limited"/> 
+				<case value="0x0080FE" show="Azure Technologies Inc"/> 
+				<case value="0x009004" show="3Com"/> 
+				<case value="0x009027" show="Intel"/> 
+				<case value="0x0090B1" show="Cisco"/> 
+				<case value="0x00902B" show="Cisco Ethernet Switches and Light Streams"/> 
+				<case value="0x009086" show="Cisco"/> 
+				<case value="0x009092" show="Cisco"/> 
+				<case value="0x0090AB" show="Cisco"/> 
+				<case value="0x0090B1" show="Cisco"/> 
+				<case value="0x0090F2" show="Cisco Ethernet Switches and Light Streams"/> 
+				<case value="0x00A000" show="Bay Networks Ethernet switch"/> 
+				<case value="0x00A00C" show="Kingmax Technology Inc. PCMCIA card"/> 
+				<case value="0x00A024" show="3com"/> 
+				<case value="0x00A03E" show="ATM Forum"/> 
+				<case value="0x00A040" show="Apple (PCI Mac)"/> 
+				<case value="0x00A04B" show="Sonic Systems Inc. EtherFE 10/100 PCI for Mac or PC"/> 
+				<case value="0x00A073" show="Com21"/> 
+				<case value="0x00A083" show="Intel"/> 
+				<case value="0x00A092" show="Intermate International [LAN printer interfaces]"/> 
+				<case value="0x00A0AE" show="Network Peripherals, Inc."/> 
+				<case value="0x00A0C8" show="Adtran, Inc."/> 
+				<case value="0x00A0C9" show="Intel (PRO100B and PRO100+) [used on Cisco PIX firewall among others]"/> 
+				<case value="0x00A0CC" show="Lite-On (used by MacSense in Adapter for Mac, also seen in PCs)"/> 
+				<case value="0x00A0D1" show="National Semiconductor [COMPAQ Docking Station]"/> 
+				<case value="0x00A0D2" show="Allied Telesyn"/> 
+				<case value="0x00AA00" show="Intel"/> 
+				<case value="0x00B0d0" show="Computer Products International"/> 
+				<case value="0x00C000" show="Lanoptics Ltd"/> 
+				<case value="0x00C001" show="Diatek Patient Managment"/> 
+				<case value="0x00C002" show="Sercomm Corporation"/> 
+				<case value="0x00C003" show="Globalnet Communications"/> 
+				<case value="0x00C004" show="Japan Business Computer Co.Ltd"/> 
+				<case value="0x00C005" show="Livingston Enterprises Inc Portmaster (OEMed by Cayman)"/> 
+				<case value="0x00C006" show="Nippon Avionics Co Ltd"/> 
+				<case value="0x00C007" show="Pinnacle Data Systems Inc"/> 
+				<case value="0x00C008" show="Seco SRL"/> 
+				<case value="0x00C009" show="KT Technology (s) Pte Inc"/> 
+				<case value="0x00C00A" show="Micro Craft"/> 
+				<case value="0x00C00B" show="Norcontrol A.S."/> 
+				<case value="0x00C00C" show="ARK PC Technology, Inc."/> 
+				<case value="0x00C00D" show="Advanced Logic Research Inc"/> 
+				<case value="0x00C00E" show="Psitech Inc"/> 
+				<case value="0x00C00F" show="QNX Software Systems Ltd. [also Quantum Software Systems Ltd]"/> 
+				<case value="0x00C011" show="Interactive Computing Devices"/> 
+				<case value="0x00C012" show="Netspan Corp"/> 
+				<case value="0x00C013" show="Netrix"/> 
+				<case value="0x00C014" show="Telematics Calabasas"/> 
+				<case value="0x00C015" show="New Media Corp"/> 
+				<case value="0x00C016" show="Electronic Theatre Controls"/> 
+				<case value="0x00C017" show="Fluke"/> 
+				<case value="0x00C018" show="Lanart Corp"/> 
+				<case value="0x00C01A" show="Corometrics Medical Systems"/> 
+				<case value="0x00C01B" show="Socket Communications"/> 
+				<case value="0x00C01C" show="Interlink Communications Ltd."/> 
+				<case value="0x00C01D" show="Grand Junction Networks, Inc. (Cisco Catalyst also reported)"/> 
+				<case value="0x00C01F" show="S.E.R.C.E.L."/> 
+				<case value="0x00C020" show="Arco Electronic, Control Ltd."/> 
+				<case value="0x00C021" show="Netexpress"/> 
+				<case value="0x00C023" show="Tutankhamon Electronics"/> 
+				<case value="0x00C024" show="Eden Sistemas De Computacao SA"/> 
+				<case value="0x00C025" show="Dataproducts Corporation"/> 
+				<case value="0x00C027" show="Cipher Systems, Inc."/> 
+				<case value="0x00C028" show="Jasco Corporation"/> 
+				<case value="0x00C029" show="Kabel Rheydt AG"/> 
+				<case value="0x00C02A" show="Ohkura Electric Co"/> 
+				<case value="0x00C02B" show="Gerloff Gesellschaft Fur"/> 
+				<case value="0x00C02C" show="Centrum Communications, Inc."/> 
+				<case value="0x00C02D" show="Fuji Photo Film Co., Ltd."/> 
+				<case value="0x00C02E" show="Netwiz"/> 
+				<case value="0x00C02F" show="Okuma Corp"/> 
+				<case value="0x00C030" show="Integrated Engineering B. V."/> 
+				<case value="0x00C031" show="Design Research Systems, Inc."/> 
+				<case value="0x00C032" show="I-Cubed Limited"/> 
+				<case value="0x00C033" show="Telebit Corporation"/> 
+				<case value="0x00C034" show="Dale Computer Corporation"/> 
+				<case value="0x00C035" show="Quintar Company"/> 
+				<case value="0x00C036" show="Raytech Electronic Corp"/> 
+				<case value="0x00C039" show="Silicon Systems"/> 
+				<case value="0x00C03B" show="Multiaccess Computing Corp"/> 
+				<case value="0x00C03C" show="Tower Tech S.R.L."/> 
+				<case value="0x00C03D" show="Wiesemann &amp; Theis Gmbh"/> 
+				<case value="0x00C03E" show="Fa. Gebr. Heller Gmbh"/> 
+				<case value="0x00C03F" show="Stores Automated Systems Inc"/> 
+				<case value="0x00C040" show="ECCI"/> 
+				<case value="0x00C041" show="Digital Transmission Systems"/> 
+				<case value="0x00C042" show="Datalux Corp."/> 
+				<case value="0x00C043" show="Stratacom"/> 
+				<case value="0x00C044" show="Emcom Corporation"/> 
+				<case value="0x00C045" show="Isolation Systems Inc"/> 
+				<case value="0x00C046" show="Kemitron Ltd"/> 
+				<case value="0x00C047" show="Unimicro Systems Inc"/> 
+				<case value="0x00C048" show="Bay Technical Associates"/> 
+				<case value="0x00C049" show="US Robotics Total Control (tm) NETServer Card"/> 
+				<case value="0x00C04D" show="Mitec Ltd"/> 
+				<case value="0x00C04E" show="Comtrol Corporation"/> 
+				<case value="0x00C04F" show="Dell"/> 
+				<case value="0x00C050" show="Toyo Denki Seizo K.K."/> 
+				<case value="0x00C051" show="Advanced Integration Research"/> 
+				<case value="0x00C055" show="Modular Computing Technologies"/> 
+				<case value="0x00C056" show="Somelec"/> 
+				<case value="0x00C057" show="Myco Electronics"/> 
+				<case value="0x00C058" show="Dataexpert Corp"/> 
+				<case value="0x00C059" show="Nippondenso Corp"/> 
+				<case value="0x00C05B" show="Networks Northwest Inc"/> 
+				<case value="0x00C05C" show="Elonex PLC"/> 
+				<case value="0x00C05D" show="L&amp;N Technologies"/> 
+				<case value="0x00C05E" show="Vari-Lite Inc"/> 
+				<case value="0x00C060" show="ID Scandinavia A/S"/> 
+				<case value="0x00C061" show="Solectek Corporation"/> 
+				<case value="0x00C063" show="Morning Star Technologies Inc May be miswrite of 0003C6"/> 
+				<case value="0x00C064" show="General Datacomm Ind Inc"/> 
+				<case value="0x00C065" show="Scope Communications Inc"/> 
+				<case value="0x00C066" show="Docupoint, Inc."/> 
+				<case value="0x00C067" show="United Barcode Industries"/> 
+				<case value="0x00C068" show="Philp Drake Electronics Ltd"/> 
+				<case value="0x00C069" show="California Microwave Inc"/> 
+				<case value="0x00C06A" show="Zahner-Elektrik Gmbh &amp; Co KG"/> 
+				<case value="0x00C06B" show="OSI Plus Corporation"/> 
+				<case value="0x00C06C" show="SVEC Computer Corp"/> 
+				<case value="0x00C06D" show="Boca Research, Inc."/> 
+				<case value="0x00C06F" show="Komatsu Ltd"/> 
+				<case value="0x00C070" show="Sectra Secure-Transmission AB"/> 
+				<case value="0x00C071" show="Areanex Communications, Inc."/> 
+				<case value="0x00C072" show="KNX Ltd"/> 
+				<case value="0x00C073" show="Xedia Corporation"/> 
+				<case value="0x00C074" show="Toyoda Automatic Loom Works Ltd"/> 
+				<case value="0x00C075" show="Xante Corporation "/> 
+				<case value="0x00C076" show="I-Data International A-S"/> 
+				<case value="0x00C077" show="Daewoo Telecom Ltd"/> 
+				<case value="0x00C078" show="Computer Systems Engineering"/> 
+				<case value="0x00C079" show="Fonsys Co Ltd"/> 
+				<case value="0x00C07A" show="Priva BV"/> 
+				<case value="0x00C07B" show="Ascend Communications ISDN bridges/routers"/> 
+				<case value="0x00C07D" show="RISC Developments Ltd"/> 
+				<case value="0x00C07F" show="Nupon Computing Corp"/> 
+				<case value="0x00C080" show="Netstar Inc"/> 
+				<case value="0x00C081" show="Metrodata Ltd"/> 
+				<case value="0x00C082" show="Moore Products Co"/> 
+				<case value="0x00C084" show="Data Link Corp Ltd"/> 
+				<case value="0x00C085" show="Canon"/> 
+				<case value="0x00C086" show="The Lynk Corporation"/> 
+				<case value="0x00C087" show="UUNET Technologies Inc"/> 
+				<case value="0x00C089" show="Telindus Distribution"/> 
+				<case value="0x00C08A" show="Lauterbach Datentechnik Gmbh"/> 
+				<case value="0x00C08B" show="RISQ Modular Systems Inc"/> 
+				<case value="0x00C08C" show="Performance Technologies Inc"/> 
+				<case value="0x00C08D" show="Tronix Product Development"/> 
+				<case value="0x00C08E" show="Network Information Technology"/> 
+				<case value="0x00C08F" show="Matsushita Electric Works, Ltd."/> 
+				<case value="0x00C090" show="Praim S.R.L."/> 
+				<case value="0x00C091" show="Jabil Circuit, Inc."/> 
+				<case value="0x00C092" show="Mennen Medical Inc"/> 
+				<case value="0x00C093" show="Alta Research Corp."/> 
+				<case value="0x00C095" show="Znyx (Network Appliance); Jupiter Systems (MX-700); Apple (G3) all seen"/> 
+				<case value="0x00C096" show="Tamura Corporation"/> 
+				<case value="0x00C097" show="Archipel SA"/> 
+				<case value="0x00C098" show="Chuntex Electronic Co., Ltd."/> 
+				<case value="0x00C09B" show="Reliance Comm/Tec, R-Tec Systems Inc"/> 
+				<case value="0x00C09C" show="TOA Electronic Ltd"/> 
+				<case value="0x00C09D" show="Distributed Systems Int'l, Inc."/> 
+				<case value="0x00C09F" show="Quanta Computer Inc"/> 
+				<case value="0x00C0A0" show="Advance Micro Research, Inc."/> 
+				<case value="0x00C0A1" show="Tokyo Denshi Sekei Co"/> 
+				<case value="0x00C0A2" show="Intermedium A/S"/> 
+				<case value="0x00C0A3" show="Dual Enterprises Corporation"/> 
+				<case value="0x00C0A4" show="Unigraf OY"/> 
+				<case value="0x00C0A7" show="SEEL Ltd"/> 
+				<case value="0x00C0A8" show="GVC Corporation"/> 
+				<case value="0x00C0A9" show="Barron McCann Ltd"/> 
+				<case value="0x00C0AA" show="Silicon Valley Computer"/> 
+				<case value="0x00C0AB" show="Jupiter Technology Inc"/> 
+				<case value="0x00C0AC" show="Gambit Computer Communications"/> 
+				<case value="0x00C0AD" show="Computer Communication Systems"/> 
+				<case value="0x00C0AE" show="Towercom Co Inc DBA PC House"/> 
+				<case value="0x00C0B0" show="GCC Technologies,Inc."/> 
+				<case value="0x00C0B2" show="Norand Corporation"/> 
+				<case value="0x00C0B3" show="Comstat Datacomm Corporation"/> 
+				<case value="0x00C0B4" show="Myson Technology Inc"/> 
+				<case value="0x00C0B5" show="Corporate Network Systems Inc"/> 
+				<case value="0x00C0B6" show="Meridian Data Inc"/> 
+				<case value="0x00C0B7" show="American Power Conversion Corp"/> 
+				<case value="0x00C0B8" show="Fraser's Hill Ltd."/> 
+				<case value="0x00C0B9" show="Funk Software Inc"/> 
+				<case value="0x00C0BA" show="Netvantage"/> 
+				<case value="0x00C0BB" show="Forval Creative Inc"/> 
+				<case value="0x00C0BD" show="Inex Technologies, Inc."/> 
+				<case value="0x00C0BE" show="Alcatel - Sel"/> 
+				<case value="0x00C0BF" show="Technology Concepts Ltd"/> 
+				<case value="0x00C0C0" show="Shore Microsystems Inc"/> 
+				<case value="0x00C0C1" show="Quad/Graphics Inc"/> 
+				<case value="0x00C0C2" show="Infinite Networks Ltd."/> 
+				<case value="0x00C0C3" show="Acuson Computed Sonography"/> 
+				<case value="0x00C0C4" show="Computer Operational"/> 
+				<case value="0x00C0C5" show="SID Informatica"/> 
+				<case value="0x00C0C6" show="Personal Media Corp"/> 
+				<case value="0x00C0C8" show="Micro Byte Pty Ltd"/> 
+				<case value="0x00C0C9" show="Bailey Controls Co"/> 
+				<case value="0x00C0CA" show="Alfa, Inc."/> 
+				<case value="0x00C0CB" show="Control Technology Corporation"/> 
+				<case value="0x00C0CD" show="Comelta S.A."/> 
+				<case value="0x00C0C0" show="Ratoc System Inc"/> 
+				<case value="0x00C0D1" show="Comtree Technology Corporation (EFA also reported)"/> 
+				<case value="0x00C0D2" show="Syntellect Inc"/> 
+				<case value="0x00C0D4" show="Axon Networks Inc"/> 
+				<case value="0x00C0D5" show="Quancom Electronic Gmbh"/> 
+				<case value="0x00C0D6" show="J1 Systems, Inc."/> 
+				<case value="0x00C0D9" show="Quinte Network Confidentiality Equipment Inc"/> 
+				<case value="0x00C0DB" show="IPC Corporation (Pte) Ltd"/> 
+				<case value="0x00C0DC" show="EOS Technologies, Inc."/> 
+				<case value="0x00C0DE" show="ZComm Inc"/> 
+				<case value="0x00C0DF" show="Kye Systems Corp"/> 
+				<case value="0x00C0E1" show="Sonic Solutions"/> 
+				<case value="0x00C0E2" show="Calcomp, Inc."/> 
+				<case value="0x00C0E3" show="Ositech Communications Inc"/> 
+				<case value="0x00C0E4" show="Landis &amp; Gyr Powers Inc"/> 
+				<case value="0x00C0E5" show="GESPAC S.A."/> 
+				<case value="0x00C0E6" show="TXPORT"/> 
+				<case value="0x00C0E7" show="Fiberdata AB"/> 
+				<case value="0x00C0E8" show="Plexcom Inc"/> 
+				<case value="0x00C0E9" show="Oak Solutions Ltd"/> 
+				<case value="0x00C0EA" show="Array Technology Ltd."/> 
+				<case value="0x00C0EC" show="Dauphin Technology"/> 
+				<case value="0x00C0ED" show="US Army Electronic Proving Ground"/> 
+				<case value="0x00C0EE" show="Kyocera Corporation"/> 
+				<case value="0x00C0EF" show="Abit Corporation"/> 
+				<case value="0x00C0F0" show="Kingston Technology Corporation"/> 
+				<case value="0x00C0F1" show="Shinko Electric Co Ltd"/> 
+				<case value="0x00C0F2" show="Transition Engineering Inc"/> 
+				<case value="0x00C0F3" show="Network Communications Corp"/> 
+				<case value="0x00C0F4" show="Interlink System Co., Ltd."/> 
+				<case value="0x00C0F5" show="Metacomp Inc"/> 
+				<case value="0x00C0F6" show="Celan Technology Inc."/> 
+				<case value="0x00C0F7" show="Engage Communication, Inc."/> 
+				<case value="0x00C0F8" show="About Computing Inc."/> 
+				<case value="0x00C0FA" show="Canary Communications Inc"/> 
+				<case value="0x00C0FB" show="Advanced Technology Labs"/> 
+				<case value="0x00C0FC" show="ASDG Incorporated"/> 
+				<case value="0x00C0FD" show="Prosum"/> 
+				<case value="0x00C0FF" show="Box Hill Systems Corporation"/> 
+				<case value="0x00DD00" show="Ungermann-Bass IBM RT"/> 
+				<case value="0x00DD01" show="Ungermann-Bass"/> 
+				<case value="0x00DD08" show="Ungermann-Bass"/> 
+				<case value="0x00E011" show="Uniden Corporation"/> 
+				<case value="0x00E014" show="Cisco"/> 
+				<case value="0x00E016" show="rapid-city (now a part of bay networks)"/> 
+				<case value="0x00E018" show="Asustek Intel 82558-based Integrated Fast Ethernet for WIM"/> 
+				<case value="0x00E01E" show="Cisco"/> 
+				<case value="0x00E029" show="SMC EtherPower II 10/100"/> 
+				<case value="0x00E02C" show="AST - built into 5166M PC motherboard (win95 id's as Intel)"/> 
+				<case value="0x00E034" show="Cisco"/> 
+				<case value="0x00E039" show="Paradyne 7112 T1 DSU/CSU"/> 
+				<case value="0x00E04F" show="Cisco"/> 
+				<case value="0x00E07D" show="Encore (Netronix?) 10/100 PCI Fast ethernet card"/> 
+				<case value="0x00E081" show="Tyan Computer Corp. Onboard Intel 82558 10/100"/> 
+				<case value="0x00E083" show="Jato Technologies, Inc."/> 
+				<case value="0x00E08F" show="Cisco Systems Catalyst 2900 series"/> 
+				<case value="0x00E098" show="Linksys PCMCIA card"/> 
+				<case value="0x00E0A3" show="Cisco Systems Catalyst 1924"/> 
+				<case value="0x00E0B0" show="Cisco Systems Various systems reported"/> 
+				<case value="0x00E0B8" show="AMD PCNet in a Gateway 2000"/> 
+				<case value="0x00E0C5" show="BCOM Electronics Inc."/> 
+				<case value="0x00E0ED" show="New Link"/> 
+				<case value="0x00E0F7" show="Cisco"/> 
+				<case value="0x00E0F9" show="Cisco"/> 
+				<case value="0x00E0FE" show="Cisco"/> 
+				<case value="0x020406" show="BBN (Bolt Beranek and Newman) internal usage (not registered)"/> 
+				<case value="0x020701" show="Racal-InterLan OR Racal-Datacom (ex-Interlan) DEC (UNIBUS or QBUS), Apollo, Cisco OR MICOM"/> 
+				<case value="0x026060" show="3Com"/> 
+				<case value="0x026086" show="Satelcom MegaPac (UK)"/> 
+				<case value="0x02608C" show="3Com IBM PC; Imagen; Valid; Cisco; Macintosh"/> 
+				<case value="0x02A0C9" show="Intel"/> 
+				<case value="0x02AA3C" show="Olivetti"/> 
+				<case value="0x02CF1F" show="CMC Masscomp; Silicon Graphics; Prime EXL"/> 
+				<case value="0x02E03B" show="Prominet Corporation Gigabit Ethernet Switch"/> 
+				<case value="0x02E6D3" show="BTI (Bus-Tech, Inc.) IBM Mainframes"/> 
+				<case value="0x048845" show="Bay Networks token ring line card"/> 
+				<case value="0x080001" show="Computer Vision"/> 
+				<case value="0x080002" show="3Com (formerly Bridge)"/> 
+				<case value="0x080003" show="ACC (Advanced Computer Comm.)"/> 
+				<case value="0x080005" show="Symbolics Symbolics LISP machines"/> 
+				<case value="0x080006" show="Siemens Nixdorf PC clone"/> 
+				<case value="0x080007" show="Apple"/> 
+				<case value="0x080008" show="BBN (Bolt Beranek and Neuman)"/> 
+				<case value="0x080009" show="Hewlett-Packard"/> 
+				<case value="0x08000A" show="Nestar Systems"/> 
+				<case value="0x08000B" show="Unisys also Ascom-Timeplex (former Unisys subsidiary)"/> 
+				<case value="0x08000D" show="ICL (International Computers, Ltd.)"/> 
+				<case value="0x08000E" show="NCR/AT&amp;T"/> 
+				<case value="0x08000F" show="SMC (Standard Microsystems Corp.)"/> 
+				<case value="0x080010" show="AT&amp;T [misrepresentation of 800010?]"/> 
+				<case value="0x080011" show="Tektronix, Inc."/> 
+				<case value="0x080014" show="Excelan BBN Butterfly, Masscomp, Silicon Graphics"/> 
+				<case value="0x080017" show="NSC (National Semiconductor Corp.) (used to have Network System Corp., wrong NSC)"/> 
+				<case value="0x08001A" show="Data General (Tiara ?)"/> 
+				<case value="0x08001B" show="Data General"/> 
+				<case value="0x08001E" show="Apollo"/> 
+				<case value="0x08001F" show="Sharp"/> 
+				<case value="0x080020" show="Sun Sun machines"/> 
+				<case value="0x080022" show="NBI (Nothing But Initials)"/> 
+				<case value="0x080023" show="Matsushita Denso"/> 
+				<case value="0x080025" show="CDC"/> 
+				<case value="0x080026" show="Norsk Data (Nord)"/> 
+				<case value="0x080027" show="PCS Computer Systems GmbH"/> 
+				<case value="0x080028" show="TI Explorer"/> 
+				<case value="0x08002B" show="DEC"/> 
+				<case value="0x08002E" show="Metaphor"/> 
+				<case value="0x08002F" show="Prime Computer Prime 50-Series LHC300"/> 
+				<case value="0x080030" show="CERN"/> 
+				<case value="0x080032" show="Tigan"/> 
+				<case value="0x080036" show="Intergraph CAE stations"/> 
+				<case value="0x080037" show="Fujitsu-Xerox"/> 
+				<case value="0x080038" show="Bull"/> 
+				<case value="0x080039" show="Spider Systems"/> 
+				<case value="0x08003B" show="Torus Systems"/> 
+				<case value="0x08003D" show="cadnetix"/> 
+				<case value="0x08003E" show="Motorola VME bus processor modules"/> 
+				<case value="0x080041" show="DCA (Digital Comm. Assoc.)"/> 
+				<case value="0x080044" show="DSI (DAVID Systems, Inc.)"/> 
+				<case value="0x080045" show="Xylogics? (maybe Xylogics, but they claim not to know this number)"/> 
+				<case value="0x080046" show="Sony"/> 
+				<case value="0x080047" show="Sequent"/> 
+				<case value="0x080048" show="Eurotherm Gauging Systems"/> 
+				<case value="0x080049" show="Univation"/> 
+				<case value="0x08004C" show="Encore"/> 
+				<case value="0x08004E" show="BICC [3com bought BICC, so may appear on 3com equipment as well]"/> 
+				<case value="0x080051" show="Experdata"/> 
+				<case value="0x080056" show="Stanford University"/> 
+				<case value="0x080057" show="Evans &amp; Sutherland (?)"/> 
+				<case value="0x080058" show="??? DECsystem-20"/> 
+				<case value="0x08005A" show="IBM"/> 
+				<case value="0x080066" show="AGFA printers, phototypesetters etc."/> 
+				<case value="0x080067" show="Comdesign"/> 
+				<case value="0x080068" show="Ridge"/> 
+				<case value="0x080069" show="Silicon Graphics"/> 
+				<case value="0x08006A" show="ATTst (?)"/> 
+				<case value="0x08006E" show="Excelan OR Concurrent Masscomp"/> 
+				<case value="0x080070" show="Mitsubishi"/> 
+				<case value="0x080074" show="Casio"/> 
+				<case value="0x080075" show="DDE (Danish Data Elektronik A/S)"/> 
+				<case value="0x080077" show="TSL (now Retix)"/> 
+				<case value="0x080079" show="Silicon Graphics"/> 
+				<case value="0x08007C" show="Vitalink TransLAN III"/> 
+				<case value="0x080080" show="XIOS"/> 
+				<case value="0x080081" show="Crosfield Electronics"/> 
+				<case value="0x080083" show="Seiko Denshi"/> 
+				<case value="0x080086" show="Imagen/QMS"/> 
+				<case value="0x080087" show="Xyplex terminal servers"/> 
+				<case value="0x080088" show="McDATA Corporation"/> 
+				<case value="0x080089" show="Kinetics AppleTalk-Ethernet interface"/> 
+				<case value="0x08008B" show="Pyramid"/> 
+				<case value="0x08008D" show="XyVision XyVision machines"/> 
+				<case value="0x08008E" show="Tandem / Solbourne Computer ?"/> 
+				<case value="0x08008F" show="Chipcom Corp."/> 
+				<case value="0x080090" show="Retix Inc Bridges"/> 
+				<case value="0x09006A" show="AT&amp;T"/> 
+				<case value="0x10005A" show="IBM"/> 
+				<case value="0x100090" show="Hewlett-Packard Advisor products"/> 
+				<case value="0x1000D4" show="DEC"/> 
+				<case value="0x1000E0" show="Apple A/UX (modified addresses for licensing)"/> 
+				<case value="0x2E2E2E" show="LAA (Locally Administered Address) for Meditech Systems"/> 
+				<case value="0x3C0000" show="3Com dual function (V.34 modem + Ethernet) card"/> 
+				<case value="0x400003" show="Net Ware (?)"/> 
+				<case value="0x444553" show="Microsoft (Windows95 internal adapters)"/> 
+				<case value="0x444649" show="DFI (Diamond Flower Industries)"/> 
+				<case value="0x475443" show="GTC (Not registered!) (This number is a multicast!)"/> 
+				<case value="0x484453" show="HDS ???"/> 
+				<case value="0x484C00" show="Network Solutions"/> 
+				<case value="0x4854E8" show="winbond?"/> 
+				<case value="0x4C424C" show="Information Modes software modified addresses (not registered?)"/> 
+				<case value="0x525400" show="Realtek (UpTech? also reported)"/> 
+				<case value="0x52544C" show="Novell 2000"/> 
+				<case value="0x5254AB" show="REALTEK (a Realtek 8029 based PCI Card)"/> 
+				<case value="0x565857" show="Aculab plc audio bridges"/> 
+				<case value="0x800010" show="AT&amp;T [misrepresented as 080010? One source claims this is correct]"/> 
+				<case value="0x80AD00" show="CNET Technology Inc. (Probably an error, see instead 0080AD)"/> 
+				<case value="0xAA0000" show="DEC obsolete"/> 
+				<case value="0xAA0001" show="DEC obsolete"/> 
+				<case value="0xAA0002" show="DEC obsolete"/> 
+				<case value="0xAA0003" show="DEC Global physical address for some DEC machines"/> 
+				<case value="0xAA0004" show="DEC Local logical address for systems running DECNET"/> 
+				<case value="0xC00000" show="Western Digital (may be reversed 00 00 C0?)"/> 
+				<case value="0xCF0001" show="Data Comm for Business"/> 
+				<case value="0xEC1000" show="Enance Source Co., Ltd. PC clones(?)"/> 
+				<case value="0xE20C0F" show="Kingston Technologies"/>
+				<default show="code not available"/>
+			</switch>
+		</showmap>
+	</showtemplate>
+
+
+
+	<!-- Generic template for visualizing TR, FDDI MAC addresses -->
+	<showtemplate name="MACaddressTR" showtype="hexnox" showgrp="3" showsep="-">
+		<showdtl>
+			<protofield showdata="showvalue"/>
+			<if expr="(buf2int(this[0:1]) bitwand 0b10000000) == 0b10000000">
+				<!-- It extracts the first byte of the MAC address, then it matches the result against -->
+				<!-- the 'xxxxxxx1' pattern -->
+				<!-- Extract the first byte of the MAC address -->
+				<!-- If it is a multicast or broadcast address, the first bit will be '1' -->
+				
+				<if-true>
+					<if expr="this == '\xFF\xFF\xFF\xFF\xFF\xFF'">>
+						<if-true>
+							<text value=" (Broadcast address)"/>
+						</if-true>
+
+						<if-false>
+							<text value=" (Multicast address)"/>
+						</if-false>		
+					</if>
+				</if-true>
+
+				<if-false>
+					<text value=" (Unicast address, vendor "/>
+					<protofield showdata="showmap"/>
+					<text value=")"/>
+				</if-false>
+			</if>
+		</showdtl>
+	</showtemplate>
+
+</visualization>

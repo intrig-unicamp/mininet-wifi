@@ -1,0 +1,265 @@
+How to run packet filters on Cavium
+===================================
+
+
+1) First you should have the Cavium Network SDK correctly installed on your
+system, including the Linux kernel for the Octeon. For these steps please
+refer to the Cavium documentation.
+We  assume that the Octeon SDK is in your home folder (which is
+desirable since you will modify a lot of files during several building
+phases), in the following directory:
+
+	~/OCTEON-SDK/
+
+Remember to set the needed environment variables in your .bashrc with a
+command like the following (or issue it manually at the beginning of
+your session):
+
+	cd ~/OCTEON-SDK/; source env-setup OCTEON_CN58XX_PASS2; cd ..
+
+Obviously, the 'OCTEON_CN58XX_PASS2' depends on the specific Octeon 
+model you have.
+
+Now, launch the Octeon simulator to verify that everything is ok:
+
+    host$ oct-sim
+
+You should see the command line options of this tool printed on screen;
+if not, something in the Octeon SDK install went wrong.
+
+
+
+
+2) Compile the whole NetBee sources, samples and tools, following the
+instructions provided with the NetBee library.
+Sources must be compiled with the "ENABLE_OCTEON_BACKEND" option turned ON.
+This can be done in either of those two ways:
+
+  a) move to the '[netbee_root]/src' folder
+     launch 'ccmake .'
+     turn the ENABLE_OCTEON_BACKEND option to ON
+     exit and generate makefiles (press 'c' and then 'g')
+
+  b) move to the '[netbee_root]/src/nbnetvm/' folder
+     edit the 'CMakeLists.txt' file
+     turn the ENABLE_OCTEON_BACKEND option to ON
+     save the file and exit
+     move to the '[netbee_root]/src' folder
+     launch 'cmake .' to create the makefiles
+     compile the whole project with 'make'.
+
+Please note that the first method requires the 'ccmake' tool, which is
+not available on all the systems (on Windows is not available at all,
+while on Unix it must be installed in addition to 'cmake').
+
+After compiling also 'samples' and 'tools' directory, you should find
+several files in the '[netbee_root]/bin' folder (e.g., libnbnetvm.so, etc).
+If not, something went wrong with the compilation of the NetBee library.
+
+
+
+3) In addition to the previous step, you need to compile the NetVM
+runtime environment for the Octeon (i.e., not the whole NetBee library,
+but only the NetVM runtime).
+For instance, at step (2) you compiled the NetBee library that allowed
+you to create the source code of Octeon applications. The code you
+compiled runs on standard Intel hardware, and it produces a source code
+that can be further compiled and executed on the Cavium. However, once
+you got that source code, you don't want to run it on the Intel; you
+want to launch it on the Octeon board, of course.
+For doing this, you need to create a special runtime of the NetVM that
+runs on the Octeon, i.e. that knows how to handle packets from
+input/output ports and such (the file libnetvm.a) and some additional
+files coming from the Cavium SDK that implement some support functions
+for our tools (libcvmx.a).
+
+To create the NetVM runtime for the Octeon, please move to the following 
+folder:
+
+    cd [netbee_root]/src/nbnetvm/arch/octeon
+
+then, generate the makefiles, and then finally run make:
+
+    cmake .
+    make
+
+At the end of the process, you should find the following files:
+
+	[netbee_root]/lib/libnbnetvm.a
+	[netbee_root]/lib/libcvmx.a
+
+The first file is a static version of the libnetvm library and it is
+created only when the Octeon SDK is found in your system (and you have
+the proper environment variables turned on). This file is required for
+any build on the Octeon; for unknown reasons, we were unable to use the
+standard libnetvm.so on that platform. The second file is the Cavium
+provided runtime environment for the Octeon, which is used by the NetVM
+runtime to interface to the Octeon resources.
+
+In case the static library cannot be found, please check your previous
+steps; you may have done something wrong. Notice that step 2 is required
+to run step 3, as the former generates some files needed by the latter.
+
+
+
+4) Move to the following folder:
+
+	[netbee_root]/samples/nbnetvm/octeonfilter
+
+and execute one of the files
+
+	octeonfilter.sh [filter] (or)
+	octeonfilterc.sh [filter]
+
+The former will use the octeon native (asm) backend, while the latter 
+will use the 'octeonc' backend (which is perhaps a little bit more stable
+and easier to understand the generated code).
+
+This script will compile a simple packet filter using some of the other
+samples available in the NetBee library. The filter is expressed in the
+NetPFL language, using a minimal NetPDL database (larger NetPDL database
+might generate complex instructions that may fail to compile on the
+Octeon because of some limitations of the current NetVM Octeon backend).
+If not specified, the simple 'ip' filter is compiled.
+
+Please launch './octeonfilter.sh -h' in order to get a list of the 
+supported command line options.
+
+
+
+5) The Octeon native executable should now have been created. This 
+executable can be launched in the simulator as a Cavium SE-UM application,
+i.e. it requires the Linux operating system running.
+
+At this point you have to create a new Linux file system for the Octeon
+that includes the 'octeonfilter' executable.
+Assuming that you are familiar with the procedure required to build
+a new Linux file system, and that you added the local folder '~/octeonfs
+to the set of paths included in the file system (please check the Cavium 
+readme files for more info on these points), you have to type the
+following commands:
+
+	# Copy the 'octeonfilter' executable in the '~/octeonfs' folder
+    host$ cp [netbee_root]/samples/nbnetvm/octeonfilter/octeonfilter ~/octeonfs/.
+
+    # Create the new embedded file system
+    host$ cd $OCTEON_ROOT/linux/embedded_rootfs
+    host$ make clean-root all ext2
+
+
+
+6) You are now ready to launch the 'octeonfilter' on the simulator.
+In order to be able to execute this program on the simulator, you need THREE
+terminal sessions.
+
+In *Terminal 1*, you have to start the simulator by typing the following
+commands:
+
+    host$ cd ~/OCTEON-SDK/linux/kernel_2.6/
+    host$ ./oct-linux -quiet -noperf
+
+This script calls the 'oct-sim' executable with the arguments needed by
+Linux. Almost immediately you will begin to see the following messages:
+
+    waiting for a connection to uart 0 1
+    waiting for a connection to uart 0 2
+    ...
+
+
+In *Terminal 2*, you have to connect to the simulator to receive UART output.
+
+    host$ telnet localhost 2020
+
+You should first get some messages from the boot loader followed by
+the Linux kernel boot messages. These messages will eventually end
+in a shell prompt (after about 130M cycles), but the loading may be very
+slow (up to 20 minutes), depending on the speed of the host processor, 
+the amount of memory installed, and the number of cores requested.
+
+Optionally, if your telnet client does not appear to show what you are
+typing, you may need to put the telnet application in 'char mode'.
+Please check the manual of your telnet client application to detect how
+to do that.
+
+Once the kernel has started you will be given a bash-like prompt.
+
+When the shell prompt appears, you can launch the executable, telling it
+how many packets does it have to process:
+
+    # Launch the 'octeonfilter' and process 10 packets
+    octeon# ./octeonfilter 10
+
+The program will initialize; when 'Initialization done' appears on the 
+screen, you are ready to move to next step.
+
+
+In *Terminal 3*, you have to generate the network traffic that will be
+seen (and filtered) by the 'octeonfilter' process.
+You can use the following command:
+
+    # Send the 'samplecapturedump.acp' trace file on the port '0' of the simulator
+    host$ oct-packet-io -I 0:[netbee_root]/bin/samplecapturedump.acp
+
+You should see eight lines on the screen, corresponding to the 8 IP packets
+contained in the above capture that match the filter and are sent to the 
+output port.
+
+For instance, the capture file contains 10 packets, but two of them are ARP
+traffic which is dropped by the octeonfilter.
+
+
+
+You can repeat the entire step (6) trying to execute the 'octeonfilter' 
+application on multiple cores. This can be achieved by launching the
+simulator with the '-numcores= 2' switch, e.g.:
+
+    host$ ./oct-linux -quiet -noperf -numcores=2
+
+The rest of the process is the same. In this case, the 'octeonfilter' output
+will confirm that packets are forwarded on core #1, while it was core #0
+before.
+
+Please note that the support for many cores in 'octeonfilter' is still 
+experimental and may not work very well.
+
+In fact, even if you increase the number of cores, the 'octeonfilter'
+application appears to process all the packets on core #1, while we should 
+expect that packets are processed by all the cores.
+
+
+
+Running 'octeonfilter' on the Cavium board
+------------------------------------------
+
+We assume that the board is set up properly and that you (a) read the
+manual related to it, and (b) you are familiar to the commands presented
+in there.
+
+We assume that:
+- the board is up and running with a valid Linux kernel, and the 
+  'octeonfilter' is in the file system
+- the host computer has its interface 'eth0' connected to the first interface
+  of the board (no matter if their IP address is configured)
+
+You have to launch the following command on the board:
+
+    octeon# ./octeonfilter N   <== N is the number of packets you want to filter
+
+On the host, you need to launch the following command to send some
+capture files on the board:
+
+   host$ tcpreplay -i eth0 -M 10 [netbee root]/bin/samplecapturedump.acp
+
+where '-M' is the speed we send data on the network (currently 10Mbps)
+and the third parameter is any capture file in tcpdump format.
+
+You can use the '-M' parameter to change the speed you send data on the
+board; please check the 'tcpreplay' manual for more options.
+
+You will see the board that prints a message on the screen for each packet
+that matches the filter.
+
+Warning: you may require administrative privileges in order to run
+'tcpreplay' (i.e., 'sudo tcpreplay ...').
+
+

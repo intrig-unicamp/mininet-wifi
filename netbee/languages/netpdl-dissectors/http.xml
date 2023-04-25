@@ -1,0 +1,198 @@
+<protocol name="http" longname="HTTP (Hyper Text Transfer Protocol)" showsumtemplate="http">
+	<execute-code>
+		<verify>
+			<!-- <if expr="hasstring($packet[$currentoffset:0], 'http/(0\.9|1\.0|1\.1) [1-5][0-9][0-9]|(post|get|head|propfind|mkcol|delete|put|copy|move|lock|unlock) [\x09-\x0d -~]* http/[01]\.[019]', 0)"> -->
+			<if expr="hasstring($packet[$currentoffset:0], 'http/(0\.9|1\.0|1\.1) [1-5][0-9][0-9]|(connect|post|get|head|propfind|mkcol|delete|put|copy|move|lock|unlock) [\x09-\x0d -~]* http/[01]\.[019]', 0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%CANDIDATE"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %CANDIDATE or $protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#http"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#http"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#http"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+
+	<format>
+		<fields>
+
+			<!-- Check if this packet contains an header -->
+			<if expr="($packet[$currentoffset : 3] == 'GET') or ($packet[$currentoffset : 4] == 'POST') or ($packet[$currentoffset : 4] == 'HTTP')">
+				<if-true>
+
+					<block name="header" longname="HTTP Header">
+
+						<!-- Requestline and statusline-->
+						<if expr="($packet[$currentoffset : 3] == 'GET') or ($packet[$currentoffset : 4] == 'POST')">
+							<if-true>
+								<field type="line" name="cmdline" longname="Command Line" showtemplate="FieldAscii">
+									<field type="tokenended" name="method" longname="Method" endtoken=" " showtemplate="FieldAscii"/>
+									<field type="tokenended" name="url" longname="URL" endtoken=" " showtemplate="FieldAscii"/>
+									<field type="line" name="reqVersion" longname="Version" showtemplate="FieldAscii"/>
+								</field>
+							</if-true>
+							
+							<if-false>
+								<field type="line" name="statusline" longname="Status Line" showtemplate="FieldAscii">
+									<field type="tokenended" name="repVersion" longname="Version" endtoken=" " showtemplate="FieldAscii"/>
+									<field type="tokenended" name="statuscode" longname="Status Code" endtoken=" " showtemplate="FieldAscii"/>
+									<field type="line" name="reasonphrase" longname="Reason Phrase" showtemplate="FieldAscii"/>
+								</field>
+							</if-false>
+						</if>
+
+						<loop type="size" expr="$packetlength - $currentoffset">
+
+							<switch expr="extractstring($packet[$currentoffset: 0], '[^:\n]*', 1, 0)" 
+										comment="Field names are case-insensitive in HTTP; however, field-values may be case sensitive.">
+
+								<case value="'User-Agent'">
+									<field type="line" name="useragent" longname="User Agent" showtemplate="HttpField"/>
+								</case>
+								<case value="'Accept'">
+									<field type="line" name="accept" longname="Accept MIME Types" showtemplate="HttpField"/>
+								</case>
+								<case value="'Accept-Language'">
+									<field type="line" name="acceptlanguage" longname="Accept Language" showtemplate="HttpField"/>
+								</case>
+								<case value="'Server'">
+									<field type="line" name="server" longname="Server" showtemplate="HttpField" />
+								</case>
+								<case value="'Content-Type'">
+									<field type="line" name="contenttype" longname="Content Type" showtemplate="HttpField" />
+								</case>
+								<case value="'Host'">
+									<field type="line" name="host" longname="Host" showtemplate="HttpField" />
+								</case>
+								<case value="'Content-Encoding'">
+									<field type="line" name="contentencoding" longname="Content Encoding" showtemplate="HttpField" />
+								</case>
+								<case value="'Content-Length'">
+									<field type="line" name="contentlength" longname="Content Length" showtemplate="HttpField" />
+								</case>
+								<case value="'Date'">
+									<field type="line" name="date" longname="Date" showtemplate="HttpField" />
+								</case>
+								<case value="'Expires'">
+									<field type="line" name="expires" longname="Expires" showtemplate="HttpField" />
+								</case>
+								<case value="'From'">
+									<field type="line" name="from" longname="From" showtemplate="HttpField" />
+								</case>
+								<case value="'If-Modified-Since'">
+									<field type="line" name="ifmodifiedsince" longname="If Modified Since" showtemplate="HttpField" />
+								</case>
+								<case value="'Last-Modified'">
+									<field type="line" name="lastmodified" longname="Last Modified" showtemplate="HttpField" />
+								</case>
+								<case value="'Location'">
+									<field type="line" name="location" longname="Location" showtemplate="HttpField" />
+								</case>
+								<case value="'Pragma'">
+									<field type="line" name="pragma" longname="Pragma" showtemplate="HttpField" />
+								</case>
+								<case value="'Referer'">
+									<field type="line" name="referer" longname="Referer" showtemplate="HttpField" />
+								</case>	
+								<case value="'WWW-Authenticate'">
+									<field type="line" name="wwwauthenticate" longname="WWW Authenticate" showtemplate="HttpField" />
+								</case>	
+
+								<!-- other options will follow -->
+
+								<!-- This is an other way to say 'stop, the HTTP header is ended -->
+								<case value="'\x0D'">
+									<field type="line" name="endheader" longname="End Of Header" showtemplate="FieldAscii"/>
+									<loopctrl type="break"/>
+								</case>
+
+								<default>
+									<field type="line" name="option" longname="Option" showtemplate="FieldAscii"/>
+								</default>
+							</switch>
+
+						</loop>
+					</block>
+				</if-true>
+				<missing-packetdata>
+					<field type="variable" name="truncdata" longname="Truncated Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</missing-packetdata>
+			</if>
+
+			<block name="header" longname="HTTP Object">
+				<loop type="size" expr="$packetlength - $currentoffset">
+					<field type="line" name="data" longname="HTTP data" showtemplate="FieldAscii"/>
+				</loop>
+			</block>
+
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="http">
+			<section name="next"/>
+			<if expr="ispresent(method)">
+				<if-true>
+					<text value="HTTP request"/>
+				</if-true>
+				
+				<if-false>
+					<text value="HTTP response"/>
+				</if-false>	
+			</if>
+		</showsumtemplate>
+
+		<!-- This template aims at showing only the part of the field which is after the ": " delimiter, -->
+		<!-- which corresponds to the field value (hence the last '1' as parameter). -->
+		<showtemplate name="HttpField" showtype="ascii" showgrp="1"> 
+			<showdtl>
+				<text expr="extractstring(this, ': ([[:print:]]*)', 1, 1)"/>
+			</showdtl>
+		</showtemplate>
+
+	</visualization>
+</protocol>
+

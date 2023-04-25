@@ -1,0 +1,357 @@
+
+<protocol name="bgp" longname="BGP4 (Border Gateway Protocol v.4)" showsumtemplate="bgp">
+	<!--
+		# From the L7-filter database
+		# "After a transport protocol connection is established, the first
+		# message sent by each side is an OPEN message."
+		# "If the Type of the message is OPEN, or if the Authentication Code used
+		# in the OPEN message of the connection is zero, then the Marker must be
+		# all ones."
+		# Then the 2 byte length field, then the 1 byte type field (1 = OPEN).
+		# Then the BGP version: 3 was RFC'd in 1991, 4 was RFC'd in 1995.
+		# Could keep going, but that should be sufficient.
+		^\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff..?\x01[\x03\x04]
+	-->
+	<execute-code>
+		<verify>
+				<if expr="hasstring($packet[$currentoffset:0], '^\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff..?\x01[\x03\x04]',0)">
+					<if-true>
+						<assign-variable name="$protoverify_result" value="%FOUND"/>
+					</if-true>
+				</if>
+		</verify>
+		
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#bgp"/>
+				<lookupdata value="0"/>				
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#bgp"/>
+							</update-lookuptable>
+							<!-- delete that entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#bgp"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+
+
+	<format>
+		<fields>
+			<field type="fixed" name="aut" longname="Authentication" size="16" showtemplate="Field4BytesHex"/>
+			<field type="fixed" name="len" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="bgp.type"/>
+
+			<switch expr="buf2int(type)">
+				<case value="1">
+					<includeblk name="BGPOpen"/>
+				</case>
+				<case value="2">
+					<includeblk name="BGPUpdate"/>
+				</case>
+				<case value="3">
+					<includeblk name="BGPNotification"/>
+				</case>
+			</switch>
+		</fields>
+
+
+		<block name="BGPOpen" longname="BGPOpen" showsumtemplate="BGPOpenBlock">
+			<field type="fixed" name="ver" longname="Version" size="1" showtemplate="FieldHex"/> 
+			<field type="fixed" name="asi" longname="My Autonomous System" size="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="hot" longname="Hold Time" size="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="bid" longname="BGP ID" size="4" showtemplate="ip4addr-noplg"/> 
+			<field type="fixed" name="opl" longname="Optional Parameter Length" size="1" showtemplate="FieldDec"/>
+		
+			<loop type="size" expr="buf2int(opl)">
+				<switch expr="buf2int($packet[$currentoffset:1])">
+					<case value="1">
+						<includeblk name="Authentication"/>
+					</case>
+					<case value="2">
+						<includeblk name="Capabilities"/>
+					</case>
+					<default>
+						<field type="fixed" name="opc" longname="Optional Parameters type" size="1" showtemplate="bgp.optparamtype"/>
+						<field type="fixed" name="opp" longname="Optional Parameters length param" size="1" showtemplate="FieldHex"/> 
+						<field type="variable" name="opv" longname="Optional parameters value" expr="buf2int(opp)" showtemplate="Field4BytesHex"/>
+					</default> 
+				</switch>
+			</loop> 
+		</block>
+
+		<block name="Authentication" longname="Authentication">
+			<field type="fixed" name="opc" longname="Optional Parameters code" size="1" showtemplate="bgp.optparamtype"/>
+			<field type="fixed" name="opp" longname="Optional Parameters length param" size="1" showtemplate="FieldDec"/> 
+			<field type="fixed" name="auc" longname="Authentication Code" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="aud" longname="Authentication Data" expr="buf2int(opp) - 1" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="Capabilities" longname="Capability advertisement">
+			<field type="fixed" name="opp" longname="Optional Parameters length param" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="capc" longname="Capability code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="capl" longname="Capability length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="capv" longname="Capability value" expr="buf2int(capl)" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="BGPUpdate" longname="BGPUpdate">
+			<field type="fixed" name="url" longname="Unfeasible Routes Length" size="2" showtemplate="FieldHex"/> 
+
+			<loop type="size" expr="buf2int(url)">
+				<field type="fixed" name="wrl" longname="Withdrawn Route length" size="1" showtemplate="FieldHex"/>
+				<field type="variable" name="wrp" longname="Withdrawn Route prefix" expr="(buf2int(wrl) + 7) div 8" showtemplate="Field4BytesHex"/>
+			</loop>
+		
+			<field type="fixed" name="tpa" longname="Total Path Attribute Length" size="2" showtemplate="FieldHex"/> 
+
+			<loop type="size" expr="buf2int(tpa)">
+				<block name="paf" longname="Path Flags">
+					<field type="bit" name="paO" longname="Path Attributes Flags Option" description="It defines whether the attribute is optional (if set to 1) or well-known (if set to 0)" mask="0x80" size="1" showtemplate="FieldBin"/>
+					<field type="bit" name="paT" longname="Path Attributes Flags Transitive " description="It defines whether an optional attribute is transitive (if set to 1) or non-transitive (if set to 0)" mask="0x40" size="1" showtemplate="FieldBin"/>
+					<field type="bit" name="paP" longname="Path Attributes Flags Partial" description="It defines whether the information contained in the optional transitive attribute is partial (if set to 1) or complete (if set to 0)" mask="0x20" size="1" showtemplate="FieldBin"/>
+					<field type="bit" name="paE" longname="Path Attributes Flags Extended Length " description="It defines whether the Attribute Length is one octet (if set to 0) or two octets (if set to 1)" mask="0x10" size="1" showtemplate="FieldBin"/>
+					<field type="bit" name="pau" longname="Path Attributes Flags unused or well-known (if set to 0)" mask="0x0F" size="1" showtemplate="FieldBin"/>	
+				</block> 
+		
+				<field type="fixed" name="path" longname="Path Attr. Type Code" size="1" showtemplate="bgp.path"/> 
+
+				<switch expr="buf2int(paE)">
+					<case value="0">
+						<field type="fixed" name="pal" longname="Path Attribute Length" size="1" showtemplate="FieldHex"/>
+					</case>
+					<case value="1">
+						<field type="fixed" name="pal" longname="Path Attribute Length" size="2" showtemplate="FieldHex"/>
+					</case>
+				</switch>
+
+				<switch expr="buf2int(paT)">
+					<case value="1">
+						<field type="fixed" name="patt" size="1" showtemplate="bgp.patt"/>
+					</case>
+
+					<case value="2">
+						<loop type="size" expr="buf2int(pal)">
+							<field type="fixed" name="pst" longname="Path Segment Type" size="1" showtemplate="bgp.pst"/>
+							<field type="fixed" name="psl" longname="Path Segment Length" size="1" showtemplate="FieldHex"/>	
+							<loop type="size" expr="buf2int(psl)">
+								<field type="fixed" name="asn" longname="AS Number" size="2" showtemplate="FieldHex"/>
+							</loop>
+						</loop>
+					</case>
+
+					<case value="3">
+						<field type="fixed" name="nhop" longname="Next Hop" size="4" showtemplate="ip4addr-noplg"/>
+					</case>
+					<case value="4">
+						<field type="fixed" name="mexit" size="4" showtemplate="FieldHex"/>
+					</case>
+					<case value="5">
+						<field type="fixed" name="locpref" size="4" showtemplate="FieldHex"/>
+					</case>
+					<case value="7">
+						<field type="fixed" name="asn" longname="AS number" size="2" showtemplate="FieldHex"/>
+						<field type="fixed" name="ipaddr" longname="IP Address" size="4" showtemplate="ip4addr-noplg"/>
+					</case>
+				</switch>
+			</loop>
+		
+<!-- TEMP FULVIO: This code may be wrong; it seems to me that this loop depends also on 'url' and 'tpa' -->
+			<loop type="size" expr="buf2int(len) - 23">
+				<field type="fixed" name="nlr" longname="Network Reachable length" size="1" showtemplate="FieldHex"/>
+				<field type="variable" name="nlp" longname="Network Reachable prefix" expr="buf2int(nlr)" showtemplate="Field4BytesHex"/>
+			</loop>
+		</block>
+
+			
+		<block name="BGPNotification" longname="BGPNotification">
+			<switch expr="buf2int($packet[$currentoffset:1])">
+				<case value="1"> <includeblk name="msghdrerr"/> </case>
+				<case value="2"> <includeblk name="OPENmsgerr"/> </case>
+				<case value="3"> <includeblk name="UPDATEmsgerr"/> </case>
+				<case value="4"> <includeblk name="generr"/> </case>
+				<case value="5"> <includeblk name="generr"/> </case>
+				<case value="6"> <includeblk name="generr"/> </case>
+			</switch>
+		</block>
+		
+		<block name="msghdrerr" longname="Message Header Error">
+			<field type="fixed" name="ercode" longname="Message Header Error" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="hdrerrcode" longname="Error subcode" size="1" showtemplate="bgp.hdrerrcode"/>
+			<field type="variable" name="data" longname="Data" expr="buf2int(len) - 21" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="OPENmsgerr" longname="OPEN Message Error">
+			<field type="fixed" name="ercode" longname="OPEN Message Error" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="openerrcode" longname="Error subcode" size="1" showtemplate="bgp.openerrcode"/>
+			<field type="variable" name="data" longname="Data" expr="buf2int(len) - 21" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="UPDATEmsgerr" longname="UPDATE Message Error">
+			<field type="fixed" name="ercode" longname="UPDATE Message Error" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="upderrcode" longname="Error subcode" size="1" showtemplate="bgp.upderrcode"/>
+			<field type="variable" name="data" longname="Data" expr="buf2int(len) - 21" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="generr">
+			<field type="fixed" name="ercode" longname="Error Code" size="1" showtemplate="bgp.generrcode"/>
+			<field type="fixed" name="ersub" longname="Error subcode" size="1" showtemplate="FieldHex"/>
+			<field type="variable" name="data" longname="Data" expr="buf2int(len) - 21" showtemplate="Field4BytesHex"/>
+		</block>
+	</format>
+
+	<visualization>
+		<showtemplate name="bgp.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Open"/> 
+					<case value="2" show="Update"/> 
+					<case value="3" show="Notification"/> 
+					<case value="4" show="Keepalive"/> 
+					<default show="Error in BGP Type lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="bgp.optparamtype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Authentication"/>
+					<case value="2" show="Capability advertisement"/>
+					<default show="Optional parameter"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="bgp.path" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Origin"/>
+					<case value="2" show="AS Path"/>
+					<case value="3" show="Next Hop"/>
+					<case value="4" show="Multi Exit Disc"/>
+					<case value="5" show="Local Pref"/>
+					<case value="6" show="Atomic Aggregate"/>
+					<case value="7" show="Aggregator"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="bgp.patt" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="IGP - Network Layer Reachability Information is interior to the originating AS"/>
+					<case value="1" show="EGP - Network Layer Reachability Information learned via EGP"/>
+					<case value="2" show="INCOMPLETE - Network Layer Reachability Information learned by some other means"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="bgp.pst" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="AS Set - unordered set of ASs a route in the UPDATE message has traversed"/>
+					<case value="2" show="AS_SEQUENCE - ordered set of ASs a route in the UPDATE message has traversed"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="bgp.hdrerrcode" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Connection not synchronized"/>
+					<case value="2" show="Bad message length"/>
+					<case value="3" show="Bad message type"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="bgp.openerrcode" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Unsupported version number"/>
+					<case value="2" show="Bad peer AS"/>
+					<case value="3" show="Bad BGP Identifier"/>
+					<case value="4" show="Unsupported optional parameter"/>
+					<case value="5" show="Authentication failure"/>
+					<case value="6" show="Unacceptable hold time"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="bgp.upderrcode" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Malformed attribute list"/>
+					<case value="2" show="Unrecognized well-known attribute"/>
+					<case value="3" show="Missing well-known attribute"/>
+					<case value="4" show="Attribute flags error"/>
+					<case value="5" show="Attribute length error"/>
+					<case value="6" show="Invalid origin attribute"/>
+					<case value="7" show="AS routing loop"/>
+					<case value="8" show="Invalid NEXT_HOP attribute"/>
+					<case value="9" show="Optional attribute error"/>
+					<case value="10" show="Invalid network field"/>
+					<case value="11" show="Malformed AS_PATH"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="bgp.generrcode" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="4" show="Hold timer expired"/>
+					<case value="5" show="Finite state machine error"/>
+					<case value="6" show="Cease"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="bgp">
+			<section name="next"/>
+			<text value="BGP: "/>
+			<protofield name="type" showdata="showmap"/>
+			<text value=", Auth "/>
+			<protofield name="aut" showdata="showvalue"/>
+		</showsumtemplate>
+		
+		<showsumtemplate name="BGPOpenBlock">
+			<text value=" AS: "/>
+			<protofield name="asi" showdata="showvalue"/>
+		</showsumtemplate>
+
+	</visualization>
+</protocol>
+

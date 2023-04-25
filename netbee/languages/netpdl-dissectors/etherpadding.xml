@@ -1,0 +1,8 @@
+
+<protocol name="etherpadding" longname="Ethernet padding">
+	<format>
+		<fields>
+			<field type="variable" name="etherpad" longname="Ethernet Padding (frame less than 64 bytes)" expr="$framelength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+</protocol>

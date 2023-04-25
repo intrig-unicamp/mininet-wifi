@@ -1,0 +1,310 @@
+<protocol name="ssl" longname="SSL" showsumtemplate="ssl">
+	<execute-code>
+		<verify>
+		 	<!-- SSL v2 Hello client | SSLv3 hello client, hello server, hello request -->
+			<if expr="hasstring($packet[$currentoffset:0],'^(...?\x01\x03(\0|\x01))|^(\x16\x03(\0|\x01)..(\0|\x01|\x02))',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#ssl"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#ssl"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#ssl"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+	
+	<format>
+		<fields>
+			<if expr="hasstring($packet[$currentoffset:0],'^...?\x01\x03\0',0)">	<!-- ssl v2-->
+				<if-true>
+					<block name="record_layer" longname="RecordLayer">
+						<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldHex"/>
+						<if expr="(buf2int(length) bitwand 0x8000 ) == 0x0000">
+							<if-true>
+								<field type="fixed" name="padding" longname="Padding" size="1" showtemplate="FieldHex"/>	
+							</if-true>
+						</if>
+						<includeblk name="client_hello_v2"/>
+					</block>
+				</if-true>
+				
+				<if-false>
+					<!--<if expr="not(buf2int($packet[$currentoffset : 1]) == 0x14 or buf2int($packet[$currentoffset : 1]) == 0x15 or buf2int($packet[$currentoffset : 1]) == 0x16 or buf2int($packet[$currentoffset : 1])== 0x17)">-->
+					<loop type="while" expr="$packetlength - $currentoffset">
+						<if expr="not(buf2int($packet[$currentoffset : 1]) == 0x14 or buf2int($packet[$currentoffset : 1]) == 0x15 or buf2int($packet[$currentoffset : 1]) == 0x16 or buf2int($packet[$currentoffset : 1])== 0x17)">
+							<if-true>
+								<field type="variable" name="Data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+							</if-true>
+							<if-false>
+								<block name="record_layer" longname="RecordLayer">	
+									<field type="fixed" name="content_type" longname="Content Type" size="1" showtemplate="record.content.type"/>
+									<field type="fixed" name="version" longname="Version" size="2" showtemplate="FieldAscii"/>
+									<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+										
+									<switch expr="buf2int(content_type)">
+										<case value="0x14"> <includeblk name="change"/></case>
+										<case value="0x15"> <includeblk name="alter"/></case>
+										<case value="0x17"> 
+											<if expr="buf2int(length) gt ($packetlength - $currentoffset)">
+												<if-true>
+													<field type="variable" name="encrypted_data" longname="Encrypted Data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+												</if-true>
+												<if-false>
+													<field type="variable" name="encrypted_data" longname="Encrypted Data" expr="buf2int(length)" showtemplate="Field4BytesHex"/>
+												</if-false>
+											</if>
+										</case>
+										<case value="0x16">	<includeblk name="handshake"/> </case>
+										<default>
+											<field type="variable" name="Data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+										</default>
+									</switch>
+								</block>
+							</if-false>
+						</if>
+
+					</loop>						
+					
+				</if-false>
+			</if>	
+		</fields>
+		
+		<block name="handshake" longname="Handshake Protocol">
+			<if expr="ispresent(change_field)">
+				<if-true>
+					<field type="variable" name="handshake_field" longname="Handshake Data (encrypted)" expr="buf2int(length)" showtemplate="FieldAscii"/>
+				</if-true>
+				<if-false>
+					<loop type="while" expr="1">
+						<field type="fixed" name="handshake_type" longname="Handshake Type" size="1" showtemplate="handshake.type"/>
+						<field type="fixed" name="handshake_length" longname="Length" size="3" showtemplate="FieldDec"/>
+						<switch expr="buf2int(handshake_type)">
+							<case value="0x01"> <includeblk name="client_hello"/> </case>
+							<case value="0x02"> <includeblk name="server_hello"/> </case>
+							<case value="0x0b"> <includeblk name="certificate"/> </case>
+							<case value="0x0e"> <includeblk name="server_hello_done"/> </case>
+							<case value="0x10"> <includeblk name="client_key_exchange"/> </case>
+							<default>
+								<field type="variable" name="handshake_field" longname="Handshake Field" expr="buf2int(handshake_length)" showtemplate="FieldAscii"/>
+							</default>
+						</switch>
+						
+						<!-- multiple handshake message -->
+						<!-- one record layer may contents many handshake messages -->
+						<if expr="not(buf2int($packet[$currentoffset+0:1]) == 0x01 or buf2int($packet[$currentoffset+0:1]) == 0x02 or buf2int($packet[$currentoffset+0:1]) == 0x0b or buf2int($packet[$currentoffset+0:1]) == 0x0e) ">
+							<if-true>
+								<loopctrl type="break"/>
+							</if-true>
+						</if>
+					</loop>				
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="client_key_exchange">
+			<field type="variable" name="key_exchange" longname="Key Exchange" expr="buf2int(handshake_length)" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="change" longname="Change Cipher Spec">
+			<field type="variable" name="change_field" longname="Change Field" expr="buf2int(length)" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="alter" longname="Alert">
+			<field type="variable" name="alert_field" longname="Alert Field" expr="buf2int(length)" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="client_hello_v2" longname="Client Hello v2.0">
+			<field type="fixed" name="type_message" longname="Type Message" size="1" showtemplate="handshake.type"/>
+			<field type="fixed" name="version" longname="Version" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="cipher_spec_length" longname="Cipher Spec Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="session_id_length" longname="Session ID Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="challenge_length" longname="Challenge Length" size="2" showtemplate="FieldDec"/>
+
+			<block name="cipher_specs" longname="Cipher Specs">
+				<loop type="size" expr="buf2int(cipher_spec_length)">
+					<field type="fixed" name="cipher_suite" longname="Cipher suite" size="3" showtemplate="ssl.cipher_suite"/>
+				</loop>
+			</block>
+			<field type="variable" name="session_id" longname="Session ID" expr="buf2int(session_id_length)" showtemplate="FieldHex"/>
+			<field type="variable" name="challenge" longname="Challenge" expr="buf2int(challenge_length)" showtemplate="FieldHex"/>
+		</block>
+		
+		<block name="client_hello" longname="Client Hello">
+			<field type="fixed" name="version_client" longname="Version Client" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="random" longname="Random" size="32" showtemplate="FieldAscii">
+				<field type="fixed" name="gmt_unix_time" longname="GTM Unix Time" size="4" showtemplate="FieldAscii"/>
+				<field type="fixed" name="random_bytes" longname="Random Byte" size="28" showtemplate="FieldAscii"/>
+			</field>
+			
+			<field type="fixed" name="session_id_length" longname="Session ID Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="session_id" longname="Session ID" expr="buf2int(session_id_length)" showtemplate="FieldAscii"/>
+		
+			<field type="fixed" name="cipher_suite_length" longname="Cipher Suite Length" size="2" showtemplate="FieldDec"/>
+			<block name="cipher_suites" longname="Cipher Suites">
+				<loop type="size" expr="buf2int(cipher_suite_length)">
+					<field type="fixed" name="cipher_suite" longname="Cipher suite" size="2" showtemplate="ssl.cipher_suite"/>
+				</loop>
+			</block>
+			
+			<field type="fixed" name="compression_methods_length" longname="Compression Methods Length" size="1" showtemplate="FieldDec"/>
+			<block name="compression_methods" longname="Compression Methods">
+				<loop type="size" expr="buf2int(compression_methods_length)">
+					<field type="fixed" name="compression_method" longname="Compression Method" size="1" showtemplate="FieldAscii"/>
+				</loop>
+			</block>
+		</block>
+		
+		<block name="server_hello" longname="Server Hello">
+			<field type="fixed" name="version_client" longname="Version Client" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="random" longname="Random" size="32" showtemplate="FieldAscii">
+				<field type="fixed" name="gmt_unix_time" longname="GTM Unix Time" size="4" showtemplate="FieldAscii"/>
+				<field type="fixed" name="random_bytes" longname="Random Byte" size="28" showtemplate="FieldAscii"/>
+			</field>
+			
+			<field type="fixed" name="session_id_length" longname="Session ID Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="session_id" longname="Session ID" expr="buf2int(session_id_length)" showtemplate="FieldAscii"/>
+		
+			<field type="variable" name="cipher_suite" longname="Cipher Suite" expr="2" showtemplate="ssl.cipher_suite"/>
+			
+			<field type="variable" name="compressio_methods" longname="Compression Methods" expr="1" showtemplate="FieldAscii"/>			
+		</block>
+		
+		<block name="certificate" longname="Certificate">
+			<if expr="buf2int(handshake_length) gt ($packetlength - $currentoffset)">
+				<if-true>
+					<field type="variable" name="cert" longname="Certificate" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-true>
+				<if-false>
+					<field type="variable" name="cert" longname="Certificate" expr="buf2int(handshake_length)" showtemplate="FieldAscii"/>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="server_hello_done" longname="Server Hello Done">
+			<field type="variable" name="server_hello_done_field" longname="Server Hello Done Field" expr="buf2int(handshake_length)" showtemplate="FieldAscii"/>
+		</block>
+	</format>
+	
+	<visualization>
+		<showtemplate name="ssl.cipher_suite" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0000" show="TLS_NULL_WITH_NULL_NULL"/>
+					<case value="0x0001" show="TLS_RSA_WITH_NULL_MD5"/>
+					<case value="0x0002" show="TLS_RSA_WITH_NULL_SHA"/>
+					<case value="0x0003" show="TLS_RSA_EXPORT_WITH_RC4_40_MD5"/>
+					<case value="0x0004" show="TLS_RSA_WITH_RC4_128_MD5"/>
+					<case value="0x0005" show="TLS_RSA_WITH_RC4_128_SHA"/>
+					<case value="0x0006" show="TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5"/>
+					<case value="0x0007" show="TLS_RSA_WITH_IDEA_CBC_SHA"/>
+					<case value="0x0008" show="TLS_RSA_EXPORT_WITH_DES40_CBC_SHA"/>
+					<case value="0x0009" show="TLS_RSA_WITH_DES_CBC_SHA"/>
+					<case value="0x000A" show="TLS_RSA_WITH_3DES_EDE_CBC_SHA"/>
+					
+					<case value="0x010080" show="TLS_RC4_128_WITH_MD5"/>
+					<case value="0x020080" show="TLS_RC4_128_EXPORT40_WITH_MD5"/>
+					<case value="0x030080" show="TLS_RC2_CBC_128_CBC_WITH_MD5"/>
+					<case value="0x040080" show="TLS_RC2_CBC_128_CBC_EXPORT40_WITH_MD5"/>
+					<case value="0x050080" show="TLS_IDEA_128_CBC_WITH_MD5"/>
+					<case value="0x060040" show="TLS_DES_64_CBC_WITH_MD5"/>
+					<case value="0x0700c0" show="TLS_DES_192_EDE3_CBC_WITH_MD5"/>
+					<default show="Unknown chiper suite"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="ssl">
+			<section name="next"/>
+
+			<text value="Secure Socket Layer "/>
+			<!--<protofield name="handshake_type" showdata="showmap"/>-->
+			<protofield name="content_type" showdata="showmap"/>
+			<!--<if expr="ispresent(version)">
+				<if-true>
+					<switch expr="buf2int(version)">
+						<case value="0x0300"> <text value=" SSL 3.0"/></case>
+						<case value="0x0301"> <text value=" TLS 1.0"/></case>
+						<case value="0x0302"> <text value=" TLS 1.1"/></case>
+						<default> <text value=" Unknown"/> </default>
+					</switch>
+				</if-true>
+			</if>-->				
+
+
+		</showsumtemplate>
+		<showtemplate name="record.content.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x14" show="Change chiper spec protocol"/>
+					<case value="0x15" show="Alert protocol"/>
+					<case value="0x16" show="Handshake protocol"/>
+					<case value="0x17" show="Application Data"/>
+					<default show="unknown"/>
+				</switch>
+			</showmap>		
+		</showtemplate>
+	
+		<showtemplate name="handshake.type" showtype="hex">
+				<showmap>
+					<switch expr="buf2int(this)">
+						<case value="0x00" show="Hello Request"/>
+						<case value="0x01" show="Client Hello"/>
+						<case value="0x02" show="Server Hello"/>
+						<case value="0x0b" show="Certificate"/>
+						<case value="0x0c" show="Server Key Exchange"/>
+						<case value="0x0d" show="Certificate Request"/>
+						<case value="0x0e" show="Server Hello Done"/>
+						<case value="0x0f" show="Certificate Verify"/>
+						<case value="0x10" show="Client Key Exchange"/>
+						<case value="0x14" show="Finished"/>
+						<default show="unknown"/>
+					</switch>
+				</showmap>
+		</showtemplate>
+
+	</visualization>
+</protocol>
+

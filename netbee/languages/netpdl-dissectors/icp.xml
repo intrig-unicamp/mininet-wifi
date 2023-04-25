@@ -1,0 +1,87 @@
+<protocol name="icp" longname="Internet Cache Protocol" showsumtemplate="icp">
+	<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '^([\0-\x04]|[\x0a\x0b]|[\x15-\x17])\x02', 0) and (($packetlength - $currentoffset) == buf2int($packet[$currentoffset + 2: 2 ]))">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+		
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#icp"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#icp"/>
+			</update-lookuptable>
+		</before>
+	</execute-code>	
+	
+	<format>
+		<fields>
+			<field type="fixed" name="opcode" longname="Op Code" size="1" showtemplate="icp.opcode"/>
+			<field type="fixed" name="version" longname="Version" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="message_length" longname="Message Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="request_number" longname="Request Number" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="options" longname="Options" size="4" showtemplate="FieldHex">
+				<field type="bit" name="ipc_flag_hit_obj" longname="IPC_FLAG_HIT_OBJ" mask="0x80000000" size="4" showtemplate="FieldBin"/>
+				<field type="bit" name="ipc_flag_src_rtt" longname="IPC_FLAG_SRC_RTT" mask="0x40000000" size="4" showtemplate="FieldBin"/>
+			</field>	
+			<field type="fixed" name="option_data" longname="Option Data" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="sender_host_address" longname="Sender Host Address" size="4" showtemplate="ip4addr"/>
+			<switch expr="buf2int(opcode)">
+				
+				<case value="0x01">
+					<field type="fixed" name="requester_host" longname="Requester Host Address" size="4" showtemplate="ip4addr"/>
+					<field type="tokenended" name="url" longname="URL" endtoken="\0" showtemplate="FieldAscii"/>
+				</case>
+				
+				<default>
+					<field type="variable" name="payload" longname="Payload" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</default>
+			</switch>
+			
+		</fields>
+	</format>
+				
+	<visualization>
+
+		<showtemplate name="icp.opcode" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x00" show="ICP_OP_INVALID"></case>
+					<case value="0x01" show="ICP_OP_QUERY"></case>
+					<case value="0x02" show="ICP_OP_HIT"></case>
+					<case value="0x03" show="ICP_OP_MISS"></case>
+					<case value="0x04" show="ICP_OP_ERR"></case>
+					<case value="0x0a" show="ICP_OP_SECHO"></case>
+					<case value="0x0b" show="ICP_OP_DECHO"></case>
+					<case value="0x15" show="ICP_OP_MISS_NOFETCH"></case>
+					<case value="0x16" show="ICP_OP_DENIED"></case>
+					<case value="0x17" show="ICP_OP_HIT_OBJ"></case>
+					<default show="Unkown messagge"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="icp">
+			<section name="next"/>
+			<text value="Inernet Cache Protocol (ICP) "/>
+			
+			<text value="Request Number: "/> <protofield name="request_number" showdata="showvalue"/>
+			<text value=" Op Code: "/> <protofield name="opcode" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

@@ -1,0 +1,70 @@
+Fulvio
+======
+
+NON capisco perche' ci sono cosi' tanti file di include (esportati) per la NetVM
+Credo che questi siano un po' da riorganizzare
+
+- verificare che venga generata la documentazione per il netvmassembler
+
+Sistemare il file "Docs/NetVm/ControlPlane.htm", che sembra non essere linkato da nessuna parte (e francamente non so se metterlo pubblico al momento, visto che l'interfaccia verso la NetVM e' ancora tutta da scrivere).
+
+
+
+<!-- TEMP FULVIO: PDMLReader->GetPacket(i,...) Non mi piace che i pacchetti inizino da zero; molto meglio se iniziano da 1; inoltre, non c'e' modo di sapere quanti sono i pacchetti memorizzati nel PDMLReader -->
+<!-- TEMP FULVIO: cercare di capire cosa succede se lancio il packet decoder con "decode only", e chiamo poi il pdmlreader (una volta andava in eccezione) -->
+<!-- TEMP FULVIO: Cambiare l'implementazione del litte/big endian; la conversione little / big endian non va fatta solamente sul campo visualizzato, ma anche sul valore effettivo del campo dati (???) altrimenti i
+fieldref non funzionano perche' si riferiscono ad un valore che non ha senso -->
+<!-- TEMP FULVIO: fare metodo per dare info sulla versione di NetBee e affini -->
+
+
+
+FULVIO MODIFICHE NETPDL
+=======================
+- per decodificare con un ben previso protocollo, ci sono 2 opzioni:
+  - SetStartingProtocol("name")
+  - DecodeHaeaderAs(StartingOffset, ProtocolName)
+
+- verificare FDDI e TokenRing per la il mapping del MAC address (attualmente supportato solo da Eth)
+
+- inserire le modifiche netbios e affini implementate dall'australiano
+
+- implementare e testare un template per lo swap di un byte
+
+ 	<showdtl name="swapshort">
+ 		<text>
+ 			<expr oper="+">
+ 				<expr oper="*">
+ 					<number value="256" type="dec"/>
+ 					<number value="2" type="dec"/>
+ 				</expr>
+ 				<number value="3" type="dec"/>
+ 
+ 			</expr>
+ 		</text>
+ 		<text value=" (field value = "/>
+ 		<fld attrib="show"/>
+ 		<text value=")"/>
+ 	</showdtl>	
+ 
+
+- funzione nvmExecute_Instructions(): si fa un giro infernale ad arrivare a questa funzione; poi, e' una funzione che esegue il codice di un netPE, quindi il nome e' poco azzeccato (nvmNetPeProgramInterpreter() )
+
+
+Gianluca - Livio
+================
+
+Verificare dove viene generata (se viene generata):
+- architettura generale delal NetVM  ?
+
+
+Documentare l'assemblatore e il disassemblatore come API, e documentarlo nell'API (e fare un esempio per questo) (disassembl OM)
+
+Documentazione per la nbNetVm::CreatePort() non ha la definizione della callback linkata in doxygen (typedf callback)
+
+I vari tipi (es u_int8_t) non dovrebbero diventare anche loro nv_qualcosa? LT (mando mail per dire nuova sigla a tutti=> bittypes da ingl in netvm.h)
+
+NetVM::CreatePort(): non sono documentati i flags ??(chi sa cosa fanno)
+
+NetVM::CreatePort(): esistono due tipi di chiamata, uno con un exporter, uno con un collector. C'e' un metodo intelligente per evitare che qualcuno dichiari un exporter e poi lo usi come porta di ingresso dei pkt all'interno della NetVM) (mail per capire)
+
+La funzione GetPort() del NetPE è un po' strana (? da guardare)

@@ -1,0 +1,315 @@
+<protocol name="netbios" longname="NetBios Name Service" showsumtemplate="netbiosname">
+	<format>
+		<fields>
+			<field type="fixed" name="TRNID" longname="Transaction ID" size="2" showtemplate="FieldHex"/>
+
+			<field type="bit" name="typecode" longname="Packet Type Code" size="2" mask="0xF800" showtemplate="FieldHex">
+				<field type="bit" name="rflag" longname="Response Flag" mask="0x8000" size="2" showtemplate="netbios.rflag"/>
+				<field type="bit" name="opcode" longname="Operation Specifier" mask="0x7800" size="2" showtemplate="netbios.opcode"/>
+			</field>
+
+			<field type="bit" name="nmflags" longname="Flags" size="2" mask="0x07F0" showtemplate="FieldHex">
+				<field type="bit" name="Auth" longname="Authoritative Answer Flag" mask="0x0400" size="2" showtemplate="netbios.aaflag"/>
+				<field type="bit" name="tcflag" longname="Truncation Flag" mask="0x0200" size="2" showtemplate="netbios.tcflag"/>
+				<field type="bit" name="rdflag" longname="Recursion Desired Flag" mask="0x0100" size="2" showtemplate="netbios.rdflag"/>
+				<field type="bit" name="raflag" longname="Recursion Available Flag" mask="0x0080" size="2" showtemplate="netbios.raflag"/>
+				<field type="bit" name="bflag" longname="Broadcast Flag" mask="0x0010" size="2" showtemplate="netbios.bflag"/>
+			</field>
+
+			<field type="bit" name="rcode" longname="Result Codes Of Request" mask="0x000F" size="2" showtemplate="netbios.rcode"/>
+
+			<field type="fixed" name="qdcount" longname="Number Entries Question Section" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="ancount" longname="Number Resource Records Answer Section" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="nscount" longname="Number Resource Records Authority Section" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="arcount" longname="Number Resource Records Additional Section" size="2" showtemplate="FieldDec"/>
+			
+			<if expr="buf2int(rflag) == 0">
+				<if-true>
+					<loop type="times2repeat" expr="buf2int(qdcount)">
+						<includeblk name="QEntries"/>
+					</loop>
+				</if-true>
+			</if>
+			
+			<if expr="buf2int(ancount) != 0">
+				<if-true>
+					<loop type="times2repeat" expr="buf2int(ancount)">
+						<includeblk name="AnswerEntries"/>
+					</loop>
+				</if-true>
+			</if>
+			
+			<if expr="buf2int(nscount) != 0">
+				<if-true>
+					<loop type="times2repeat" expr="buf2int(nscount)">
+						<includeblk name="AuthorityEntries"/>
+					</loop>
+				</if-true>
+			</if>
+			
+			<if expr="buf2int(arcount) != 0">
+				<if-true>
+					<loop type="times2repeat" expr="buf2int(arcount)">
+						<includeblk name="AdditionalEntries"/>
+					</loop>
+				</if-true>
+			</if>
+		</fields>
+		
+		<block name="AdditionalEntries" longname="Additional Resource Section">
+			<!-- Field format is the same of DNS names; however, the visualization is different, so we need to use a different template -->
+			<field type="plugin" name="name" longname="Name" plugin="DomainName" showtemplate="netbios-name"/>
+
+			<field type="fixed" name="type" longname="Resource Type" size="2" showtemplate="netbios.ttype"/>
+			<field type="fixed" name="class" longname="Resource Class" size="2" showtemplate="netbios.ctype"/>
+			<field type="fixed" name="TTL" longname="Time To Live" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="RDLength" longname="Record Data Length" size="2" showtemplate="FieldDec"/>
+			<block name="RData" longname="Resource Data">
+				<loop type="times2repeat" expr="buf2int(RDLength)">
+					<block name="nbflag" longname="Flags">
+						<field type="bit" name="g" longname="Group NetBios Name" size="2" mask="0x8000" showtemplate="netbios.gtype"/>
+						<field type="bit" name="ont" longname="Owner Node Type" size="2" mask="0x6000" showtemplate="netbios.onttype"/>
+					</block>
+					
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+		
+		<!--non e' stato testato poiche' non c'erano pacchetti di questo tipo-->
+		<block name="AuthorityEntries" longname="Authority Resource Section" showsumtemplate="AuthorityName">
+			<!-- Field format is the same of DNS names; however, the visualization is different, so we need to use a different template -->
+			<field type="plugin" name="name" longname="Name" plugin="DomainName" showtemplate="netbios-name"/>
+
+			<field type="fixed" name="type" longname="Resource Type" size="2" showtemplate="netbios.ttype"/>
+			<field type="fixed" name="class" longname="Resource Class" size="2" showtemplate="netbios.ctype"/>
+			<field type="fixed" name="TTL" longname="Time To Live" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="RDLength" longname="Record Data Length" size="2" showtemplate="FieldDec"/>
+			<block name="RData" longname="Resource Data">
+				<loop type="times2repeat" expr="buf2int(RDLength)">
+					<block name="nbflag" longname="Flags">
+						<field type="bit" name="g" longname="Group NetBios Name" size="2" mask="0x8000" showtemplate="netbios.gtype"/>
+						<field type="bit" name="ont" longname="Owner Node Type" size="2" mask="0x6000" showtemplate="netbios.onttype"/>
+					</block>
+					
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+		
+		<block name="AnswerEntries" longname="Answer Resource Section" showsumtemplate="AnswerName">
+			<!-- Field format is the same of DNS names; however, the visualization is different, so we need to use a different template -->
+			<field type="plugin" name="name" longname="Name" plugin="DomainName" showtemplate="netbios-name"/>
+
+			<field type="fixed" name="type" longname="Resource Type" size="2" showtemplate="netbios.ttype"/>
+			<field type="fixed" name="class" longname="Resource Class" size="2" showtemplate="netbios.ctype"/>
+			<field type="fixed" name="TTL" longname="Time To Live" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="RDLength" longname="Record Data Length" size="2" showtemplate="FieldDec"/>
+			<block name="RData" longname="Resource Data">
+				<loop type="times2repeat" expr="buf2int(RDLength)">
+					<block name="nbflag" longname="Flags">
+						<field type="bit" name="g" longname="Group NetBios Name" size="2" mask="0x8000" showtemplate="netbios.gtype"/>
+						<field type="bit" name="ont" longname="Owner Node Type" size="2" mask="0x6000" showtemplate="netbios.onttype"/>
+					</block>
+					
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+		
+		<block name="QEntries" longname="Queries Resource Section" showsumtemplate="QueryName">
+			<!-- Field format is the same of DNS names; however, the visualization is different, so we need to use a different template -->
+			<field type="plugin" name="name" longname="Name" plugin="DomainName" showtemplate="netbios-name"/>
+			<field type="fixed" name="type" longname="Question Type" size="2" showtemplate="netbios.ttype"/>
+			<field type="fixed" name="class" longname="Question Class" size="2" showtemplate="netbios.ctype"/>
+		</block>
+	</format>
+
+	<visualization>
+		<showtemplate name="netbios.bflag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Packet was broadcast or multicast"/>
+					<case value="0" show="Packet was unicast"/>
+					<default show="Error in NetBios Name Broadcast Flag lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="netbios.onttype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="B Node"/>
+					<case value="1" show="P Node"/>
+					<case value="2" show="M Node"/>
+					<case value="3" show="H Node"/>
+					<default show="Error in Netbios Name Owner Node Type lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="netbios.gtype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Unique NetBios Name"/>
+					<case value="1" show="Group NetBios Name"/>
+					<default show="Error in NetBios Group Name Flag lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="netbios.ctype" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">	
+					<case value="1" show="IN - Internet Class"/>
+					<default show="Error in NetBios Name Question Class lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="netbios.ttype" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1"  comment="0x01" show="A - IP Address Resource Record"/>
+					<case value="2"  comment="0x02" show="NS - Name Server Resource Record"/>
+					<case value="10" comment="0x0A" show="NULL - Null Resource Record"/>
+					<case value="32" comment="0x20" show="NB - NetBios General Name Service Resource Record"/>
+					<case value="33" comment="0x21" show="NBSTAT - NetBios Node Status Resource Record"/>
+					<default show="Error in NetBios Name Question Type lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="netbios.rcode" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Success"/>
+					<case value="1" show="Format Error"/>
+					<case value="2" show="Server Failure"/>
+					<case value="3" show="Name Error"/>
+					<case value="4" show="Unsupported Request Error"/>
+					<case value="5" show="Refused Error"/>
+					<case value="6" show="Active Error"/>
+					<case value="7" show="Name in Conflict Error"/>
+					<case value="11" show="Requested name does not exist"/>
+					<default show="Error in NetBIOS Name RCode lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="netbios.raflag" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Server can't do recursive queries"/>
+					<case value="1" show="Server can do recursive queries"/>
+					<default show="Error in NetBios Name Recursion Available Flag lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="netbios.rdflag" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Don't do query recursively"/>
+					<case value="1" show="Do query recursively"/>
+					<default show="Error in NetBios Name Recursion Desired Flag lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="netbios.tcflag" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Message is not truncated"/>
+					<case value="1" show="Message is truncated"/>
+					<default show="Error in NetBios Name Truncation Flag lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="netbios.aaflag" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="The node responding is an authority for the domain name"/>
+					<case value="0" show="The node responding is not an authority for the domain name"/> 
+					<default show="Error in NetBios Name Authority Answer Flag lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="netbios.rflag" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Request Packet"/>
+					<case value="1" show="Response Packet"/>
+					<default show="Error in NetBios Name Response Flag lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="netbios.opcode" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Name query"/>
+					<case value="5" show="Name registration"/>
+					<case value="6" show="Name release"/>
+					<case value="7" show="Wait for Acknowledgement"/>
+					<case value="8" show="Name refresh"/>
+					<default show="Error in NetBIOS Name OpCode lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="netbiosname">
+			<section name="next"/>
+			
+			<protofield name="opcode" showdata="showmap"/>
+			
+			<if expr="buf2int(rflag)==1">
+				<if-true>
+					<text value=" Response"/>
+				</if-true>
+			</if>
+			
+			<if expr="buf2int(qdcount)==0">
+				<if-true>
+					<if expr="buf2int(ancount)==0">
+						<if-true>
+							<if expr="buf2int(nscount)==0">
+								<if-true>
+									<if expr="buf2int(arcount)==0">
+										<if-true>	
+											<text value=" Requested Name Does Not Exists "/>
+										</if-true>
+									</if>
+								</if-true>
+							</if>
+						</if-true>
+					</if>
+				</if-true>
+			</if>
+		</showsumtemplate>
+	
+		<showsumtemplate name="QueryName">
+			<text value="; Question Type: "/>
+			
+			<protofield name="type" showdata="showmap"/>
+			<text value="; Name: "/>
+			<protofield name="name" showdata="showvalue"/>
+		</showsumtemplate>
+		
+		<showsumtemplate name="AnswerName">
+			<text value="; Resource Type: "/>
+			<protofield name="type" showdata="showmap"/>
+			<text value="; Name: "/>
+			<protofield name="name" showdata="showvalue"/>
+		</showsumtemplate>
+		
+		<showsumtemplate name="AuthorityName">
+			<text value="; Resource Type: "/>
+			<protofield name="type" showdata="showmap"/>
+			<text value="; Name: "/>
+			<protofield name="name" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

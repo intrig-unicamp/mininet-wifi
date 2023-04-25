@@ -1,0 +1,95 @@
+<protocol name="ismp" longname="Cabletron Interswitch Message Protocol" showsumtemplate="ismp">
+	<format>
+		<fields>
+			<field type="fixed" name="version" longname="ISMP Version" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="msg_type" longname="ISMP Message Type" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="seq_numb" longname="Sequence Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Code Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="code" longname="Authentication Code" expr="buf2int(length)" showtemplate="FieldBin"/>
+			
+			<block name="discovery protocol" longname="Enterasys Discovery Protocol">
+				<field type="fixed" name="version" longname="Version" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="switchIp" longname="Switch IP Address" size="4" showtemplate="ip4addr-noplg"/>
+				<field type="fixed" name="switchMac" longname="Module Mac Address" size="6" showtemplate="MACaddressEth"/>
+				<field type="fixed" name="switchPort" longname="Module Port" size="4" showtemplate="FieldDec"/>
+				<field type="fixed" name="chassisMac" longname="Chassis Mac Address" size="6" showtemplate="MACaddressEth"/>
+				<field type="fixed" name="chassisIp" longname="Chassis IP Address" size="4" showtemplate="ip4addr-noplg"/>
+				<field type="fixed" name="switchType" longname="Switch Type" size="2" showtemplate="ismp.switchtype"/>
+				<field type="fixed" name="level" longname="Functional Level" size="4" showtemplate="ismp.level"/>
+				
+				<block name="opt" longname="Options">
+					<field type="bit" name="op_flood" longname="Uplink Flood Support" mask="0x8000" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_upport" longname="Uplink Port" mask="0x4000" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_upcore" longname="Uplink Core" mask="0x2000" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_upswitch" longname="Uplink Switch" mask="0x1000" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_isolswitch" longname="Isolated Switch" mask="0x400" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_redundaccess" longname="Redundant Access Capability Switch" mask="0x200" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_connectcapab" longname="Message Connection Capability Switch" mask="0x100" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_tapcapab" longname="Tap Capability Switch" mask="0x80" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_floodcapab" longname="Tag-based Flood Capability Switch" mask="0x40" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_unused" longname="Unused" mask="0x20" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_resolvecapab" longname="Resolve Capability Switch" mask="0x10" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_loopfreecapab" longname="Loop-free Flood Path Capability Switch" mask="0x08" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_linkstatecapab" longname="Link State Capability Switch" mask="0x04" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_vlanswitch" longname="VLAN Switch" mask="0x02" size="4" showtemplate="FieldDec"/>
+					<field type="bit" name="op_unused2" longname="Unused" mask="0x01" size="4" showtemplate="FieldDec"/>
+				</block>
+				
+				<!-- Questi campi sono presenti nella rfc 2641 ma la codifica in wireshark e' diversa -->
+				<!--<field type="fixed" name="count" longname="Base Mac Count" size="2" showtemplate="FieldDec"/>
+				
+				<loop type="times2repeat" expr="buf2int(count)">
+					<includeblk name="MacEntries"/>-->
+					<!--nei pacchetti questo valore e' sempre 0, quindi non ci dovrebbero essere campi successivi, invece nei pacchetti in esame ci sono
+					e quindi nella decodifica rimangono 2 byte come non decodificati-->
+				<!--</loop>-->
+				
+				<field type="fixed" name="count1" longname="Number Of Known Neighbors" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="count2" longname="Number Of Tuples" size="2" showtemplate="FieldDec"/>
+			</block>
+		</fields>
+		
+		<block name="MacEntries" longname="Base Mac Entries">
+			<field type="fixed" name="macAddr" longname="Switch Mac Address" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="state" longname="Assigned neighbor state" size="4" showtemplate="ismp.state"/>
+		</block>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="ismp">
+			<section name="next"/>
+			<text value="Cabletron-PC-OV-PC-discover-(on-demand)"/>
+			<section name="next"/>
+			<text value="EDP Message"/>
+		</showsumtemplate>
+
+		<showtemplate name="ismp.state" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="3" show="State Of Network"/>
+					<default show="Error in Assigned neighbor state lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ismp.level" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Running version of SFVLAN prior to Version 1.8"/>
+					<case value="2" show="Running version of SFVLAN 1.8 or greater"/>
+					<default show="Error in Running version of SFVLAN lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ismp.switchtype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="2" show="SFVLAN switch"/>
+					<default show="Error in Switch Type lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>
+

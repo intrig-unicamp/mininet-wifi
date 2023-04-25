@@ -1,0 +1,33 @@
+PCRE_REFCOUNT(3)                                              PCRE_REFCOUNT(3)
+
+
+
+NAME
+       PCRE - Perl-compatible regular expressions
+
+SYNOPSIS
+
+       #include <pcre.h>
+
+       int pcre_refcount(pcre *code, int adjust);
+
+DESCRIPTION
+
+       This  function  is  used  to  maintain a reference count
+       inside a data block that contains  a  compiled  pattern.
+       Its arguments are:
+
+         code                      Compiled regular expression
+         adjust                      Adjustment   to  reference
+       value
+
+       The yield of the  function  is  the  adjusted  reference
+       value,  which is constrained to lie between 0 and 65535.
+
+       There is a complete description of the PCRE  native  API
+       in  the  pcreapi page and a description of the POSIX API
+       in the pcreposix page.
+
+
+
+                                                              PCRE_REFCOUNT(3)

@@ -1,0 +1,22 @@
+TODO for octeon backend and runtime
+
+1) finish writing the emission of the ptable structure to the file
+   octeon_precompile.{c,h}. The table contains the corrispondence between core
+   number and routine to execute, as well as between exit port of a PE and the
+   next processing core.
+
+2) I don't like the fact that the stringmatching loadtoLLM() function relies
+   on a global variable (smcdata) for the initialization. moreover this limits
+   to one single instance of the stringmatching and regexp coprocessor.
+   The variable should be passed to the function in the init procedure.
+   Solution:
+   a) the compile-time init function, which now procuces the stringmatching*pat
+      files, should call these files in a way that makes them associable to the NetPE.
+   b) this functions also creates the octeon_stringmathing.c files, with the global 
+      variable. Again both the variable and the file should have a name related to
+      their NetPE.
+   c) the initialization code, in the init segment of the NetPe, which calls the runtime
+      runtime init function should receive the new variable name as a parameter.
+   d) the octeon-pattern-compiler.sh should be called for each of the NetPE separately,
+      generating the structure for the corresponding PE with a different name.
+   e) maybe the compiler should run the octeon-pattern-compiler itself during the compilation.

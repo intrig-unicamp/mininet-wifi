@@ -1,0 +1,84 @@
+<protocol name="mnt" longname="MNT" showsumtemplate="mnt">
+	<format>
+		<fields>
+			<if expr="checklookuptable($rpctable, $ipsrc, $ipdst, $portsrc, $portdst) and $rpctable.type==0">	<!-- is a call -->
+				<if-true>
+					<switch expr="$rpctable.proc">
+						<case value="0x01"> <includeblk name="MNTargs"/> </case>
+						<case value="0x03"> <includeblk name="UMNTargs"/> </case>
+						<default>
+							<field type="variable" name="data" longname="Input" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+						</default>
+					</switch>
+					
+				</if-true>
+			</if>
+			<if expr="checklookuptable($rpctable, $ipsrc, $ipdst, $portsrc, $portdst) and $rpctable.type==1">  <!-- is a reply -->
+				<if-true>
+					<switch expr="$rpctable.proc">
+						<case value="0x01"> <includeblk name="MNTres"/> </case>
+						<!--<case value="0x03"> <includeblk name="UMNTres"/> </case> --> <!-- return void -->
+						<default>
+							<field type="variable" name="data" longname="Output" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+						</default>
+					</switch>
+					
+				</if-true>
+			</if>
+			<!--<field type="variable" name="data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>-->
+		</fields>
+
+		<block name="MNTargs" longname="MNT Arguments">
+			<includeblk name="dir_path"/>
+		</block>
+
+		<block name="UMNTargs" longname="UMNT Arguments">
+			<includeblk name="dir_path"/>
+		</block>
+		
+		<block name="MNTres" longname="MNT Results">
+			<includeblk name="fhstatus"/>
+		</block>
+		
+		<block name="fhstatus" longname="File Handle Status">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="FieldHex"/>
+			<if expr="not buf2int(status)">
+				<if-true>
+					<field type="fixed" name="length_fhandle" longname="Length File Handle" size="4" showtemplate="FieldDec"/>
+					<field type="variable" name="fhandle" longname="File Handle" expr="buf2int(length_fhandle)" showtemplate="FieldHex"/>
+					<if expr="(buf2int(length_fhandle) mod 4) != 0">
+						<if-true>
+							<field type="variable" name="filling" longname="Filling" expr="((buf2int(length_fhandle) div 4)+1)*4 - buf2int(length_fhandle)" showtemplate="FieldHex"/> 
+						</if-true>
+					</if>
+					<field type="fixed" name="number_auth_flavors" longname="# Auth Flavors" size="4" showtemplate="FieldDec"/>
+					<block name="auth_flavors" longname="Auth_Flavors">
+						<loop type="times2repeat" expr="buf2int(number_auth_flavors)">
+							<field type="fixed" name="auth_flavor" longname="Auth Flavor" size="4" showtemplate="FieldHex"/>
+						</loop>
+					</block>
+					
+				</if-true>
+			</if>
+			
+		</block>
+		<block name="dir_path" longname="DirPath">
+			<field type="fixed" name="length_path" longname="Length Path" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="path" longname="Path" expr="buf2int(length_path)" showtemplate="FieldAscii"/>
+			<!--<if expr="debug(buf2int(length_path) div 4)"><if-true></if-true></if>-->
+			<if expr="(buf2int(length_path) mod 4) != 0">
+				<if-true>
+					<field type="variable" name="filling" longname="Filling" expr="((buf2int(length_path) div 4)+1)*4 - buf2int(length_path)" showtemplate="FieldHex"/> 
+				</if-true>
+			</if>
+		</block>
+	</format>
+	
+	<visualization>	
+		<showsumtemplate name="mnt">
+			<section name="next"/>
+			<text value=" MNT"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

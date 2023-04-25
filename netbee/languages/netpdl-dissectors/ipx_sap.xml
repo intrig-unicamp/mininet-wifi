@@ -1,0 +1,234 @@
+<protocol name="ipx_sap" longname="SAP (Service Advertising Protocol)" showsumtemplate="ipx_sap">
+	<format>
+		<fields>
+			<field type="fixed" name="opr" longname="Operation" size="2" showtemplate="sap.opr"/>
+			<field type="fixed" name="srvtype" longname="Server Type" size="2" showtemplate="sap.srvtype"/>
+			<field type="fixed" name="srvname" longname="Server Name" size="48" showtemplate="FieldHex"/>
+			<field type="fixed" name="netname" longname="Network Address" size="4" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="nodeaddr" longname="Node Address" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="skaddr" longname="Socket Address" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="hop2srv" longname="Hops to Server" size="2" showtemplate="FieldHex"/>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showtemplate name="sap.opr" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0001" show="General Service Query"/>
+					<case value="0x0002" show="General Service Response"/>
+					<case value="0x0003" show="Nearest Server Query"/>
+					<case value="0x0004" show="Nearest Server Response"/>
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="sap.srvtype" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0000" show="Unknown"/>
+					<case value="0x0001" show="User"/>
+					<case value="0x0002" show="User Group"/>
+					<case value="0x0003" show="Print Queue or Print Group"/>
+					<case value="0x0004" show="File Server (SLIST source)"/>
+					<case value="0x0005" show="Job Server"/>
+					<case value="0x0006" show="Gateway"/>
+					<case value="0x0007" show="Print Server or Silent Print Server"/>
+					<case value="0x0008" show="Archive Queue"/>
+					<case value="0x0009" show="Archive Server"/>
+					<case value="0x000a" show="Job Queue"/>
+					<case value="0x000b" show="Administration"/>
+					<case value="0x000F" show="Novell TI-RPC"/>
+					<case value="0x0017" show="Diagnostics"/>
+					<case value="0x0020" show="NetBIOS"/>
+					<case value="0x0021" show="NAS SNA Gateway"/>
+					<case value="0x0023" show="NACS Async Gateway or Asynchronous Gateway"/>
+					<case value="0x0024" show="Remote Bridge or Routing Service"/>
+					<case value="0x0026" show="Bridge Server or Asynchronous Bridge Server"/>
+					<case value="0x0027" show="TCP/IP Gateway Server"/>
+					<case value="0x0028" show="Point to Point (Eicon) X.25 Bridge Server"/>
+					<case value="0x0029" show="Eicon 3270 Gateway"/>
+					<case value="0x002a" show="CHI Corp ???"/>
+					<case value="0x002c" show="PC Chalkboard"/>
+					<case value="0x002d" show="Time Synchronization Server or Asynchronous Timer"/>
+					<case value="0x002e" show="ARCserve 5.0"/>
+					<case value="0x0045" show="DI3270 Gateway"/>
+					<case value="0x0047" show="Advertising Print Server"/>
+					<case value="0x004a" show="NetBlazer Modems"/>
+					<case value="0x004b" show="Btrieve VAP/NLM 5.0"/>
+					<case value="0x004c" show="Netware SQL VAP/NLM Server"/>
+					<case value="0x004d" show="Xtree Network Version Netware XTree"/>
+					<case value="0x0050" show="Btrieve VAP 4.11"/>
+					<case value="0x0052" show="QuickLink (Cubix)"/>
+					<case value="0x0053" show="Print Queue User"/>
+					<case value="0x0058" show="Multipoint X.25 Eicon Router"/>
+					<case value="0x0060" show="STLB/NLM ???"/>
+					<case value="0x0064" show="ARCserve"/>
+					<case value="0x0066" show="ARCserve 3.0"/>
+					<case value="0x0072" show="WAN Copy Utility"/>
+					<case value="0x007a" show="TES-Netware for VMS"/>
+					<case value="0x0092" show="WATCOM Debugger or Emerald Tape Backup Server"/>
+					<case value="0x0095" show="DDA OBGYN ???"/>
+					<case value="0x0098" show="Netware Access Server (Asynchronous gateway)"/>
+					<case value="0x009a" show="Netware for VMS II or Named Pipe Server"/>
+					<case value="0x009b" show="Netware Access Server"/>
+					<case value="0x009e" show="Portable Netware Server or SunLink NVT"/>
+					<case value="0x00a1" show="Powerchute APC UPS NLM"/>
+					<case value="0x00aa" show="LAWserve ???"/>
+					<case value="0x00ac" show="Compaq IDA Status Monitor"/>
+					<case value="0x0100" show="PIPE STAIL ???"/>
+					<case value="0x0102" show="LAN Protect Bindery"/>
+					<case value="0x0103" show="Oracle DataBase Server"/>
+					<case value="0x0107" show="Netware 386 or RSPX Remote Console"/>
+					<case value="0x010f" show="Novell SNA Gateway"/>
+					<case value="0x0111" show="Test Server"/>
+					<case value="0x0112" show="Print Server (HP)"/>
+					<case value="0x0114" show="CSA MUX (f/Communications Executive)"/>
+					<case value="0x0115" show="CSA LCA (f/Communications Executive)"/>
+					<case value="0x0116" show="CSA CM  (f/Communications Executive)"/>
+					<case value="0x0117" show="CSA SMA (f/Communications Executive)"/>
+					<case value="0x0118" show="CSA DBA (f/Communications Executive)"/>
+					<case value="0x0119" show="CSA NMA (f/Communications Executive)"/>
+					<case value="0x011a" show="CSA SSA (f/Communications Executive)"/>
+					<case value="0x011b" show="CSA STATUS (f/Communications Executive)"/>
+					<case value="0x011e" show="CSA APPC   (f/Communications Executive)"/>
+					<case value="0x0126" show="SNA TEST SSA Profile"/>
+					<case value="0x012a" show="CSA TRACE  (f/Communications Executive)"/>
+					<case value="0x012b" show="Netware for SAA"/>
+					<case value="0x012e" show="IKARUS virus scan utility"/>
+					<case value="0x0130" show="Communications Executive"/>
+					<case value="0x0133" show="NNS Domain Server or Netware Naming Services Domain"/>
+					<case value="0x0135" show="Netware Naming Services Profile"/>
+					<case value="0x0137" show="Netware 386 Print Queue or NNS Print Queue"/>
+					<case value="0x0141" show="LAN Spool Server (Vap, Intel)"/>
+					<case value="0x0152" show="IRMALAN Gateway"/>
+					<case value="0x0154" show="Named Pipe Server"/>
+					<case value="0x0166" show="NetWare Management"/>
+					<case value="0x0168" show="Intel PICKIT Comm Server or Intel CAS Talk Server"/>
+					<case value="0x0171" show="UNKNOWN???"/>
+					<case value="0x0173" show="Compaq"/>
+					<case value="0x0174" show="Compaq SNMP Agent"/>
+					<case value="0x0175" show="Compaq"/>
+					<case value="0x0180" show="XTree Server or XTree Tools"/>
+					<case value="0x018A" show="UNKNOWN???	Running on a Novell Server"/>
+					<case value="0x01b0" show="GARP Gateway (net research)"/>
+					<case value="0x01b1" show="Binfview (Lan Support Group)"/>
+					<case value="0x01bc" show="Microsoft NT SNA Server"/>
+					<case value="0x01bf" show="Intel LanDesk Manager"/>
+					<case value="0x01ca" show="AXTEC ???"/>
+					<case value="0x01cb" show="Shiva NetModem/E"/>
+					<case value="0x01cc" show="Shiva LanRover/E"/>
+					<case value="0x01cd" show="Shiva LanRover/T"/>
+					<case value="0x01d8" show="Castelle FAXPress Server"/>
+					<case value="0x01da" show="Castelle LANPress Print Server"/>
+					<case value="0x01dc" show="Castille FAX/Xerox 7033 Fax Server/Excel Lan Fax"/>
+					<case value="0x01f0" show="LEGATO ???"/>
+					<case value="0x01f5" show="LEGATO ???"/>
+					<case value="0x0233" show="NMS Agent or Netware Management Agent"/>
+					<case value="0x0237" show="NMS IPX Discovery or LANtern Read/Write Channel"/>
+					<case value="0x0238" show="NMS IP Discovery or LANtern Trap/Alarm Channel"/>
+					<case value="0x023a" show="LABtern"/>
+					<case value="0x023c" show="MAVERICK ???"/>
+					<case value="0x023E" show="UNKNOWN???      Running on a Novell Server"/>
+					<case value="0x023f" show="Used by eleven various Novell Servers"/>
+					<case value="0x024e" show="Netware Connect"/>
+					<case value="0x026a" show="Network Management (NMS) Service Console"/>
+					<case value="0x026b" show="Time Synchronization Server (Netware 4.x)"/>
+					<case value="0x0278" show="Directory Server (Netware 4.x)"/>
+					<case value="0x03dd" show="Banyan ENS for Netware Client NLM"/>
+					<case value="0x0304" show="Novell SAA Gateway"/>
+					<case value="0x0308" show="COM or VERMED 1 ???"/>
+					<case value="0x030a" show="Galacticomm's Worldgroup Server"/>
+					<case value="0x030c" show="Intel Netport 2 or HP JetDirect or HP Quicksilver"/>
+					<case value="0x0320" show="Attachmate Gateway"/>
+					<case value="0x0327" show="Microsoft Diagnostiocs ???"/>
+					<case value="0x0328" show="WATCOM SQL server"/>
+					<case value="0x0335" show="MultiTech Systems Multisynch Comm Server"/>
+					<case value="0x0355" show="Arcada Backup Exec"/>
+					<case value="0x0358" show="MSLCD1 ???"/>
+					<case value="0x0361" show="NETINELO ???"/>
+					<case value="0x037e" show="Twelve Novell file servers in the PC3M family"/>
+					<case value="0x037f" show="ViruSafe Notify"/>
+					<case value="0x0386" show="HP Bridge"/>
+					<case value="0x0387" show="HP Hub"/>
+					<case value="0x0394" show="NetWare SAA Gateway"/>
+					<case value="0x039b" show="Lotus Notes"/>
+					<case value="0x03b7" show="Certus Anti Virus NLM"/>
+					<case value="0x03c4" show="ARCserve 4.0 (Cheyenne)"/>
+					<case value="0x03c7" show="LANspool 3.5 (Intel)"/>
+					<case value="0x03d7" show="lexmark printer server (type 4033-011)"/>
+					<case value="0x03d8" show="lexmark XLE printer server (type 4033-301)"/>
+					<case value="0x03de" show="Gupta Sequel Base Server or NetWare SQL"/>
+					<case value="0x03e1" show="Univel Unixware"/>
+					<case value="0x03e4" show="Univel Unixware"/>
+					<case value="0x03fc" show="Intel Netport"/>
+					<case value="0x03fd" show="Print SErver Queue ???"/>
+					<case value="0x04ac" show="On-Time Scheduler NLM"/>
+					<case value="0x040A" show="ipnServer???      Running on a Novell Server"/>
+					<case value="0x040B" show="UNKNOWN???"/>
+					<case value="0x040D" show="LVERRMAN???	Running on a Novell Server"/>
+					<case value="0x040E" show="LVLIC???	Running on a Novell Server"/>
+					<case value="0x0410" show="UNKNOWN???	Running on a Novell Server"/>
+					<case value="0x0414" show="Kyocera"/>
+					<case value="0x0429" show="Site Lock Virus (Brightworks)"/>
+					<case value="0x0432" show="UFHELP R ???"/>
+					<case value="0x0433" show="Synoptics 281x Advanced SNMP Agent"/>
+					<case value="0x0448" show="Oracle"/>
+					<case value="0x044c" show="ARCserve 5.01"/>
+					<case value="0x0457" show="Canon GP55???	Running on a Canon GP55 network printer"/>
+					<case value="0x045a" show="QMS Printers"/>
+					<case value="0x045b" show="Dell SCSI Array (DSA) Monitor"/>
+					<case value="0x0491" show="NetBlazer Modems"/>
+					<case value="0x04b0" show="CD-Net (Meridian)"/>
+					<case value="0x04C1" show="UNKNOWN???	"/>
+					<case value="0x0513" show="Emulux NQA???	Something from Emulex"/>
+					<case value="0x0520" show="Site Lock Checks"/>
+					<case value="0x0529" show="Site Lock Checks (Brightworks)"/>
+					<case value="0x052d" show="Citrix OS/2 App Server"/>
+					<case value="0x0535" show="Tektronix"/>
+					<case value="0x0536" show="Milan ???"/>
+					<case value="0x056b" show="IBM 8235 modem server"/>
+					<case value="0x056c" show="Shiva LanRover/E PLUS"/>
+					<case value="0x056d" show="Shiva LanRover/T PLUS"/>
+					<case value="0x0580" show="McAfee's NetShield anti-virus"/>
+					<case value="0x05BA" show="Compatible Systems Routers"/>
+					<case value="0x0621" show="IBM AntiVirus NLM"/>
+					<case value="0x0623" show="UNKNOWN???      Running on a Novell Server"/>
+					<case value="0x076C" show="Xerox"/>
+					<case value="0x079b" show="Shiva LanRover/E 115"/>
+					<case value="0x079c" show="Shiva LanRover/T 115"/>
+					<case value="0x0b29" show="Site Lock"/>
+					<case value="0x0c29" show="Site Lock Applications"/>
+					<case value="0x0c2c" show="Licensing Server"/>
+					<case value="0x2380" show="LAI Site Lock"/>
+					<case value="0x238c" show="Meeting Maker"/>
+					<case value="0x4808" show="Site Lock Server or Site Lock Metering VAP/NLM"/>
+					<case value="0x5555" show="Site Lock User"/>
+					<case value="0x6312" show="Tapeware"/>
+					<case value="0x6f00" show="Rabbit Gateway (3270)"/>
+					<case value="0x7703" show="?? MODEM"/>
+					<case value="0x8002" show="NetPort Printers (Intel) or LANport"/>
+					<case value="0x8008" show="WordPerfect Network Version"/>
+					<case value="0x85BE" show="Cisco Enhanced Interior Routing Protocol (EIGRP)"/>
+					<case value="0x8888" show="WordPerfect Network Version or Quick Network Management"/>
+					<case value="0x9000" show="McAfee's NetShield anti-virus"/>
+					<case value="0x9604" show="?? CSA-NT_MON"/>
+					<case value="0xb6a8" show="Ocean Isle Reachout Remote Control"/>
+					<case value="0xf11f" show="Site Lock Metering VAP/NLM"/>
+					<case value="0xf1ff" show="Site Lock"/>
+					<case value="0xF503" show="?? SCA-NT"/>
+					<case value="0xfbfb" show="TopCall III fax server"/>
+					<case value="0xffff" show="Any Service or Wildcard"/>
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+	
+		<showsumtemplate name="ipx_sap">
+			<section name="next"/>
+			<text value="SAP"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+    
+    <xs:element name="pdml">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="packet" minOccurs="1" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:string"/>
+            <xs:attribute name="creator" type="xs:string"/>
+            <xs:attribute name="dissectors" type="xs:string"/>
+            <xs:attribute name="date" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="packet">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="proto" minOccurs="1" maxOccurs="unbounded"/>
+            </xs:sequence>
+	    <xs:attribute name="num" type="xs:string" use="required"/>
+            <xs:attribute name="len" type="xs:string" use="required"/>
+            <xs:attribute name="caplen" type="xs:string" use="required"/>
+            <xs:attribute name="timestamp" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="proto">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:choice minOccurs="1" maxOccurs="unbounded">
+                    <xs:element ref="field"/>
+                    <xs:element ref="block"/>
+                </xs:choice>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="longname" type="xs:string"/>
+            <xs:attribute name="size" type="xs:byte" use="required"/>
+            <xs:attribute name="pos" type="xs:byte" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="field">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:choice minOccurs="0" maxOccurs="unbounded">
+                    <xs:element ref="field"/>
+                    <xs:element ref="block"/>
+                </xs:choice>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="longname" type="xs:string"/>
+            <xs:attribute name="value" type="xs:string" use="required"/>
+            <xs:attribute name="showvalue" type="xs:string"/>
+            <xs:attribute name="size" type="xs:byte" use="required"/>
+            <xs:attribute name="pos" type="xs:byte" use="required"/>
+            <xs:attribute name="mask" type="xs:string"/>
+            <xs:attribute name="showmap" type="xs:string"/>
+            <xs:attribute name="showdtl" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="block">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:choice minOccurs="0" maxOccurs="unbounded">
+                    <xs:element ref="field"/>
+                    <xs:element ref="block"/>
+                </xs:choice>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="longname" type="xs:string"/>
+            <xs:attribute name="size" type="xs:byte" use="required"/>
+            <xs:attribute name="pos" type="xs:byte" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

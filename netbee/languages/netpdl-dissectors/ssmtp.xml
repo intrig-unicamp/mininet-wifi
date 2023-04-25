@@ -1,0 +1,14 @@
+<protocol name="ssmtp" longname="Secure SMTP (Simple Mail Transfer Protocol)" showsumtemplate="ssmtp">
+	<format>
+		<fields>
+			<field type="variable" name="data" longname="Mail Data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="ssmtp">
+			<section name="next"/>
+			<text value="Secure SMTP"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

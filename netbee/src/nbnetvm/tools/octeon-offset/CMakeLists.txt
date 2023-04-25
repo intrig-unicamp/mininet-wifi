@@ -1,0 +1,10 @@
+SET (CMAKE_AR "mips64-octeon-linux-gnu-ar")
+SET (CMAKE_RANLIB "mips64-octeon-linux-gnu-ranlib")
+SET (CMAKE_C_COMPILER mips64-octeon-linux-gnu-gcc)
+SET (CMAKE_EXE_LINKER_FLAGS " -mabi=64 -lrt -static ")
+#-Wl,-T,${OCTEON_ROOT}/target/lib/cvmx-shared-linux.ld")
+SET (CMAKE_CXX_COMPILER mips64-octeon-linux-gnu-g++)
+ADD_EXECUTABLE(octeon-offset octeon-offset.cpp)
+INCLUDE_DIRECTORIES(../../ ../../../../include/)
+#TARGET_LINK_LIBRARIES(octeon-offset nbnetvm)
+

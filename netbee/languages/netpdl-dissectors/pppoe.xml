@@ -1,0 +1,32 @@
+<protocol name="pppoe" longname="PPPoE Session Stage" showsumtemplate="pppoesession">
+	<format>
+		<fields>
+			<field type="bit" name="ver" longname="Version" mask="0xF0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="type" longname="Type" mask="0x0F" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="code" longname="Code" size="1" showtemplate="pppoe.tagtype"/>
+			<field type="fixed" name="session_ID" longname="Session ID" description="ID of the PPPoE session" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="hlen" longname="Length" description="Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="nextp" longname="Next protocol" description="Protocol encapsulated into PPPoE" size="2" showtemplate="FieldHex"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<switch expr="buf2int(nextp)">
+			<case value="33"> <nextproto proto="#ip"/> </case>
+			<case value="87"> <nextproto proto="#ipv6"/> </case>
+			<case value="32801"> <nextproto proto="#icmp"/> </case>
+<!--
+			<case value="49185"> <nextproto proto="#LCP"/> </case>
+			<case value="43"> <nextproto proto="#IPX"/> </case>
+			<case value="63"> <nextproto proto="#Netbeui"/> </case>
+-->
+		</switch>
+	</encapsulation>
+	
+	<visualization>
+		<showsumtemplate name="pppoesession">
+			<text value=" - "/>
+			<protohdr showdata="longname"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

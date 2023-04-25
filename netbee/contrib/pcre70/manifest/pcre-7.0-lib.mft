@@ -1,0 +1,13 @@
+include/pcre.h
+include/pcreposix.h
+include/regex.h
+lib/libpcre.dll.a
+lib/libpcreposix.dll.a
+lib/pcre-bcc.lib
+lib/pcre.lib
+lib/pcre3.dll.def
+lib/pcreposix-bcc.lib
+lib/pcreposix.lib
+lib/pcreposix3.dll.def
+manifest/pcre-7.0-lib.mft
+manifest/pcre-7.0-lib.ver

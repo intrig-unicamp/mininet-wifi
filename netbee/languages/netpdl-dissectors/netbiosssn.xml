@@ -1,0 +1,146 @@
+<protocol name="netbiosssn" longname="NetBios Session Service" showsumtemplate="netbiossession">
+	<execute-code>
+		<verify>
+			<!--<if expr="($packet[$currentoffset :1 ] == '\x00' or $packet[$currentoffset :1 ] == '\x81' or $packet[$currentoffset :1 ] == '\x82' or $packet[$currentoffset :1 ] == '\x83' or $packet[$currentoffset :1 ] == '\x84' or $packet[$currentoffset :1 ] == '\x85') and (($packetlength - $currentoffset - 4) == buf2int($packet[currentoffset + 2 : 2])">-->
+			<if expr="($packet[$currentoffset :1 ] == '\x00' or $packet[$currentoffset :1 ] == '\x81' or $packet[$currentoffset :1 ] == '\x82' or $packet[$currentoffset :1 ] == '\x83' or $packet[$currentoffset :1 ] == '\x84' or $packet[$currentoffset :1 ] == '\x85') and (($packetlength - $currentoffset - 4) == buf2int($packet[$currentoffset + 2 : 2]))">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+		
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#netbiosssn"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#netbiosssn"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#netbiosssn"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+	
+	<format>
+		<fields>
+			<if expr="$packet[$currentoffset :1 ] == '\x00' or $packet[$currentoffset :1 ] == '\x81' or $packet[$currentoffset :1 ] == '\x82' or $packet[$currentoffset :1 ] == '\x83' or $packet[$currentoffset :1 ] == '\x84' or $packet[$currentoffset :1 ] == '\x85'">
+				<if-true>
+					<field type="fixed" name="type" longname="Type" size="1" showtemplate="netbiosssn.type"/>
+					<field type="fixed" name="flags" longname="Flags" size="1" showtemplate="FieldHex"/>
+					<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+					
+					<switch expr="buf2int(type)">
+						<case value = "129">  <!-- 0x81-->
+							<if expr="$L4proto == #tcp ">
+								<!-- NetBios over TCP uses different name rappresentation	-->
+								<if-true>
+									<block name="called" longname="Called Name">
+										<loop type="while" expr="buf2int($packet[$currentoffset : 1]) != 0x00">
+											<field type="fixed" name="labelLength" longname="Label Length" size="1" showtemplate="FieldHex"/>
+											<field type="variable" name="label" longname="Label" expr="buf2int(labelLength)" showtemplate="FieldHex"/>			
+										</loop>
+										<field type="fixed" name="root" longname="Root" size="1" showtemplate="FieldHex"/>	
+									</block>
+									
+									<block name="calling" longname="Calling Name">
+										<loop type="while" expr="buf2int($packet[$currentoffset : 1]) != 0x00">
+											<field type="fixed" name="labelLength" longname="Label Length" size="1" showtemplate="FieldHex"/>
+											<field type="variable" name="label" longname="Label" expr="buf2int(labelLength)" showtemplate="FieldHex"/>
+										</loop>	
+										<field type="fixed" name="root" longname="Root" size="1" showtemplate="FieldHex"/>	
+									</block>						
+								</if-true>
+								
+								<if-false>
+									<field type="fixed" name="called" longname="Called Name" size="4" showtemplate="FieldHex"/>
+									<field type="fixed" name="calling" longname="Calling Name" size="4" showtemplate="FieldHex"/>
+								</if-false>
+							</if>
+							
+						</case>
+					
+						<case value ="131">  <!-- 0x83 -->
+							<field type="fixed" name="errcode" longname="Error code" size="1" showtemplate="FieldAscii"/>
+						</case>
+						
+						<case value ="131">  <!-- 0x84 -->
+							<field type="fixed" name="retargetIP" longname="Retarget IP Adrres" size="4" showtemplate="FieldAscii"/>
+							<field type="fixed" name="port" longname="Port" size="2" showtemplate="FieldAscii"/>
+						</case>
+						
+						<case value="0">    <!-- 0x00 -->
+							<field type="variable" name="userdata" longname="User data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						</case> 
+					</switch>
+			
+					<field type="variable" name="netbiosdata" longname="NetBios Data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+				</if-true>
+				
+				<if-false>
+					<field type="variable" name="netbiosdata" longname="NetBios Data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+				</if-false>
+			</if>
+
+		</fields>
+	</format>
+	
+	<visualization>
+	
+		<showtemplate name="netbiosssn.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x00" show="Message"></case>
+					<case value="0x81" show="Request"></case>
+					<case value="0x82" show="Positive Response"></case>
+					<case value="0x83" show="Negative Response"></case>
+					<case value="0x84" show="Retarget Response"></case>
+					<case value="0x85" show="Keep Alive"></case>
+					<default show="Unkown Message Type"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="netbiossession">
+			<section name="next"/>
+			<text value="NetBios Session Service ("/>
+			<protofield name="type" showdata="showmap"/>
+			<text value=")"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

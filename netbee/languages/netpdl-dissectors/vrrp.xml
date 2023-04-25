@@ -1,0 +1,50 @@
+<protocol name="vrrp" longname="Virtual Router Redundancy Protocol (VRRP)" showsumtemplate="vrrp">
+	<!-- We should check that 'version' is equal to '2' Type is 'ADVERTISEMENT' (1), IP destination is 224.0.0.18 -->
+	<!-- (multicast address by IANA) and TTL is 255 -->
+
+	<format>
+		<fields>
+			<block name="versionType" longname="Version and Type">
+				<field type="bit" name="version" longname="Version" comment="The only version supported is 2" mask="0xF0" size="1" showtemplate="FieldDec"/>
+				<field type="bit" name="type" longname="Type of message" comment="For this version the only type defined is ADVERTISEMENT (value = 1)" mask="0x0F" size="1" showtemplate="FieldHex"/>
+			</block>
+
+			<field type="fixed" name="VRID" longname="Virtual Router ID" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="priority" longname="Priority" comment="Higher value equal higher priority" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="ipAddrCnt" longname="Count IP Addresses" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="authType" longname="Authentification Type" size="1" showtemplate="vrrp.authtype"/>
+			<field type="fixed" name="adverInt" longname="Advertisement Interval" comment="This field is used for troubleshooting misconfigured routers" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="checksum" longname="Checksum" description="16-bit one's complement of the one's complement sum of the entire VRRP message starting with the version field" size="2" showtemplate="FieldHex"/>
+
+			<!-- These fields are used for troubleshooting misconfigured routers -->
+			<block name="ipAddresses" longname="IP Addresses">
+				<loop type="times2repeat" expr="buf2int(ipAddrCnt)">
+					<field type="fixed" name="ipAddress" longname="IP Address" size="4" showtemplate="ip4addr-noplg"/> 
+				</loop>
+			</block>
+
+			<field type="fixed" name="authData" longname="Authentification Data" size="8" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+
+
+	<visualization>
+		<showtemplate name="vrrp.authtype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="No Authentication: AuthData SHOULD be zero filled"/> 
+					<case value="1" show="Simple Text Password: AuthData contain clear text password (this one in the end MUST be zero filled)"/> 
+					<case value="2" show="IP Authentication Header: The packet is authenticated with HMAC-MD5-96, AuthData SHOULD be zero filled"/>
+					<default show="Error in VRRP Authentication Type lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="vrrp">
+			<section name="next"/>
+			<text value="VRRP: Virtual Router ID "/>
+			<protofield name="VRID" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>

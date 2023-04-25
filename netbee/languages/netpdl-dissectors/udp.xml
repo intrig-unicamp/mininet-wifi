@@ -1,0 +1,225 @@
+<protocol name="udp" longname="UDP (User Datagram protocol)" showsumtemplate="udp">
+	<execute-code>
+		<after>
+			<assign-variable name="$L4proto" value="#udp"/>
+			<!-- Stores tcp src and dst port in a couple of variables for the sake of speed -->
+			<!-- By the way, the same method can be used to hide differences between IPv4 and IPv6 -->
+			<assign-variable name="$portsrc" value="sport"/>
+			<assign-variable name="$portdst" value="dport"/>
+
+			<assign-variable name="$payloadlength" value="$packetlength - $currentoffset"/>
+
+
+			<if expr="$ipsrc lt $ipdst" >
+				<if-true>
+					<assign-variable name="$firstport" value="sport"/>
+					<assign-variable name="$secondport" value="dport"/>
+				</if-true>
+				<if-false>
+					<assign-variable name="$firstport" value="dport"/>
+					<assign-variable name="$secondport" value="sport"/>
+				</if-false>
+			</if>
+
+			<!-- Let's update the 'timestamp' of current session so that it does not expire -->
+			<!-- due to the lifetime (the current packet confirms that the session is still active) -->
+			<if expr="updatelookuptable($udpsessiontable, $ipsrc, $ipdst, $portsrc, $portdst)"><if-true></if-true></if>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="updatelookuptable($KnownUDPServerTable, $ipsrc, $portsrc)"><if-true></if-true></if>
+					<if expr="updatelookuptable($KnownUDPServerTable, $ipdst, $portdst)"><if-true></if-true></if>
+				</if-true>
+			</if>
+		</after>
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="fixed" name="sport" longname="Source port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="dport" longname="Destination port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Payload length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="crc" longname="Checksum" size="2" showtemplate="FieldHex"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<if expr="$enable_servertable">
+			<if-true>
+				<if expr="checklookuptable($KnownUDPServerTable, $ipsrc, $portsrc) or checklookuptable($KnownUDPServerTable, $ipdst, $portdst)">
+					<if-true>
+						<assign-variable name="$ks_table_hit" value="1"/>
+
+						<!--
+							Uncomment the following line if you want to add
+							the flow to the udpsessiontable upon detection with "known service algorithm"
+						-->
+						<!--<assign-variable name="$protoverify_result" value="%FOUND"/>-->
+						<nextproto proto="$KnownUDPServerTable.nextproto"/>
+					</if-true>
+				</if>
+
+				<if expr="checklookuptable($SkypeClientTable, $ipsrc, $portsrc) or checklookuptable($SkypeClientTable, $ipdst, $portdst)">
+					<if-true>
+						<assign-variable name="$ks_table_hit" value="1"/>
+
+						<!--
+							Uncomment the following line if you want to add
+							the flow to the udpsessiontable upon detection with "known service algorithm"
+						-->
+						<!--<assign-variable name="$protoverify_result" value="%FOUND"/>-->
+						<nextproto proto="#skype"/>
+					</if-true>
+				</if>
+			</if-true>
+		</if>
+
+		<if expr="checklookuptable($skypetempsessiontable, $ipsrc, $portsrc)">
+			<if-true>
+				<assign-variable name="$ks_table_hit" value="1"/>
+				<nextproto-candidate proto="#skype"/>
+			</if-true>
+		</if>
+
+
+		<if expr="checklookuptable($udpsessiontable, $ipsrc, $ipdst, $portsrc, $portdst)">
+			<if-true>
+				<assign-variable name="$sess_table_hit" value="1"/>
+				<nextproto proto="$udpsessiontable.nextproto"/>
+			</if-true>
+		</if>
+		<!--
+			Let's check well-known ports < 1024 first (otherwise, a connection from port 3635 to 53 appears to be
+			"Edonkey" instead of DNS, while probably it's just a client who choose randomly that port
+		-->		
+		<switch expr="buf2int(sport)">
+			<case value="53"> <nextproto proto="#dns" preferred="true"/> </case>
+			<case value="88"> <nextproto proto="#kerberos"/> </case>
+			<case value="111"> <nextproto-candidate proto="#onc_rpc_udp"/> </case>		<!-- RPCBIND protocol runs over ONC RPC -->
+			<case value="123"> <nextproto-candidate proto="#ntp"/> </case>
+			<case value="137"> <nextproto proto="#netbios"/> </case>
+			<case value="138"> <nextproto-candidate proto="#netbiosdgm"/> </case>
+			<case value="161"> <nextproto-candidate proto="#snmp"/> </case>
+			<case value="162"> <nextproto-candidate proto="#snmp"/> </case>
+			<case value="370"> <nextproto-candidate proto="#fsecure"/></case>
+			<case value="371"> <nextproto-candidate proto="#fsecure"/></case>
+			<case value="389"> <nextproto-candidate proto="#cldap"/></case>
+			<case value="445"> <nextproto-candidate proto="#netbiosdgm"/> </case>
+			<case value="500"> <nextproto proto="#isakmp"/></case>
+			<case value="520">
+				<!-- RIP has source and destination port equal to 520 -->
+				<if expr="buf2int(dport) == 520">
+					<if-true> <nextproto proto="#rip"/> </if-true>
+				</if>
+			</case>
+			<case value="514"> <nextproto-candidate proto="#syslog"/> </case>
+			<case value="521"> <nextproto proto="#rip6"/> </case>
+			<case value="631"> <nextproto proto="#ipp"/> </case>
+			<case value="800"> <nextproto-candidate proto="#onc_rpc_udp"/> </case>
+		</switch>
+		<switch expr="buf2int(dport)">
+			<case value="53"> <nextproto proto="#dns" preferred="true"/> </case>
+			<case value="88"> <nextproto proto="#kerberos"/> </case>
+			<case value="111"> <nextproto-candidate proto="#onc_rpc_udp"/> </case>		<!-- RPCBIND protocol runs over ONC RPC -->
+			<case value="123"> <nextproto-candidate proto="#ntp"/> </case>
+			<case value="137"> <nextproto proto="#netbios"/> </case>
+			<case value="138"> <nextproto-candidate proto="#netbiosdgm"/> </case>
+			<case value="161"> <nextproto-candidate proto="#snmp"/> </case>
+			<case value="162"> <nextproto-candidate proto="#snmp"/> </case>
+			<case value="370"> <nextproto-candidate proto="#fsecure"/></case>
+			<case value="371"> <nextproto-candidate proto="#fsecure"/></case>
+			<case value="389"> <nextproto-candidate proto="#cldap"/></case>
+			<case value="445"> <nextproto-candidate proto="#netbiosdgm"/> </case>
+			<case value="500"> <nextproto proto="#isakmp"/></case>
+			<case value="514"> <nextproto-candidate proto="#syslog"/> </case>
+			<case value="521"> <nextproto proto="#rip6"/> </case>
+			<case value="631"> <nextproto proto="#ipp"/> </case>
+			<case value="800"> <nextproto-candidate proto="#onc_rpc_udp"/> </case>
+		</switch>
+
+		<switch expr="buf2int(dport)">
+			<case value="1434"> <nextproto-candidate proto="#ms_sql_monitor"/> </case>
+			<case value="1812"> <nextproto-candidate proto="#radius"/> </case>
+			<case value="1813"> <nextproto-candidate proto="#radius"/> </case>
+			<case value="1900"> <nextproto-candidate proto="#ssdp"/> </case>
+			<case value="1985"> <nextproto-candidate proto="#hsrp"/> </case>
+			<case value="3130"> <nextproto-candidate proto="#icp"/> </case>
+			<case value="3478"> <nextproto-candidate proto="#stun"/> </case>
+			<case value="3531"> <nextproto-candidate proto="#peerenabler"/> </case>
+			<case value="3635"> <nextproto-candidate proto="#edonkudp"/> </case>
+			<case value="5060"> <nextproto-candidate proto="#sip"/> </case>
+			<case value="5100"> <nextproto-candidate proto="#nt_security_log"/> </case>
+			<case value="9573"> <nextproto-candidate proto="#edonkudp"/> </case>
+		</switch>
+		<switch expr="buf2int(sport)">
+			<case value="1434"> <nextproto-candidate proto="#ms_sql_monitor"/> </case>
+			<case value="1812"> <nextproto-candidate proto="#radius"/> </case>
+			<case value="1813"> <nextproto-candidate proto="#radius"/> </case>
+			<case value="1900"> <nextproto-candidate proto="#ssdp"/> </case>
+			<case value="1985"> <nextproto-candidate proto="#hsrp"/> </case>
+			<case value="3130"> <nextproto-candidate proto="#icp"/> </case>
+			<case value="3478"> <nextproto-candidate proto="#stun"/> </case>
+			<case value="3531"> <nextproto-candidate proto="#peerenabler"/> </case>
+			<case value="3635"> <nextproto-candidate proto="#edonkudp"/> </case>
+			<case value="5060"> <nextproto-candidate proto="#sip"/> </case>
+			<case value="5100"> <nextproto-candidate proto="#nt_security_log"/> </case>
+			<case value="9573"> <nextproto-candidate proto="#edonkudp"/> </case>
+		</switch>
+
+		<if expr="(buf2int(dport) == 67) or (buf2int(dport) == 68)">
+			<if-true>
+				<!-- Port 67 are messages from client to server (which receives on port 67) -->
+				<!-- Port 68 are messages from server to client (which receives on port 68) -->
+				
+				<!-- Please note that DHCP and BOOTP have the same magic number mostly of the time (hence are not really distinguishable) -->	
+				<!-- BOOTP does not have any code to verify this is the correct proto. Fortunately, this protocol is not usually deployed, and DHCP is used instead. -->
+				<!-- However please note that the magic number specified fot DHCP (0x63825363) is a valid magic also for BOOTP, and it is the value it used most. -->
+
+				<if expr="buf2int($packet[($currentoffset + 236) : 4]) == 0x63825363">
+					<if-true>
+						<nextproto proto="#dhcp" preferred="true"/>
+					</if-true>
+					<if-false>
+						<nextproto proto="#bootp"/>
+					</if-false>
+				</if>
+			</if-true>
+		</if>
+
+		<!-- Try and See section -->	
+		<nextproto-candidate proto="#edonkudp"/>	
+		<nextproto-candidate proto="#sip"/>
+		<nextproto-candidate proto="#gnutella"/>
+		<nextproto-candidate proto="#bittorrent"/>
+		<nextproto-candidate proto="#pplive"/>
+		<nextproto-candidate proto="#sopcast"/>
+		<nextproto-candidate proto="#tvants"/>
+		<nextproto-candidate proto="#skype"/>
+		<nextproto-candidate proto="#onc_rpc_udp"/>
+		<nextproto-candidate proto="#fasttrack"/>				
+		<nextproto-candidate proto="#dce_rpc_udp"/>
+		<nextproto-candidate proto="#ares"/>
+								
+		<!-- This is the last resort; if it doesn't match anything, let's try with RTP/RTCP -->
+		<!-- Let's check that the port is an even number -->
+		<if expr="(buf2int(dport) mod 2) == 0">
+			<if-true>
+				<nextproto-candidate proto="#rtp"/>
+			</if-true>
+			<!-- We do not add any entry for RTCP; RTCP sessions are added to the session table as -->
+			<!-- soon as an RTP session is detected (hence these entries are managed by the RTP dissector) -->
+		</if>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="udp">
+			<section name="next"/>
+			<text value="UDP: port "/>
+			<protofield name="sport" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dport" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+

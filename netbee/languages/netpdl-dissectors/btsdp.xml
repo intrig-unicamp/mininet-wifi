@@ -1,0 +1,232 @@
+<!-- Service Discovery Protocol -->
+<protocol name="btsdp" longname="Service Discovery Protocol">
+	<format>
+		<fields>
+			<field type="fixed" name="sdp_pdu_id" longname="PDU ID" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="sdp_transaction_id" longname="Transaction ID" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sdp_parameter_length" longname="Parameter Length" size="2" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(sdp_pdu_id)">
+				<case value="0" comment="Reserved">									<!-- nothing???? -->										</case>
+				<case value="1" comment="SDP Error Response">						<includeblk name="sdp_error_response"/>						</case>
+				<case value="2" comment="SDP Service Search Request">				<includeblk name="sdp_service_search_request"/>				</case>
+				<case value="3" comment="SDP Service Search Response">				<includeblk name="sdp_searvice_search_response"/>			</case>
+				<case value="4" comment="SDP Service Attribute Request">			<includeblk name="sdp_service_attribute_request"/>			</case>
+				<case value="5" comment="SDP Service Attribute Response">			<includeblk name="sdp_service_attribute_response"/>			</case>
+				<case value="6" comment="SDP Service Search Attribute Request">		<includeblk name="sdp_service_search_attribute_request"/>	</case>
+				<case value="7" comment="SDP Service Search Attribute Response">	<includeblk name="sdp_service_search_attribute_response"/>	</case>
+				<default comment="Reserved">										<!-- What is this??? <includeblk name=""/>	-->				</default>
+			</switch>
+		</fields>
+
+
+		<block name="sdp_error_response" longname="SDP Error Response">
+			<field type="fixed" name="error_code" longname="Error Code" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="error_info" longname="Error Info" expr="buf2int(sdp_parameter_length) - 2" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="sdp_service_search_request" longname="SDP Service Search Request">
+			<!-- Service Search Pattern var -->
+			<!-- Maximum Service Record Count (2 B) -->
+			<!-- Continuation State 1-17 B -->
+			<field type="variable" name="search_req_params" longname="Parameters" expr="buf2int(sdp_parameter_length)" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="sdp_searvice_search_response" longname="SDP Service Search Response ">
+			<field type="fixed" name="total_service_record_count" longname="Total Service Record Count" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="current_service_record_count" longname="Current Service Record Count" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="service_record_handle_list" longname="Service Record Handle List" expr="buf2int(current_service_record_count) * 4" showtemplate="Field4BytesHex"/>
+			<field type="variable" name="continuation_state" longname="Continuation State" expr="buf2int(sdp_parameter_length) - 4 + (buf2int(current_service_record_count) * 4)" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="sdp_service_attribute_request" longname="SDP Service Attribute Request">
+			<field type="fixed" name="service_record_handle" longname="Service Record Handle" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="maximum_attribute_count" longname="Maximum Attribute Count" size="2" showtemplate="FieldDec"/>
+
+			<!-- Attribute ID List -->
+			<!-- Continuation List -->
+			<field type="variable" name="AttributeId_Continuation_Lists" longname="Attribute Id list and Continuation List" expr="buf2int(sdp_parameter_length) - 6" showtemplate="Field1BytesHex"/>	
+		</block>
+
+		<block name="sdp_service_attribute_response" longname="SDP Service Attribute Responce">
+			<field type="fixed" name="attribute_list_byte_count" longname="Attribute List Byte Count" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="attribute_lists" longname="Attribute list" expr="buf2int(attribute_list_byte_count)" showtemplate="Field1BytesHex"/>
+			<field type="variable" name="continuation_state" longname="Continuation State" expr="buf2int(sdp_parameter_length) - (buf2int(attribute_list_byte_count) + 2)" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="sdp_service_search_attribute_request" longname="SDP Service Serach Attribute Request">
+			<!-- Service Search Pattern var -->
+			<!-- Maximum Attribute Byte Count -->
+			<!-- Attribute ID List -->
+			<!-- Continuation State -->
+			<field type="variable" name="parameters" longname="Parameters" expr="buf2int(sdp_parameter_length)" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="sdp_service_search_attribute_response" longname="SDP Service Search Attribute Response">
+			<field type="fixed" name="attribute_list_byte_count" longname="Attribute List Byte Count" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="attribute_lists" longname="Attribute list" expr="buf2int(attribute_list_byte_count)" showtemplate="Field1BytesHex"/>
+			<field type="variable" name="continuation_state" longname="Continuation State" expr="buf2int(sdp_parameter_length) - (buf2int(attribute_list_byte_count) + 2)" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<!-- What is this block?? -->
+		<block name="sdp_" longname="SDP ">
+		</block>
+	</format>
+
+</protocol>
+
+
+<!--
+FULVIO: Here there are some showmap which are not used in the bluetooth dissector.
+Could you please check if these are going to be used somewhere?
+-->
+
+<!--
+	<showdtl name="assignTest">
+		<text value="SHDTL:"/>
+	</showdtl>
+
+	<showmap name="hci_pagescan_reposition_mode_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="R0"/>
+			<case value="1" show="R1"/>
+			<case value="2" show="R2"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_service_type_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="No Traffic"/>
+			<case value="1" show="Best effort"/>
+			<case value="2" show="Guaranteed"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_current_role_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Master for this Connection Handle"/>
+			<case value="1" show="Slave for this Connection Handle"/>
+			<default show="Invalid Code"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_role_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Change own Role to Master for this BD_ADDR"/>
+			<case value="1" show="Change own Role to Slave for this BD_ADDR"/>
+			<default show="Invalid Code"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_linkpolicy_settings_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Disable All LM Modes"/>
+			<case value="1" show="Enable Master Slave Switch"/>
+			<case value="2" show="Enable Hold Mode"/>
+			<case value="4" show="Enable Sniff Mode"/>
+			<case value="8" show="Enable Park Mode"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_event_mask_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="No Events specified"/>
+			<case value="1" show="Inquiry Complete Event"/>
+			<default show=" "/>
+8888888888888888888888888888888888888888888888888888888
+Complete it later
+8888888888888888888888888888888888888888888888888888888
+		</switch>
+	</showmap>
+
+	<showmap name="hci_filter_type_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Clear All Filters"/>
+			<case value="1" show="Inquiry Result"/>
+			<case value="2" show="Connection Setup"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_connection_setup_filtercondition_type_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Allow Connections From All Devices"/>
+			<case value="1" show="Allow Connections From a device with a Specific Class of Device"/>
+			<case value="2" show="Allow Connections From a device with a Specific BD_ADDR"/>
+	 		<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_pin_type_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Variable PIN"/>
+			<case value="1" show="Fixed PIN"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_read_all_flag_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Return Link Key for specified BD_ADDR"/>
+			<case value="1" show="Return all stored Link Keys"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_delete_all_flag_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Delete only the Link Key for specified BD_ADDR"/>
+			<case value="1" show="Delete all stored Link Keys"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_sacn_enable_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="No Scans Enabled"/>
+			<case value="1" show="Inquiry Scan Enabled.Page Scan Disabled"/>
+			<case value="2" show="Inquiry Scan Disabled.Page Scan Enabled"/>
+			<case value="3" show="Inquiry Scan Enabled.Page Scan Enabled"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_encryption_mode_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Encryption Disabled"/>
+			<case value="1" show="Encryption only for Ponit to Point Packets"/>
+			<case value="2" show="Encryption for both Point to Point and Broadcast Packets"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_holdmode_activity_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Maintain current Power State"/>
+			<case value="1" show="Suspend Page Scan"/>
+			<case value="2" show="Suspend Inquiry Scan"/>
+			<case value="4" show="Suspend Periodic Inquiries"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_read_transmit_powerlevel_type_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="Read Current Transmit Power Level"/>
+			<case value="1" show="Read maximum Transmit Power Level"/>
+			<default show="Reserved"/>
+		</switch>
+	</showmap>
+
+	<showmap name="hci_read_sco_flowcontrol_enable_map">
+		<switch expr="buf2int(this)">
+			<case value="0" show="SCO Flow Control is Disabled"/>
+			<case value="1" show="SCO Flow Control is Enabled"/>
+			<default show="Invalid Code"/>
+		</switch>
+	</showmap>
+
+-->

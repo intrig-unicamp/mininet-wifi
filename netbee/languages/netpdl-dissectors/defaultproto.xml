@@ -1,0 +1,52 @@
+<protocol name="defaultproto" longname="Other data" comment="Generic protocol that is called when no other protocols are available" showsumtemplate="defaultproto">
+	<execute-code>
+		<before when="($L4proto == #tcp)">
+			<!-- Since both sides of the connection are stored in the table, we can just check for one of them -->
+			<if expr="not updatelookuptable($unknownprotosessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<assign-variable name="$session_hit" value="1"/>
+					<update-lookuptable name="$unknownprotosessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$firstip"/>
+						<lookupkey value="$secondip"/>
+						<lookupkey value="$firstport"/>
+						<lookupkey value="$secondport"/>
+					</update-lookuptable>
+				</if-true>
+			</if>
+		</before>
+		
+		<before when="($L4proto == #udp)">
+			<!-- Since both sides of the connection are stored in the table, we can just check for one of them -->
+			<if expr="not updatelookuptable($unknownprotosessiontable, $ipsrc, $ipdst, $portsrc, $portdst)">
+				<if-true>
+					<assign-variable name="$session_hit" value="1"/>
+					<update-lookuptable name="$unknownprotosessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$ipsrc"/>
+						<lookupkey value="$ipdst"/>
+						<lookupkey value="$portsrc"/>
+						<lookupkey value="$portdst"/>
+					</update-lookuptable>
+					<update-lookuptable name="$unknownprotosessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$ipdst"/>
+						<lookupkey value="$ipsrc"/>
+						<lookupkey value="$portdst"/>
+						<lookupkey value="$portsrc"/>
+					</update-lookuptable>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+	<format>
+		<fields>
+			<field type="variable" name="payload" longname="Data payload" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="defaultproto">
+			<section name="L7"/>
+			<text value="Generic Data"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

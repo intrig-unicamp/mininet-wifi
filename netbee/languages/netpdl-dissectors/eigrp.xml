@@ -1,0 +1,60 @@
+<protocol name="eigrp" longname="Enhanced Interior Gateway Routing Protocol" showsumtemplate="eigrp">
+	<format>
+		<fields>
+			<field type="fixed" name="version" longname="Version" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="eigrp.opcode"/>
+			<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="flags" longname="Flags" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="dequence" longname="Sequence" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="ack" longname="Acknowledge" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="as" longname="Autonomous System" size="4" showtemplate="FieldDec"/>
+
+			<block name="payload" longname="Payload">
+				<!-- This block will keep all the remaining data of the packet -->
+				<loop type="size" expr="$packetlength - $currentoffset">
+					<block name="Parameters" longname="Parameters">
+						<field type="bit" name="type" longname="Type" mask="0xFFFF0000" size="4" showtemplate="FieldHex"/>
+						<field type="bit" name="size" longname="Size" mask="0x0000FFFF" size="4" showtemplate="FieldDec"/>
+					</block>
+					<field type="fixed" name="k1" longname="K1" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="k2" longname="K2" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="k3" longname="K3" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="k4" longname="K4" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="k5" longname="K5" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="reserved" longname="Reserved" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="holdtime" longname="Hold time" size="2" showtemplate="FieldDec"/> 
+					<block name="Software Version" longname="Software Version">
+						<field type="bit" name="type" longname="type" mask="0xFFFF0000" size="4" showtemplate="FieldHex"/>
+						<field type="bit" name="size" longname="size" mask="0x0000FFFF" size="4" showtemplate="FieldDec"/>
+					</block>
+					<field type="fixed" name="IOS_rel_ver" longname="IOS release version" size="2" showtemplate="eigrp.relversion"/> 
+					<field type="fixed" name="EIGRP_rel_ver" longname="EIGRP release version" size="2" showtemplate="eigrp.relversion"/>
+				</loop>
+			</block>
+		</fields>			
+	</format>
+
+	<visualization>
+		<showtemplate name="eigrp.opcode" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Update"/> 
+					<case value="2" show="Reserved"/> 
+					<case value="3" show="Query"/> 
+					<case value="4" show="IPX-SAP"/> 
+					<case value="5" show="Hello"/> 
+					<default show="Error in EIGRP code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="eigrp.relversion" showtype="dec" showgrp="1" showsep="."/>
+	
+		<showsumtemplate name="eigrp">
+			<section name="next"/>
+			<text value="EIGRP: "/>
+			<protofield name="opcode" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>

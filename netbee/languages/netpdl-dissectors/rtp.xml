@@ -1,0 +1,160 @@
+<protocol name="rtp" longname="RTP (Real Time Protocol)" showsumtemplate="rtp">
+	<execute-code>
+		<verify>
+
+			<if expr="(buf2int($packet[$currentoffset:1]) bitwand 0xC0) == 0x80">
+				<if-true>
+
+					<if expr="checklookuptable($rtptable, $ipsrc, $ipdst, $portsrc, $portdst)">
+						<if-true>
+
+							<if expr="buf2int($rtptable.ssrc) == buf2int($packet[$currentoffset + 8 : 4])">
+								<if-true>
+									<assign-variable name="$protoverify_result" value="%FOUND"/>
+								</if-true>
+
+								<if-false>
+									<assign-variable name="$protoverify_result" value="%NOTFOUND"/>
+
+									<!-- We should avoid code that updates variables here unless we're 100% sure that this code must be executed. -->
+									<!-- Please check the NetPDL documentation for more details. -->
+									<!-- However, this is a case in which we're 100% sure :-) -->
+
+									<update-lookuptable name="$rtptable" action="purge">
+										<lookupkey value="$ipsrc"/>
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portsrc"/>
+										<lookupkey value="$portdst"/>
+									</update-lookuptable>
+								</if-false>
+							</if>
+						</if-true>
+
+						<if-false>
+							<assign-variable name="$protoverify_result" value="%DEFERRED"/>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<!-- Add RTP stream -->
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="10" hittime="10">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#rtp"/>
+			</update-lookuptable>
+
+			<!-- Add companion RTCP stream -->
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="int2buf(buf2int($portsrc) + 1, 2)"/>
+				<lookupkey value="int2buf(buf2int($portdst) + 1, 2)"/>
+				<lookupdata value="#rtcp"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$rtptable" action="purge">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+			</update-lookuptable>
+		</before>
+
+		<before when="$protoverify_result == %DEFERRED">
+			<update-lookuptable name="$rtptable" action="add" validity="updateonhit" keeptime="10" hittime="10">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="$packet[$currentoffset + 8 : 4]"/>
+			</update-lookuptable>
+
+			<!-- We do not add RTCP in case of 'deferred'; we'll add the RTCP session only when we're sure we have an RTP stream -->
+			<!-- With this choice, we may have some RTCP packets that are not recognized (the ones that arrive -->
+			<!-- when the RTP session is still in the "deferred" state; however, this is rather uncommon -->
+		</before>
+	</execute-code>
+	<format>
+		<fields>
+			<field type="bit" name="ver" longname="Version" description="Always set to 2" mask="0xC0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="pad" longname="Padding" description="Set to enable padding" mask="0x20" size="1" showtemplate="FieldBin"/>
+			<field type="bit" name="ext" longname="Extension" mask="0x10" size="1" showtemplate="FieldBin"/>
+			<field type="bit" name="cc" longname="CSRC Count" description="Number of CSRC Identifiers" mask="0x0F" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="mar" longname="Marker" mask="0x80" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="pt" longname="Payload Type" description="Format of RTP payload" mask="0x7F" size="1" showtemplate="rtp.pt"/>
+			<field type="fixed" name="sn" longname="Sequence Number" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="ts" longname="TimeStamp" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="ssrc" longname="SSRC synchronization Source" size="4" showtemplate="FieldHex"/>
+
+			<block name="csrc" longname="CSRC List">
+				<loop type="times2repeat" expr="buf2int(cc)">
+					<field type="fixed" name="csrc" longname="Source CSRC" size="4" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+
+			<field type="variable" name="media" longname="Media Data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="rtp">
+
+			<section name="next"/>
+			<text value="RTP: Seq "/>
+			<protofield name="sn" showdata="showvalue"/>
+			<text value=", Media type "/>
+			<protofield name="pt" showdata="showvalue"/>
+			<text value=" ("/>
+			<protofield name="pt" showdata="showmap"/>
+			<text value=")"/>
+			<if expr="$protoverify_result == %DEFERRED">
+				<if-true>
+					<text value=" (Candidate)"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+
+		<showtemplate name="rtp.pt" showtype="dec">
+			<!-- http://www.iana.org/assignments/rtp-parameters -->
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="PCMU (Audio, 8KHz, 1 Channel)"/> 
+					<case value="3" show="GSM (Audio, 8KHz, 1 Channel)"/> 
+					<case value="4" show="G723 (Audio, 8KHz, 1 Channel)"/> 
+					<case value="5" show="DVI4 (Audio, 8KHz, 1 Channel)"/> 
+					<case value="6" show="DVI4 (Audio, 16KHz, 1 Channel)"/> 
+					<case value="7" show="LPC (Audio, 8KHz, 1 Channel)"/> 
+					<case value="8" show="PCMA (Audio, 8KHz, 1 Channel)"/> 
+					<case value="8" show="PCMA (Audio, 8KHz, 1 Channel)"/> 
+					<case value="9" show="G722 (Audio, 8KHz, 1 Channel)"/> 
+					<case value="10" show="L16 (Audio, 44.1KHz, 2 Channels)"/> 
+					<case value="11" show="L16 (Audio, 44.1KHz, 1 Channel)"/> 
+					<case value="12" show="QCELP (Audio, 8KHz, 1 Channel)"/> 
+					<case value="13" show="CN (Audio, 8KHz, 1 Channel)"/> 
+					<case value="14" show="MPA (Audio, 90KHz, 1 Channel)"/> 
+					<case value="15" show="G728 (Audio, 8KHz, 1 Channel)"/> 
+					<case value="16" show="DVI4 (Audio, 11.025KHz, 1 Channel)"/> 
+					<case value="17" show="DVI4 (Audio, 22,05KHz, 1 Channel)"/> 
+					<case value="18" show="G729 (Audio, 8KHz, 1 Channel)"/> 
+					<case value="25" show="CelB (Video, 90KHz)"/> 
+					<case value="26" show="JPEG (Video, 90KHz)"/> 
+					<case value="28" show="nv (Video, 90KHz)"/> 
+					<case value="31" show="H261 (Video, 90KHz)"/> 
+					<case value="32" show="MPV (Video, 90KHz)"/> 
+					<case value="33" show="MP2T (Audio Video, 90KHz)"/> 
+					<case value="34" show="H263 (Video, 90KHz)"/> 
+					<case value="96" maxvalue="127" show="Dynamically negotiated"/> 
+					<default show="Payload type not recognized"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>
+

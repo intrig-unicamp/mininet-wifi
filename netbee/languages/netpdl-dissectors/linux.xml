@@ -1,0 +1,36 @@
+<protocol name="linux" longname="Linux Cooked Capture" comment="This description is valid on an Ethernet Network" showsumtemplate="linux">
+	<format>
+		<fields>
+			<field type="fixed" name="type" longname="Packet Type" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="ll_type" longname="Link layer address type" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="ll_length" longname="Link layer address length" size="2" showtemplate="eth.typelength"/>
+			<field type="variable" name="address" longname="Source address" expr="buf2int(ll_length)" showtemplate="MACaddressEth"/>
+			<field type="variable" name="useless" longname="Useless bytes" expr="8-buf2int(ll_length)" showtemplate="FieldDec"/>
+			<field type="fixed" name="pType" longname="Protocol type" size="2" showtemplate="FieldHex"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<switch expr="buf2int(pType)">
+			<case value="0" maxvalue="1500"> <nextproto proto="#llc"/> </case>
+			<case value="0x800"> <nextproto proto="#ip"/> </case>
+			<case value="0x806"> <nextproto proto="#arp"/> </case>
+			<case value="0x8863"> <nextproto proto="#pppoed"/> </case>
+			<case value="0x8864"> <nextproto proto="#pppoe"/> </case>
+			<case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
+			<case value="0x8100"> <nextproto proto="#vlan"/> </case>
+			<case value="0x8137"> <nextproto proto="#ipx"/> </case>
+			<case value="0x81FD"> <nextproto proto="#ismp"/> </case>
+			<case value="0x8847" comment="mpls-unicast"> <nextproto proto="#mpls"/> </case>
+			<case value="0x8848" comment="mpls-multicast"> <nextproto proto="#mpls"/> </case>
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="linux">
+			<section name="next"/>
+			<text value="Linux: "/>
+			<protofield name="address" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

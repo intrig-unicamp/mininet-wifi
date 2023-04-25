@@ -1,0 +1,518 @@
+<protocol name="radius" longname="RADIUS (Remote Access Dial In User Service)" showsumtemplate="radius">
+<execute-code>
+  <verify>
+			<if expr="hasstring($packet[$currentoffset:0], '[\x01\x02\x03\x04\x05\x0B\x0C\x0D\xFF]',0) and (($packetlength - $currentoffset ) == buf2int($packet[$currentoffset+2:2])) "> 
+				<if-true>
+						<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+   </verify>
+		
+   <before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#radius"/>
+			</update-lookuptable>	
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#radius"/>
+			</update-lookuptable>
+   </before>		
+ </execute-code>
+
+	<format>
+		<fields>
+			<field type="fixed" name="Code" longname="Radius PDU Code" size="1" showtemplate="radius.code"/>
+			<field type="fixed" name="Identifier" longname="Radius PDU Identifier" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Radius PDU Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="Authenticator" longname="Radius PDU Autheticator" size="16" showtemplate="Field4BytesHex"/>
+
+			<!-- Option list -->
+			<loop type="size" expr="buf2int(Length) - 20">
+				<switch expr="buf2int($packet[$currentoffset:1])">
+
+					<case value="1"> <includeblk name="User-Name"/> </case>
+					<case value="2"> <includeblk name="User-Password"/> </case>
+					<case value="3"> <includeblk name="CHAP-Password"/> </case>
+					<case value="4"> <includeblk name="NAS-IP-Address"/> </case>
+					<case value="5"> <includeblk name="NAS-Port"/> </case>
+					<case value="6"> <includeblk name="Service-Type"/> </case>
+					<case value="7"> <includeblk name="Framed-Protocol"/> </case>
+					<case value="8"> <includeblk name="Framed-IP-Address"/> </case>
+					<case value="9"> <includeblk name="Framed-IP-Netmask"/> </case>
+					<case value="10"> <includeblk name="Framed-Routing"/> </case>
+					<case value="11"> <includeblk name="Filter-ID"/> </case>
+					<case value="12"> <includeblk name="Framed-MTU"/> </case>
+					<case value="13"> <includeblk name="Framed-Compression"/> </case>
+					<case value="14"> <includeblk name="Login-IP-Host"/> </case>
+					<case value="15"> <includeblk name="Login-Service"/> </case>				
+					<case value="16"> <includeblk name="Login-TCP-Port"/> </case>
+					<case value="17"> <includeblk name="unassigned"/> </case>
+					<case value="18"> <includeblk name="Reply-Message"/> </case>
+					<case value="19"> <includeblk name="Callback-Number"/> </case>
+					<case value="20"> <includeblk name="Callback-ID"/> </case>
+					<case value="21"> <includeblk name="unassigned"/> </case>
+					<case value="22"> <includeblk name="Framed-Route"/> </case>
+					<case value="23"> <includeblk name="Framed-IPX-Network"/> </case>
+					<case value="24"> <includeblk name="State"/> </case>
+					<case value="25"> <includeblk name="Class"/> </case>
+					<case value="26"> <includeblk name="Vendor-Specific"/> </case>
+					<case value="27"> <includeblk name="Session-Timeout"/> </case>
+					<case value="28"> <includeblk name="Idle-Timeout"/> </case>
+					<case value="29"> <includeblk name="Termination-Action"/> </case>
+					<case value="30"> <includeblk name="Called-Station-ID"/> </case>
+					<case value="31"> <includeblk name="Calling-Station-ID"/> </case>
+					<case value="32"> <includeblk name="NAS-Identifier"/> </case>
+					<case value="33"> <includeblk name="Proxy-State"/> </case>
+					<case value="34"> <includeblk name="Login-LAT-Service"/> </case>
+					<case value="35"> <includeblk name="Login-LAT-Node"/> </case>
+					<case value="36"> <includeblk name="Login-LAT-Group"/> </case>
+					<case value="37"> <includeblk name="Framed-Appletalk-Link"/> </case>
+					<case value="38"> <includeblk name="Framed-Appletalk-Network"/> </case>
+					<case value="39"> <includeblk name="Framed-Appletalk-Zone"/> </case>
+					<case value="40" maxvalue="59"> <includeblk name="Reserved-For-Accounting"/> </case>
+					<case value="60"> <includeblk name="CHAP-Challenge"/> </case>
+					<case value="61"> <includeblk name="NAS-Port-Type"/> </case>
+					<case value="62"> <includeblk name="Port-Limit"/> </case>
+					<case value="63"> <includeblk name="Login-LAT-Port"/> </case>
+					<case value="225"> <includeblk name="X-Ascend-Metric"/> </case>
+					<case value="228"> <includeblk name="X-Ascend-Route-IP"/> </case>
+					<case value="230"> <includeblk name="X-Ascend-Bridge"/> </case>
+
+				</switch>
+			</loop>
+		</fields>
+
+		
+		<!-- RADIUS Options -->
+		<block name="User-Name" longname="Option 1: User Name">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="value" longname="User Name" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="User-Password" longname="Option 2: User Password">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="value" longname="User Password" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="CHAP-Password" longname="Option 3: CHAP Password">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="CHAP_ident" longname="CHAP Identifier" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="CHAP Response" size="16" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="NAS-IP-Address" longname="Option 4: NAS IP Address">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Address" longname="Address Field" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+		
+		<block name="NAS-Port" longname="Option 5: NAS Port">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="port" longname="Port Value" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="Service-Type" longname="Option 6: Service Type">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Service Type" size="4" showtemplate="radius.type06"/>
+		</block>
+		
+		<block name="Framed-Protocol" longname="Option 7: Framed Protocol">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Framed Protocol" size="4" showtemplate="radius.type07"/>
+		</block>
+		
+		<block name="Framed-IP-Address" longname="Option 8: Framed IP Address">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="IP Address" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+		
+		<block name="Framed-IP-Netmask" longname="Option 9: Framed IP Netmask">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="IP Netmask" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+		
+		<block name="Framed-Routing" longname="Option 10: Framed Routing">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Routing" size="4" showtemplate="radius.type10"/>
+		</block>
+		
+		<block name="Filter-ID" longname="Option 11: Filter ID">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Filter ID" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="Framed-MTU" longname="Option 12: Framed MTU">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="MTU" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="Framed-Compression" longname="Option 13: Framed Compression">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Compression Protocol" size="4" showtemplate="radius.type13"/>
+		</block>
+		
+		<block name="Login-IP-Host" longname="Option 14: Login IP Host">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="IP Address" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+		
+		<block name="Login-Service" longname="Option 15: Login Service">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Login Service" size="4" showtemplate="radius.type15"/>
+		</block>
+		
+		<block name="Login-TCP-Port" longname="Option 16: Login TCP Port">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Login TCP Port" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<!-- Unassigned Options -->
+		<block name="unassigned" longname="Option 17: Unassigned">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Value" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		<!-- End Unassigned Options -->
+		
+		<block name="Reply-Message" longname="Option 18: Reply Message">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Reply Message" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="Callback-Number" longname="Option 19: Callback Number">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Value" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="Callback-ID" longname="Option 20: Callback ID">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Value" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="Framed-Route" longname="Option 22: Framed Route">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Framed Route" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="Framed-IPX-Network" longname="Option 23: Framed IPX Network">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="IP Address" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+		
+		<block name="State" longname="Option 24: State">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Value" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="Class" longname="Option 25: Class">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Value" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="Vendor-Specific" longname="Option 26: Vendor Specific">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="ID" longname="Vendor ID" size="4" showtemplate="FieldHex"/>
+			<field type="variable" name="Value" longname="Value" expr="buf2int(Length) - 6" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="Session-Timeout" longname="Option 27: Session Timeout">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Seconds till Timeout" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="Idle-Timeout" longname="Option 28: Idle Timeout">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Idle Seconds till Timeout" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="Termination-Action" longname="Option 29: Termination Action">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Termination Action" size="4" showtemplate="radius.type29"/>
+		</block>
+		
+		<block name="Called-Station-ID" longname="Option 30: Called Station ID">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Phone Number" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="Calling-Station-ID" longname="Option 31: Calling Station ID">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Phone Number" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="NAS-Identifier" longname="Option 32: NAS Identifier">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="NAS ID" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="Proxy-State" longname="Option 33: Proxy State">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Proxy State" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="Login-LAT-Service" longname="Option 34: Login LAT Service">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="System beeing connected" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="Login-LAT-Node" longname="Option 35: Login LAT Node">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Node beeing connected" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="Login-LAT-Group" longname="Option 36: Login LAT Group">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Group codes authorized" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="Framed-Appletalk-Link" longname="Option 37: Framed Appletalk Link">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Framed Appletalk Network Number" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="Framed-Appletalk-Network" longname="Option 38: Framed Appletalk Network">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Framed Appletalk Network Number" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="Framed-Appletalk-Zone" longname="Option 39: Framed Appletalk Zone">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Appletalk default zone" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<!-- Reserved Options -->
+		<block name="Reserved-For-Accounting" longname="Option reserved for Accounting">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="Option Data" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		<!-- End Reserved Options -->
+		
+		<block name="CHAP-Challenge" longname="Option 60: CHAP Challenge">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="CHAP Challenge" expr="buf2int(Length) - 2" showtemplate="Field4BytesHex"/>
+		</block>
+		
+		<block name="NAS-Port-Type" longname="Option 61: NAS Port Type">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="NAS Port Type" size="4" showtemplate="radius.type61"/>
+		</block>
+		
+		<block name="Port-Limit" longname="Option 62: Port Limit">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Value" longname="Maximum number of ports connected" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="Login-LAT-Port" longname="Option 63: Login LAT Port">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="LAT port connected" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+                <block name="X-Ascend-Metric" longname="X-Ascend-Metric">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="X-Ascend-Metric" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+                <block name="X-Ascend-Bridge" longname="X-Ascend-Bridge">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="X-Ascend-Bridge" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+                <block name="X-Ascend-Route-IP" longname="X-Ascend-Route-IP">
+			<field type="fixed" name="Type" longname="Option Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Length" longname="Option Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="Value" longname="X-Ascend-Route-IP" expr="buf2int(Length) - 2" showtemplate="FieldAscii"/>
+		</block>
+
+		<!-- End RADIUS Options -->
+	</format>
+
+
+	<visualization>
+		<showtemplate name="radius.code" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="01" show="Access - Request packet"/> 
+					<case value="02" show="Access - Accept packet"/> 
+					<case value="03" show="Access - Reject packet"/>
+					<case value="04" show="Accounting - Request packet"/>
+					<case value="05" show="Accounting - Response packet"/>
+					<case value="0B" show="Access - Challenge packet"/>
+					<case value="0C" show="Status - Server packet"/>
+					<case value="FF" show="Reserved packet"/>
+					<default show="Error in RADIUS code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="radius.type06" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="01" show="Login"/> 
+					<case value="02" show="Framed"/> 
+					<case value="03" show="Callback Login"/>
+					<case value="04" show="Callback Framed"/>
+					<case value="05" show="Outbound"/>
+					<case value="06" show="Administrative"/>
+					<case value="07" show="NAS prompt"/>
+					<case value="08" show="Authenticate only"/>
+					<case value="09" show="Callback NAS Prompt"/> 
+					<case value="10" show="Call Check"/> 
+					<case value="11" show="Callback Administrative"/>
+					<default show="Error in RADIUS (Type 06) code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+			
+		<showtemplate name="radius.type07" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="PPP"/> 
+					<case value="2" show="SLIP"/> 
+					<case value="3" show="Appletalk Remote Access Protocol (ARAP)"/>
+					<case value="4" show="Gandalf proprietary Single/Multi-link protocol"/>
+					<case value="5" show="XYlogics proprietary IPX/SLIP"/>
+					<case value="6" show="X.75 Synchronous"/>
+					<default show="Error in RADIUS (Type 07) code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+			
+		<showtemplate name="radius.type10" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="None"/> 
+					<case value="1" show="Send Routing packets"/> 
+					<case value="2" show="Listen for routing packets"/> 
+					<case value="3" show="Send and Listen"/>
+					<default show="Error in RADIUS (Type 10) code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="radius.type13" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="None"/> 
+					<case value="1" show="VJ TCP/IP header compression"/> 
+					<case value="2" show="IPX header compression"/> 
+					<case value="3" show="Stac-LSZ compression"/>
+					<default show="Error in RADIUS (Type 13) code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="radius.type15" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Telnet"/> 
+					<case value="1" show="RLogin"/> 
+					<case value="2" show="TCP clear"/> 
+					<case value="3" show="Portmaster (proprietary)"/>
+					<case value="4" show="LAT"/> 
+					<case value="5" show="X25-PAD"/> 
+					<case value="6" show="X25-T3POS"/> 
+					<case value="7" show="TCP clear quiet (suppresses any NAS-generated connect string)"/>
+					<default show="Error in RADIUS (Type 15) code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="radius.type29" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Default"/> 
+					<case value="1" show="RADIUS-Request"/> 
+					<default show="Error in RADIUS (Type 29) code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="radius.type61" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="00" show="Async"/> 
+					<case value="01" show="Sync"/> 
+					<case value="02" show="ISDN Sync"/> 
+					<case value="03" show="ISDN Async v. 120"/>
+					<case value="04" show="ISDN Async v. 110"/> 
+					<case value="05" show="Virtual"/> 
+					<case value="06" show="PIAFS"/> 
+					<case value="07" show="HDLC Clear Channel"/>
+					<case value="08" show="X.25"/> 
+					<case value="09" show="X.75"/> 
+					<case value="10" show="G.3 FAX"/>
+					<case value="11" show="SDSL - Symmetric DSL"/>
+					<case value="12" show="ADSL CAP - Asymmetric DSL, Carrierless Amplitude Phase Modulation"/> 
+					<case value="13" show="ADSL DMT - Asymmetric DSL, Discrete Multi-Tone"/> 
+					<case value="14" show="IDSL - ISDN Digital Subscriber Line"/> 
+					<case value="15" show="ethernet"/>
+					<case value="16" show="xDSL - Digital Subscriber Line of unknown type"/> 
+					<case value="17" show="Cable"/> 
+					<case value="18" show="Wireless - Other"/> 
+					<case value="19" show="Wireless - IEEE 802.11"/>
+					<default show="Error in RADIUS (Type 61) code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="radius">
+			<section name="next"/>
+			<text value="RADIUS: "/>
+			<protofield name="Code" showdata="showmap"/>
+			<text value=", ID "/>
+			<protofield name="Identifier" showdata="showvalue"/>
+			<text value=", Len "/>
+			<protofield name="Length" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+	
+</protocol>

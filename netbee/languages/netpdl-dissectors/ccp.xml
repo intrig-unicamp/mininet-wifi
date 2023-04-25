@@ -1,0 +1,59 @@
+<protocol name="ccp" longname="CCP (Compression Control Protocol)" showsumtemplate="ccp">
+	<format>
+		<fields>
+			<field type="fixed" name="code" longname="Code" size="1" showtemplate="ccp.code"/>
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="len" longname="Length" size="2" showtemplate="FieldDec"/>
+			<loop type="size" expr="buf2int(len)-4">
+				<field type="fixed" name="opt_type" longname="Option type" size="1" showtemplate="lcp.opt.type"/>
+				<field type="fixed" name="opt_len" longname="Option length" size="1" showtemplate="FieldDec"/>
+				<field type="variable" name="opt_data" longname="Option data" expr="buf2int(opt_len)-2" showtemplate="FieldHexBin"/>								
+			</loop>
+		</fields>
+	</format>
+	<visualization>
+		<showsumtemplate name="ccp">
+			<text value=" - CCP"/>
+		</showsumtemplate>
+		<showtemplate name="ccp.code" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Vendor Specific"/> 
+					<case value="1" show="Configure-Request"/> 
+					<case value="2" show="Configure-Ack"/> 
+					<case value="3" show="Configure-Nak"/> 
+					<case value="4" show="Configure-Reject"/> 
+					<case value="5" show="Terminate-Request"/> 
+					<case value="6" show="Terminate-Ack"/>
+					<case value="7" show="Code-Reject"/>
+					<case value="14" show="Reset-Request"/>
+					<case value="15" show="Reset-Reply"/>
+					<default show="Error in code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+				<showtemplate name="ccp.opt.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<!--for more info see http://www.networksorcery.com/enp/protocol/LCP.htm-->
+					<case value="0" show="OUI"/> 
+					<case value="1" show="Predictor Type 1"/> 
+					<case value="2" show="Predictor Type 1"/> 
+					<case value="3" show="Puddle Jumper"/> 					
+					<case value="16" show="Hewlett-Packard PPC"/> 					
+					<case value="17" show="PPP Stac LZS Compression Protocol"/>
+					<case value="18" show="MS Compression Protocol/Encryption Protocol"/>
+					<case value="19" show="Gandalf FZA Compression Protocol"/>
+					<case value="20" show="V.42bis compression"/>
+					<case value="21" show="BSD Compression Protocol"/>
+					<case value="23" show="LZS-DCP Compression Protocol"/>					
+					<case value="24" show="Magnalink Variable Resource Compression Algorithm"/>
+					<case value="25" show="PPP for Data Compression in Data Circuit-Terminating Equipment"/>
+					<case value="26" show="Deflate Protocol"/>
+					<case value="27" show="V.44/LZJH Compression Protocol"/>
+					<default show="Error option code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>

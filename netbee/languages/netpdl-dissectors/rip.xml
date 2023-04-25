@@ -1,0 +1,48 @@
+<protocol name="rip" longname="RIP (Routing Information Protocol)" showsumtemplate="rip">
+	<format>
+		<fields>
+			<field type="fixed" name="cmd" longname="Command" size="1" showtemplate="rip.cmd"/>
+			<field type="fixed" name="ver" longname="Version" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="mbz" longname="Not Used" description="The value of this field is 0" size="2" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(ver)">
+				<case value="1">
+					<!-- There is the first option -->
+					<loop type="size" expr="$packetlength - $currentoffset">
+						<block name="Routing Information" longname="Routing Information Item">
+							<field type="fixed" name="afi" longname="Address Family Identifier" size="2" showtemplate="FieldDec"/>
+							<field type="fixed" name="mbz2" longname="Not Used" description="This must be 0" size="2" showtemplate="FieldDec"/>
+							<field type="fixed" name="netaddr" longname="Network address" size="4" showtemplate="ip4addr-noplg"/>
+							<field type="fixed" name="mbz3" longname="Not Used" description="The value of this field is 0" size="4" showtemplate="FieldDec"/>
+							<field type="fixed" name="mbz4" longname="Not Used" description="The value of this field is 0" size="4" showtemplate="FieldDec"/>
+							<field type="fixed" name="metric" longname="Metric" description="this is the path cost of forwarding" size="4" showtemplate="FieldDec"/>
+						</block>
+					</loop>
+				</case>
+				<case value="2">
+					<!-- There is the second option -->
+					<loop type="size" expr="$packetlength - $currentoffset">
+						<block name="Routing Information" longname="Routing Information Item">
+							<field type="fixed" name="afi" longname="Address Family Identifier" size="2" showtemplate="FieldDec"/>
+							<field type="fixed" name="route_tag" longname="Route Tag" description="Is used by other routing protocols" size="2" showtemplate="FieldDec"/>
+							<field type="fixed" name="netaddr" longname="Network address" size="4" showtemplate="ip4addr-noplg"/>
+							<field type="fixed" name="netmask" longname="Network mask" description="Is used to know the subnet adress" size="4" showtemplate="ip4addr-noplg"/>
+							<field type="fixed" name="nexthop" longname="Next Hop Router" size="4" showtemplate="ip4addr-noplg"/>
+							<field type="fixed" name="metric" longname="Metric" description="this is the path cost of forwarding" size="4" showtemplate="FieldDec"/>
+						</block>
+					</loop>
+				</case>
+			</switch>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="rip">
+			<section name="next"/>
+			<text value="RIPv. "/>
+			<protofield name="ver" showdata="showvalue"/>
+			<text value=" "/>
+			<protofield name="cmd" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

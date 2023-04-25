@@ -1,0 +1,148 @@
+<protocol name="cdp" longname="CDP (Cisco Discovery Protocol)" showsumtemplate="cdp">
+	<format>
+		<fields>
+			<field type="fixed" name="ver" longname="Version" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="ttl" longname="Time To Live" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+
+			<block name="CDPOpt" longname="CDP Options">
+				<loop type="while" expr="1">
+					<!-- Loop until we find a 'break' -->
+					
+					<switch expr="buf2int($packet[$currentoffset:2])">
+						<case value="1"> <includeblk name="deviceid"/> </case>
+						<case value="2"> <includeblk name="addr"/> </case>
+						<case value="3"> <includeblk name="portid"/> </case>
+						<case value="4"> <includeblk name="capab"/>	</case>
+						<case value="5"> <includeblk name="vers"/> </case>
+						<case value="6"> <includeblk name="platf"/> </case>
+						<case value="7"> <includeblk name="prefix"/> </case>
+						<case value="9"> <includeblk name="vtpdomain"/> </case>
+						<case value="10"> <includeblk name="nativevlan"/> </case>
+						<case value="11"> <includeblk name="duplex"/> </case>
+						<case value="14"> <includeblk name="applianceid"/> </case>
+						<case value="16"> <includeblk name="power"/> </case>
+						<default> <loopctrl type="break"/> </default>
+					</switch>
+				</loop>
+			</block>
+		</fields>
+
+		<block name="deviceid" longname="Device ID">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="deviceID" longname="Device ID" expr="buf2int(length) - 4" showtemplate="FieldAscii"/>
+		</block>
+					
+		<block name="addr" longname="Address">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="number_of_address" longname="Number Of Addresses" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="protocol_type" longname="Protocol Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="protocol_length" longname="Protocol Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="protocol_id" longname="Protocol ID" expr="buf2int(protocol_length)" showtemplate="Field4BytesHex"/>
+			<field type="fixed" name="address_length" longname="Address Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="address" longname="Address" expr="buf2int(address_length)" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="portid" longname="Port ID">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="portID" longname="Port ID" expr="buf2int(length) - 4" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="capab" longname="Capabilities">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="capabilities" longname="Capabilities" expr="buf2int(length) - 4" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="vers" longname="Version">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="version" longname="Version" expr="buf2int(length) - 4" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="platf" longname="Platform">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="platform" longname="Platform" expr="buf2int(length) - 4" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="prefix" longname="Network Prefix">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+
+			<if expr="(buf2int(length) - 4 - 1) == 4">
+				<if-true>
+						<field type="fixed" name="prefix" longname="IP Prefix" size="4" showtemplate="ip4addr-noplg"/>
+				</if-true>
+				<if-false>
+					<field type="variable" name="prefix" longname="IP Prefix" expr="buf2int(length) - 4 - 1" showtemplate="Field4BytesHex"/>
+				</if-false>
+			</if>
+			<field type="fixed" name="prefixlen" longname="Prefix Length" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="vtpdomain" longname="VTP Domain">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="vtpdomain" longname="VTP Domain" expr="buf2int(length) - 4" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="nativevlan" longname="Native VLAN">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="vlan" longname="VLAN" expr="buf2int(length) - 4" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="duplex" longname="Duplex mode">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+<!-- Duplex Mode: 0 = Half (but I don't know which is Full Duplex) -->
+			<field type="variable" name="duplexmode" longname="Duplex Mode" expr="buf2int(length) - 4" showtemplate="FieldHex"/>
+		</block>
+
+		<block name="applianceid" longname="Appliance ID" description="Allows the VoIP traffic to be differentiated from other traffic, as by separate VLAN-id (auxiliary VLAN)">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="id" longname="Appliance ID" expr="buf2int(length) - 4" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="power" longname="Power Consumption" description="Allows the VoIP traffic to be differentiated from other traffic, as by separate VLAN-id (auxiliary VLAN)">
+			<field type="fixed" name="type" longname="Type" size="2" showtemplate="cdp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="power" longname="Power Consumption (mW)" expr="buf2int(length) - 4" showtemplate="FieldDec"/>
+		</block>
+
+	</format>
+
+	<visualization>
+		<showtemplate name="cdp.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Device ID"/> 
+					<case value="2" show="Address"/> 
+					<case value="3" show="Port ID"/>
+					<case value="4" show="Capabilities"/>
+					<case value="5" show="Software version"/>
+					<case value="6" show="Platform"/>
+					<case value="7" show="Network Prefix"/>
+					<case value="9" show="VTP Domain"/>
+					<case value="10" show="Native VLAN"/>
+					<case value="11" show="Duplex Mode"/>
+					<case value="14" show="Appliance ID"/>
+					<case value="16" show="Power Consumption"/>
+					<default show="Error in CDP commands code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="cdp">
+			<section name="next"/>
+			<text value="CDP v. "/>
+			<protofield name="ver" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

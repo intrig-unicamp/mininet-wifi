@@ -1,0 +1,7 @@
+<protocol name="hci_unknown_type" longname="Unknown HCI">
+	<format>
+		<fields>
+			<field type="fixed" name="dummy" longname="Dummy Field" size="1" showtemplate="FieldDec"/>
+		</fields>
+	</format>
+</protocol>

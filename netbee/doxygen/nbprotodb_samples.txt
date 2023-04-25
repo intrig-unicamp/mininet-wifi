@@ -1,0 +1,11 @@
+/** \example protodbdump.cpp
+
+<hr>
+
+This program can be used to see how to interact with the NetPDL protocol database in order to extract information related to the format of the protocols contained into it.
+
+This program is very simple: it opens a NetPDL protocol database and prints the names of all the protocols contained in it. In order to print more elaborate information, the user must scan the protocol database in order to find the wanted items.
+
+In addiction, this example prints the most important information related to the *most important fields* within each protocol.
+*/
+

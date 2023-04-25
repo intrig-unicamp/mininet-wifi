@@ -1,0 +1,56 @@
+<protocol name="arp" longname="ARP (Address Resolution Protocol)" comment="This protocol has been 'hardwired' to IP. In fact, we do not know any other network protocol that uses ARP." showsumtemplate="arp">
+	<execute-code>
+		<!-- If we're on Ethernet, update the packet length -->
+		<after when="$linklayer == 1">
+			<assign-variable name="$packetlength" value="$currentoffset"/>
+		</after>
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="fixed" name="hType" longname="Hardware type" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="pType" longname="Protocol type" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="hLen" longname="Hardware address length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="pLen" longname="Protocol address length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="op" longname="Operation code" size="2" showtemplate="arp.code"/>
+			<field type="fixed" name="sHwAddr" longname="Sender MAC address" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="sIPAddr" longname="Sender IP address" size="4" showtemplate="ip4addr"/>
+			<field type="fixed" name="dHwAddr" longname="Destination MAC address" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="dIPAddr" longname="Destination IP address" size="4" showtemplate="ip4addr"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showtemplate name="arp.code" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Request"/> 
+					<case value="2" show="Reply"/> 
+					<default show="Error in ARP code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="arp">
+			<section name="next"/>
+			<text value="ARP "/>
+			<protofield name="op" showdata="showmap"/>
+			<text value=": "/>
+			<if expr="buf2int(op) == 1">
+				<if-true>
+					<text value="who has "/>
+					<protofield name="dIPAddr" showdata="showvalue"/>
+					<text value=" tell "/>
+					<protofield name="sIPAddr" showdata="showvalue"/>
+				</if-true>
+
+				<if-false>
+					<protofield name="sIPAddr" showdata="showvalue"/>
+					<text value=" is at "/>
+					<protofield name="sHwAddr" showdata="showvalue"/>
+				</if-false>
+			</if>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>

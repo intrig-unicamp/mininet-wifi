@@ -1,0 +1,15 @@
+<protocol name="ftpdata" longname="FTP (File Transfer Protocol) - Data connection" showsumtemplate="ftpdata">
+	<format>
+		<fields>
+			<field type="variable" name="data" longname="FTP Data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="ftpdata">
+			<section name="next"/>
+			<text value="FTP Data"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

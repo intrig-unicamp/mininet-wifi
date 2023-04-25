@@ -1,0 +1,4 @@
+This directory contains the config files which are used to build the cavium
+octeon runtime library libcvmx.a which provides access to the hardware
+facilities of the octeon coprocessor and is internally used by the netvm octeon
+backend.

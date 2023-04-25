@@ -1,0 +1,231 @@
+<protocol name="ssh" longname="Secure Shell (SSH)" showsumtemplate="ssh">
+	<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '^ssh-[12]\.[0-9]',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+		
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#ssh"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#ssh"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#ssh"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+
+		<!-- if first four bytes matchs again length of packet, packet isn't encrypted -->
+		<before when="buf2int($packet[$currentoffset : 4]) == ($packetlength - $currentoffset -4)">
+			<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<assign-lookuptable name="$tcpsessiontable.flag" value="0"/>
+				</if-true>
+			</if>
+		</before>
+
+		<!-- next messages are encrypted -->
+		<!-- set a flag of two entrys -->
+		<after when="ispresent(type_payload) and buf2int(type_payload) == 0x15">
+			<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<assign-lookuptable name="$tcpsessiontable.flag" value="1"/>
+				</if-true>
+			</if>
+		</after>
+	</execute-code>
+	
+	<format>
+		<fields>
+			<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport) and $tcpsessiontable.flag == 1">
+				<if-true>
+					<field type="variable" name="encrypted" longname="Encrypted Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-true>
+				
+				<if-false>
+					<if expr ="not hasstring($packet[$currentoffset:0], '^ssh-[12]\.[0-9]',0)">
+						<if-true>
+							<field type="fixed" name="length" longname="Packet Legnth" size="4" showtemplate="FieldDec"/>
+							<field type="fixed" name="lengthpad" longname="Padding Legnth" size="1" showtemplate="FieldDec"/>
+						
+							
+							<switch expr="buf2int($packet[$currentoffset  : 1])">
+								<case value="0x14">	<includeblk name="kexinit"/> </case>
+								<case value="0x15">	<includeblk name="newkeys"/> </case>
+								<case value="0x1F">	<includeblk name="keyexchange"/> </case>
+								<case value="0x1E">	<includeblk name="keyexchange"/> </case>
+								<case value="0x20">	<includeblk name="keyexchange"/> </case>
+								<case value="0x21">	<includeblk name="keyexchange"/> </case>
+								<case value="0x22">	<includeblk name="keyexchange"/> </case>
+								<default>
+									<field type="variable" name="pay" longname="Payload" expr="buf2int(length) - buf2int(lengthpad)-1" showtemplate="FieldAscii">
+										<field type="fixed" name="type_payload" longname="Type Payload" size="1" showtemplate="ssh.payload_type"/>
+										<field type="variable" name="pay" longname="Payload" expr="buf2int(length) - buf2int(lengthpad)-1 - 1" showtemplate="FieldAscii"/>
+									</field>
+								</default>
+							</switch>	
+							
+							<field type="variable" name="pad" longname="Padding" expr="buf2int(lengthpad)" showtemplate="FieldAscii"/>
+							<field type="variable" name="mac" longname="MAC" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						</if-true>
+						<if-false>
+							<field type="variable" name="version_exchange" longname="Version Exchange" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						</if-false>
+					</if>
+					<field type="variable" name="data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-false>
+			</if>
+
+
+		</fields>
+		
+		
+		<block name="keyexchange" longname="Key Exchange">
+			<field type="fixed" name="type_payload" longname="Type Payload" size="1" showtemplate="ssh.payload_type"/>
+			<field type="variable" name="pay" longname="Payload" expr="buf2int(length) - buf2int(lengthpad)- 1 -1" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="newkeys" longname="New Keys">
+			<field type="fixed" name="type_payload" longname="Type Payload" size="1" showtemplate="ssh.payload_type"/>
+		</block>
+		
+		<block name="kexinit" longname="Key Exchange">
+			<field type="fixed" name="type_payload" longname="Type Payload" size="1" showtemplate="ssh.payload_type"/>
+			<field type="fixed" name="cookie" longname="Cookie" size="16" showtemplate="FieldHex"/>
+			<!-- list of algoritm -->
+			<field type="fixed"		name="kex_algorithms_length"							longname="Kex Algorithms Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable"	name="kex_algorithms"									longname="Kex Algorithms" expr="buf2int(kex_algorithms_length)" showtemplate="FieldAscii"/>
+			
+			<field type="fixed"		name="server_host_key_algorithms_length"				longname="Server Host Key Algorithms Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable"	name="server_host_key_algorithms"						longname="Server Host Key Algorithms " expr="buf2int(server_host_key_algorithms_length)" showtemplate="FieldAscii"/>
+
+			<field type="fixed"		name="encryption_algorithms_client_to_server_length"	longname="Encryption Algorithms Client to Server Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable"	name="encryption_algorithms_client_to_server"			longname="Encryption Algorithms Client to Server" expr="buf2int(encryption_algorithms_client_to_server_length)" showtemplate="FieldAscii"/>
+
+			<field type="fixed"		name="encryption_algorithms_server_to_client_length"	longname="Encryption Algorithms Server to Client Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable"	name="encryption_algorithms_server_to_client"			longname="Encryption Algorithms Server to Client" expr="buf2int(encryption_algorithms_server_to_client_length)" showtemplate="FieldAscii"/>
+
+			<field type="fixed"		name="mac_algorithms_client_to_server_length"			longname="MAC Algorithms Client to Server Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable"	name="mac_algorithms_client_to_server"					longname="MAC Algorithms Client to Server" expr="buf2int(mac_algorithms_client_to_server_length)" showtemplate="FieldAscii"/>
+
+			<field type="fixed"		name="mac_algorithms_server_to_client_length"			longname="MAC Algorithms Server to Client Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable"	name="mac_algorithms_server_to_client"					longname="MAC Algorithms Server to Client" expr="buf2int(mac_algorithms_server_to_client_length)" showtemplate="FieldAscii"/>
+
+			<field type="fixed"		name="compression_algorithms_client_to_server_length"	longname="Compression Algorithms Client to Server Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable"	name="compression_algorithms_client_to_server"			longname="Compression Algorithms Client to Server" expr="buf2int(compression_algorithms_client_to_server_length)" showtemplate="FieldAscii"/>
+
+			<field type="fixed"		name="compression_algorithms_server_to_client_length"	longname="Compression Algorithms Server to Client Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable"	name="compression_algorithms_server_to_client"			longname="Compression Algorithms Server to Client" expr="buf2int(compression_algorithms_server_to_client_length)" showtemplate="FieldAscii"/>
+
+			<field type="fixed"		name="languages_client_to_server_length"				longname="Languages Client_to Server Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable"	name="languages_client_to_server"						longname="Languages Client_to Server" expr="buf2int(languages_client_to_server_length)" showtemplate="FieldAscii"/>
+
+			<field type="fixed"		name="languages_server_to_client_length"				longname="Languages Server to Client Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable"	name="languages_server_to_client"						longname="Languages Server to Client" expr="buf2int(languages_server_to_client_length)" showtemplate="FieldAscii"/>
+
+			<field type="fixed" name="first_kex_packet_follows" longname="First Kex Packet Follows" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="reserved" longname="Reserved" size="4" showtemplate="FieldAscii"/>
+		</block>
+		
+	</format>
+
+	<visualization>
+		<showtemplate name="ssh.payload_type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x01" show="SSH_MSG_DISCONNECT"></case>
+					<case value="0x02" show="SSH_MSG_IGNORE"></case>
+					<case value="0x03" show="SSH_MSG_UNIMPLEMENTED"></case>
+					<case value="0x04" show="SSH_MSG_DEBUG"></case>
+					<case value="0x05" show="SSH_MSG_SERVICE_REQUEST"></case>
+					<case value="0x06" show="SSH_MSG_SERVICE_ACCEPT"></case>
+					<case value="0x14" show="SSH_MSG_KEXINIT"></case>
+					<case value="0x15" show="SSH_MSG_NEWKEYS"></case>
+					
+					<case value="0x1E" show="SSH_MSG_KEX_DH_GEX_REQUEST_OLD"></case>
+					<case value="0x1F" show="SSH_MSG_KEX_DH_GEX_GROUP"></case>
+					<case value="0x20" show="SSH_MSG_KEX_DH_GEX_INIT"></case>
+					<case value="0x21" show="SSH_MSG_KEX_DH_GEX_REPLY"></case>
+					<case value="0x22" show="SSH_MSG_KEX_DH_GEX_REQUEST"></case>
+					<case value="0x23" show="SSH_MSG_KEX"></case>
+					<case value="0x24" show="SSH_MSG_KEX"></case>
+					<case value="0x25" show="SSH_MSG_KEX"></case>
+					<case value="0x26" show="SSH_MSG_KEX"></case>
+					<case value="0x27" show="SSH_MSG_KEX"></case>
+					<case value="0x28" show="SSH_MSG_KEX"></case>
+					<case value="0x29" show="SSH_MSG_KEX"></case>
+					<case value="0x2A" show="SSH_MSG_KEX"></case>
+					<case value="0x2B" show="SSH_MSG_KEX"></case>
+					<case value="0x2C" show="SSH_MSG_KEX"></case>
+					<case value="0x2D" show="SSH_MSG_KEX"></case>
+					<case value="0x2E" show="SSH_MSG_KEX"></case>
+					<case value="0x2F" show="SSH_MSG_KEX"></case>
+					<case value="0x30" show="SSH_MSG_KEX"></case>
+					<case value="0x31" show="SSH_MSG_KEX"></case>
+					<default show="Unkown Messagge Type"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		<showsumtemplate name="ssh">
+			<section name="next"/>
+			<text value="Secure Shell "/>
+			<if expr ="ispresent(type_payload)">
+				<if-true>
+					<protofield name="type_payload" showdata="showmap"/>
+				</if-true>
+			</if>
+
+			<if expr ="ispresent(version_exchange)">
+				<if-true>
+					<protofield name="version_exchange" showdata="longname"/>
+				</if-true>
+			</if>
+			
+			<if expr="ispresent(encrypted)">
+				<if-true>
+					<protofield name="encrypted" showdata="longname"/>
+				</if-true>
+			</if>			
+			
+		</showsumtemplate>
+	</visualization>
+</protocol>

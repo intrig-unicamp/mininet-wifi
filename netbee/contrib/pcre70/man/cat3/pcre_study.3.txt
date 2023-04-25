@@ -1,0 +1,42 @@
+PCRE_STUDY(3)                                                    PCRE_STUDY(3)
+
+
+
+NAME
+       PCRE - Perl-compatible regular expressions
+
+SYNOPSIS
+
+       #include <pcre.h>
+
+       pcre_extra *pcre_study(const pcre *code, int options,
+            const char **errptr);
+
+DESCRIPTION
+
+       This  function  studies  a  compiled  pattern, to see if
+       additional information can be extracted that might speed
+       up matching. Its arguments are:
+
+         code       A compiled regular expression
+         options    Options for pcre_study()
+         errptr     Where to put an error message
+
+       If the function succeeds, it returns a value that can be
+       passed to pcre_exec() via its extra argument.
+
+       If the function returns NULL, either it could  not  find
+       any  additional  information, or there was an error. You
+       can tell the difference by looking at the  error  value.
+       It is NULL in first case.
+
+       There are currently no options defined; the value of the
+       second argument should always be zero.
+
+       There is a complete description of the PCRE  native  API
+       in  the  pcreapi page and a description of the POSIX API
+       in the pcreposix page.
+
+
+
+                                                                 PCRE_STUDY(3)

@@ -1,0 +1,75 @@
+<protocol name="ms_sql_server" longname="MS SQL Server" showsumtemplate="ms_sql_server">
+	<!-- this protocol uses TDS / TCP as transport protocol -->
+	<!-- TDS header is made of 8 byte : first byte is type packet, second byte is last indicator packet, third and fourth bytes indicates packet length -->
+	<!-- the meaning of last four byte is unknown -->
+	<execute-code>
+		<verify>
+			<!-- check this signature -->
+			<if expr="hasstring($packet[$currentoffset:0],'[\x01\x04\x10\x12][\0\x01]',0)  and (buf2int($packet[$currentoffset + 2 : 2 ]) == ($packetlength - $currentoffset))">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>	
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#ms_sql_server"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>	
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#ms_sql_server"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#ms_sql_server"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>		
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="variable" name="data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="ms_sql_server">
+			<section name="next"/>
+			<text value="MS SQL Server"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

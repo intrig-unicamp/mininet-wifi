@@ -1,0 +1,53 @@
+<protocol name="tvants" longname="TVants P2PTV" showsumtemplate="tvants">
+<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '^\x04\0[\x07\x05]\0..\0\0[\x53\x44]\x53\0[\x11\x12\x13]\0',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="($protoverify_result == %FOUND) and ($L4proto == #udp)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#tvants"/>
+			</update-lookuptable>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#tvants"/>
+			</update-lookuptable>
+		</before>
+
+		<before when="($L4proto == #tcp) and ($protoverify_result == %FOUND)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#tvants"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+		</before>	
+</execute-code>
+	<format>
+		<fields>
+			<field type="variable" name="tvdata" longname="tvants data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="tvants">
+			<section name="next"/>
+			<text value="tvants"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

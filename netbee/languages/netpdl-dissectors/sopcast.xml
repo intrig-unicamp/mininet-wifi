@@ -1,0 +1,66 @@
+<protocol name="sopcast" longname="Sopcast P2PTV" showsumtemplate="sopcast">
+<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '^\0.\x01.....(\x06\x01|\x01\x01|\x01\xff|\x03\xff)',0)">
+				<if-true>
+					<if expr="$payloadlength+8 == buf2int(changebyteorder($packet[$currentoffset+10:2]))+16">
+						<if-true>
+							<assign-variable name="$protoverify_result" value="%FOUND"/>
+						</if-true>
+					</if>
+				</if-true>
+			</if>
+			<if expr="hasstring($packet[$currentoffset:0], '^\xff\xff\x01.......\0',0)">
+				<if-true>
+					<if expr="$payloadlength+8 == buf2int($packet[$currentoffset+11:1])+16">
+						<if-true>
+							<assign-variable name="$protoverify_result" value="%FOUND"/>
+						</if-true>
+					</if>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="($protoverify_result == %FOUND) and ($L4proto == #udp)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#sopcast"/>
+			</update-lookuptable>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#sopcast"/>
+			</update-lookuptable>
+		</before>
+
+		<before when="($L4proto == #tcp) and ($protoverify_result == %FOUND)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#sopcast"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+		</before>	
+</execute-code>
+	<format>
+		<fields>
+			<field type="variable" name="sopcastdata" longname="sopcast data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="sopcast">
+			<section name="next"/>
+			<text value="sopcast"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

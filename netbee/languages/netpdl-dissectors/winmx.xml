@@ -1,0 +1,36 @@
+<protocol name="winmx" longname="WinMx v3.54 (File Sharing)" showsumtemplate="winmx"> 
+	<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '(^\xE3\x88|\x22\x20\x4D$|^.j0%.r0%|^.i0%.q0%|^.q0%.y0%|Macrovision|^GET$|^SEND$|winmx)', 0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#winmx"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+		</before>
+	</execute-code>
+	<format>
+		<fields>
+			<field type="variable" name="WinMxData" longname="WinMx Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="winmx">
+			<section name="next"/>
+			<text value="WINMX"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

@@ -1,0 +1,82 @@
+<protocol name="tokenring" longname="Token Ring 802.5" showsumtemplate="tokenring">
+	<format>
+		<fields>
+			<block name="AC" longname="Access Control">
+				<field type="bit" name="PPP" longname="Priority Bits" mask="0xE0" size="1" showtemplate="FieldDec"/>
+				<field type="bit" name="T" longname="Token Bit" mask="0x10" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="M" longname="Monitor Count" mask="0x08" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="RRR" longname="Reservation Bits" mask="0x07" size="1" showtemplate="FieldHex"/>
+			</block>	
+			<!-- Warning: the frame control is made of several bitfields, which are not decoded properly here -->
+			<block name="FC" longname="Frame Control">
+				<field type="bit" name="FT" longname="MAC Frame Type" mask="0xC0" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="OO" longname="Unknown" mask="0x30" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="AT" longname="Attention Code" mask="0x0F" size="1" showtemplate="tokenring.attcode"/>
+			</block>
+			<field type="fixed" name="dst" longname="MAC Destination" size="6" showtemplate="MACaddressTR"/>
+			<field type="fixed" name="src" longname="MAC Source" size="6" showtemplate="MACaddressTR"/>
+			
+			<if expr="(buf2int(src[0:1]) bitwand 0b10000000) == 0b10000000">
+				<!-- Options are valid if the first bit of 'src' is equal to 1 -->
+				<if-true>
+					<includeblk name="RI"/>
+				</if-true>
+			</if>
+		</fields>
+		
+		<block name="RI" longname="Routing Information">
+			<block name="RC" longname="Routing Control">
+				<field type="bit" name="RT" longname="Routing Type" mask="0xE000" size="2" showtemplate="FieldDec"/>
+				<field type="bit" name="LTH" longname="Routing Length" mask="0x1F00" size="2" showtemplate="FieldDec"/>
+				<field type="bit" name="D" longname="Direction bit" mask="0x0080" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="LF" longname="Largest Frame" mask="0x007E" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="R" longname="Reserved" mask="0x0001" size="2" showtemplate="FieldBin"/>
+			</block>
+
+			<block name="RDs" longname="Route Descriptors">
+				<loop type="size" expr="buf2int(LTH) - 2">
+					<block name="RD" longname="Route Descriptor">
+						<field type="bit" name="LANID" longname="LAN Identifier" mask="0xFFF0" size="2" showtemplate="FieldDec"/>
+						<field type="bit" name="BN" longname="Bridge Number" mask="0x000F" size="2" showtemplate="FieldDec"/>
+					</block>	
+				</loop>
+			</block>
+		</block>
+
+	</format>
+
+
+	<encapsulation>
+		<!-- FULVIO: no idea what these flags means -->
+		<if expr="(buf2int(FT) == 0) or (buf2int(FT) == 1)">
+			<if-true>
+				<nextproto proto="#llc"/>
+			</if-true>
+		</if>		
+	</encapsulation>
+
+	<visualization>
+		<showtemplate name="tokenring.attcode" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Express Buffer"/> 
+					<case value="2" show="Beacon"/> 
+					<case value="3" show="Claim Token"/> 
+					<case value="4" show="Ring Purge"/> 
+					<case value="5" show="Active Monitor Present"/> 
+					<case value="6" show="Stanby Monitor Present"/> 
+					<default show="Error in Token Ring Attention code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="tokenring">
+			<section name="next"/>
+			<text value="TR: "/>
+			<protofield name="src" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dst" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+	
+</protocol>

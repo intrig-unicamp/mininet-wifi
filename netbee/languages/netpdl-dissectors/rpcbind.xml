@@ -1,0 +1,73 @@
+<protocol name="rpcbind" longname="RPCBIND" showsumtemplate="rpcbind">
+	<format>
+		<fields>
+			<if expr="checklookuptable($rpctable, $ipsrc, $ipdst, $portsrc, $portdst) and $rpctable.type==0">	<!-- is a call -->
+				<if-true>
+					<switch expr="$rpctable.proc">
+						<case value="0x03"> <includeblk name="getaddr_args"/> </case>
+					</switch>
+				</if-true>
+			</if>
+
+			<if expr="checklookuptable($rpctable, $ipsrc, $ipdst, $portsrc, $portdst) and $rpctable.type==1">	<!-- is a reply -->
+				<if-true>
+					<switch expr="$rpctable.proc">
+						<case value="0x03"> <includeblk name="getaddr_res"/> </case>
+					</switch>
+				</if-true>
+			</if>
+			<field type="variable" name="data" longname="Data" expr="$packetlength -$currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+
+		<block name="getaddr_args" longname="GETADDR Arguments">
+			<includeblk name="rpcb"/>
+		</block>
+		
+		<block name="rpcb" longname="RPCB">
+			<field type="fixed" name="r_program" longname="Program" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="r_vers" longname="Version" size="4" showtemplate="FieldDec"/>
+
+			<field type="fixed" name="lenght_r_netid" longname="Length NetID" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="r_netid" longname="NetID" expr="buf2int(lenght_r_netid)" showtemplate="FieldAscii"/>
+			<if expr="(buf2int(lenght_r_netid) mod 4) != 0">
+				<if-true>
+					<field type="variable" name="filling" longname="Filling" expr="((buf2int(lenght_r_netid) div 4)+1)*4 - buf2int(lenght_r_netid)" showtemplate="FieldHex"/> 
+				</if-true>
+			</if>
+			
+			<field type="fixed" name="lenght_r_addr" longname="Length Addr" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="r_addr" longname="Addr" expr="buf2int(lenght_r_addr)" showtemplate="FieldAscii"/>
+			<if expr="(buf2int(lenght_r_addr) mod 4) != 0">
+				<if-true>
+					<field type="variable" name="filling" longname="Filling" expr="((buf2int(lenght_r_addr) div 4)+1)*4 - buf2int(lenght_r_addr)" showtemplate="FieldHex"/> 
+				</if-true>
+			</if>
+
+
+			<field type="fixed" name="lenght_r_owner" longname="Length Owner" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="r_owner" longname="Owner" expr="buf2int(lenght_r_owner)" showtemplate="FieldAscii"/>
+			<if expr="(buf2int(lenght_r_owner) mod 4) != 0">
+				<if-true>
+					<field type="variable" name="filling" longname="Filling" expr="((buf2int(lenght_r_owner) div 4)+1)*4 - buf2int(lenght_r_owner)" showtemplate="FieldHex"/> 
+				</if-true>
+			</if>
+		</block>
+		
+		<block name="getaddr_res" longname="GETADDR Results">
+			<field type="fixed" name="lenght_string" longname="Length String" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="universal_address" longname="Universal Address" expr="buf2int(lenght_string)" showtemplate="FieldAscii"/>
+			<if expr="(buf2int(lenght_string) mod 4) != 0">
+				<if-true>
+					<field type="variable" name="filling" longname="Filling" expr="((buf2int(lenght_string) div 4)+1)*4 - buf2int(lenght_string)" showtemplate="FieldHex"/> 
+				</if-true>
+			</if>
+		</block>
+	</format>
+	
+	<visualization>	
+		<showsumtemplate name="rpcbind">
+			<section name="next"/>
+			<text value=" RPCBIND"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

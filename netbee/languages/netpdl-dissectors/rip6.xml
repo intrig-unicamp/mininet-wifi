@@ -1,0 +1,27 @@
+<protocol name="rip6" longname="RIPng (Routing Information Protocol new generation)" showsumtemplate="ripng">
+	<format>
+		<fields>
+			<field type="fixed" name="cmd" longname="command" size="1" showtemplate="rip.cmd"/>
+			<field type="fixed" name="ver" longname="version" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="mbz" longname="must_be_zero" size="2" showtemplate="FieldDec"/>
+			<block name="RTE" longname="RTE">
+				<loop type="size" expr="$packetlength - $currentoffset">
+					<field type="fixed" name="IPv6pfx" longname="IPv6 prefix" size="16" showtemplate="ip6addr-noplg"/>
+					<field type="fixed" name="rttg" longname="Route tag" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="pfxl" longname="Prefix length" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="mtc" longname="Metric" size="1" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="ripng">
+			<section name="next"/>
+			<text value="RIP6v. "/>
+			<protofield name="ver" showdata="showvalue"/>
+			<text value=" "/>
+			<protofield name="cmd" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

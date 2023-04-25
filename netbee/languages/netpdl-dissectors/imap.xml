@@ -1,0 +1,124 @@
+<protocol name="imap" longname="Internet Mail Access Protocol (IMAP)" showsumtemplate="imap">
+	<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '^(\* ok|a[0-9]+ noop)',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#imap"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#imap"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#imap"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>		
+	
+
+	<format>
+		<fields>
+			<!--<field type="variable" name="IMAPdata" longname="IMAP Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>-->
+			<!--<if expr="hasstring($packet[$currentoffset : 0],'^(\*|[0-9a-zA-Z][0-9a-zA-Z][0-9a-zA-Z][0-9a-zA-Z]).*(ok|no|bad|preauth|bye )',0)">-->
+			<if expr="hasstring($packet[$currentoffset : 0],'^[\*] (.*\x0d\x0a)*([0-9a-zA-Z][0-9a-zA-Z][0-9a-zA-Z][0-9a-zA-Z]) (ok|no|bad|preauth|bye )|^(\*|([0-9a-zA-Z][0-9a-zA-Z][0-9a-zA-Z][0-9a-zA-Z])).*(ok|no|bad|preauth|bye )',0)">
+			<!--<if expr="hasstring($packet[$currentoffset : 0],'ok|no|bad|preauth|bye ',0)">-->
+				<if-true>
+					<field type="variable" name="response" longname="Response" expr="$packetlength - $currentoffset" showtemplate="FieldAscii">
+						
+						<!--<field type="tokenended" name="response" longname="Response" endtoken="\x0d\x0a" showtemplate="FieldAscii"/>-->
+						<loop type="while" expr="$packetlength - $currentoffset">
+							<if expr="$packet[$currentoffset :1 ] != '*'">
+								<if-true>
+									<loopctrl type="break"/>
+								</if-true>
+							</if>
+							<field type="tokenended" name="tag" longname="Tag" endtoken=" " showtemplate="FieldAscii"/>
+							<field type="tokenended" name="response" longname="Response" endtoken="\x0d\x0a" showtemplate="FieldAscii"/>
+						</loop>
+						
+						<field type="variable" name="result" longname="Result Command" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+					</field>
+				</if-true>
+				<if-false>
+					<if expr="hasstring($packet[$currentoffset : 0], '^([0-9a-zA-Z][0-9a-zA-Z][0-9a-zA-Z][0-9a-zA-Z]) ([a-zA-Z])*',0)">
+						<if-true>
+							<field type="variable" name="command" longname="Command" expr="$packetlength - $currentoffset" showtemplate="FieldAscii">
+								<field type="tokenended" name="tag" longname="Tag" endtoken=" " showtemplate="FieldAscii"/>
+								<field type="tokenended" name="cmd" longname="Command" endtoken=" " showtemplate="FieldAscii"/>						
+								<field type="variable" name="arg" longname="Arguments" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+							</field>
+						</if-true>
+						<if-false>
+							<field type="variable" name="message" longname="Message" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						</if-false>
+					</if>
+				</if-false>
+			</if>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="imap">
+			<section name="next"/>
+			<text value="IMAP"/>
+			<if expr="ispresent(response)">
+				<if-true>
+					<text value=" response"/>
+				</if-true>
+			</if>
+
+			<if expr="ispresent(command)">
+				<if-true>
+					<text value=" command"/>
+				</if-true>
+			</if>
+			
+			<if expr="ispresent(message)">
+				<if-true>
+					<text value=" message"/>
+				</if-true>
+			</if>			
+		</showsumtemplate>
+	</visualization>	
+</protocol>
+

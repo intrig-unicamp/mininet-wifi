@@ -1,0 +1,295 @@
+<protocol name="ospf6" longname="OSPFv6 (Open Shortest Path First for IPv6)" showsumtemplate="ospf6">
+	<format>
+		<fields>
+			<field type="fixed" name="version" longname="Version number" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="packetlength" longname="OSPF Packet Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="routerID" longname="Router ID" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="areaID" longname="Area ID" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="instanceID" longname="Instance ID" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="0" longname="Reserved" size="1" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(type)">
+				<case value="1">
+					<!-- hello packet-->
+					<field type="fixed" name="interfaceID" longname="Interface ID" size="4" showtemplate="ip4addr-noplg"/>
+					<field type="fixed" name="rtrPri" longname="Router Priority" size="1" showtemplate="FieldDec"/>
+					<block name="options1" longname="Optional capabilities supported by the router">
+						<field type="bit" name="res" longname="Reserved (must be zero)" mask="0xFFFF" size="2" showtemplate="FieldHex"/>
+					</block>
+					<block name="options2" longname="Optional capabilities supported by the router">
+						<field type="bit" name="DCbit" longname="Demand Circuits" mask="0x20" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Rbit" longname="Router Bit" mask="0x10" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Nbit" longname="N bit" mask="0x08" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="MCbit" longname="Multicast Bit" mask="0x04" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Ebit" longname="Rxternal bit" mask="0x02" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="V6bit" longname="IPv6 bit" mask="0x01" size="1" showtemplate="FieldBin"/>
+					</block>
+					<field type="fixed" name="helloInterval" longname="Hello Interval (sec)" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="routerDeadInterval" longname="Router Dead Interval (sec)" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="designatedRouterID" longname="Designated Router ID" size="4" showtemplate="ip4addr-noplg"/>
+					<field type="fixed" name="backupDesignatedRouterID" longname="Backup Designated Router ID" size="4" showtemplate="ip4addr-noplg"/>
+					<block name="payload" longname="Neighbor List">
+						<loop type="size" expr="$packetlength - 36">
+							<field type="fixed" name="neighborID" longname="Neighbor ID" size="4" showtemplate="ip4addr-noplg"/>
+						</loop>
+					</block>
+				</case>
+
+				<case value="2">
+					<!-- database description packet -->
+					<field type="fixed" name="0" longname="00 00" size="1" showtemplate="FieldDec"/>
+					<block name="options1" longname="optional capabilities supported by the router">
+						<field type="bit" name="res" longname="Reserved (must be zero)" mask="0xFFFF" size="2" showtemplate="FieldHex"/>
+					</block>
+					<block name="options2" longname="optional capabilities supported by the router">
+						<field type="bit" name="DCbit" longname="Demand Circuits" mask="0x20" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Rbit" longname="Router Bit" mask="0x10" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Nbit" longname="N bit" mask="0x08" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="MCbit" longname="Multicast Bit" mask="0x04" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Ebit" longname="External bit" mask="0x02" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="V6bit" longname="IPv6 bit" mask="0x01" size="1" showtemplate="FieldBin"/>
+					</block>
+					<field type="fixed" name="interfaceMTU" longname="Interface MTU" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="0" longname="00 00" size="1" showtemplate="FieldDec"/>
+					<block name="DDoptions" longname="Database Description Option">
+						<field type="bit" name="res" longname="Reserved (must be zero)" mask="0xF8" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Ibit" longname="Init bit" mask="0x04" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Mbit" longname="More bit" mask="0x02" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="MSbit" longname="MasterSlave bit" mask="0x01" size="1" showtemplate="FieldBin"/>
+					</block>
+					<field type="fixed" name="DDsequenceNumber" longname="Sequence Number" size="4" showtemplate="FieldDec"/>
+					<block name="LSAh" longname="Link State Headers List">
+						<loop type="size" expr="$packetlength - 28">
+							<includeblk name="LSAheaders"/>
+						</loop>
+					</block>
+				</case>
+
+				<case value="3">
+				<!-- link state request packet-->
+					<block name="payload" longname="Link State Request List">
+						<loop type="size" expr="$packetlength - 16">
+							<includeblk name="LSArequest"/>
+						</loop>
+					</block>
+				</case>
+
+				<case value="4">
+					<!-- link state update packet-->
+					<field type="fixed" name="numberLSA" longname="Number of LSAs" size="4" showtemplate="FieldDec"/>
+					<block name="Lsapayload" longname="Link State Data">
+						<loop type="times2repeat" expr="buf2int(numberLSA)">
+							<includeblk name="LSAdata"/>
+						</loop>
+					</block>
+				</case>
+
+				<case value="5">
+					<!-- link state ack packet -->
+					<block name="LSAh" longname="Link State Headers List">
+						<loop type="size" expr="$packetlength - 16">
+							<includeblk name="LSAheaders"/>
+						</loop>
+					</block>
+				</case>
+
+			</switch>
+		</fields>
+
+
+		<!-- Options -->
+		<block name="LSArequest" longname="LSA request">
+			<field type="fixed" name="0" longname="00 00 00 00" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="LStype" longname="Link State type" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="LSID" longname="Link State ID" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="advertisingRouter" longname="Advertising Router" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="LSAheaders" longname="LSA header">
+			<field type="fixed" name="LSage" longname="LS age in second" size="2" showtemplate="FieldDec"/>
+			<block name="DDoptions" longname="Database Description Option">
+				<field type="bit" name="Ubit" longname="U bit" mask="0x8000" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="S2bit" longname="S2 bit" mask="0x4000" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="S1bit" longname="S1 bit" mask="0x2000" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="LSAfunctionCode" longname="LSA Function Code" mask="0x1FFF" size="2" showtemplate="FieldHex"/>
+			</block>
+			<field type="fixed" name="linkStateID" longname="Link State ID" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="advertisingRouter" longname="Advertising Router" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="LSsequence" longname="LS sequence" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="LSchecksum" longname="LS checksum" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Length of LSA" size="2" showtemplate="FieldDec"/>
+		</block>
+						
+		<block name="LSAdata" longname="LSA packet">
+			<field type="fixed" name="LSage" longname="LS age in second" size="2" showtemplate="FieldDec"/>
+			<block name="DDoptions" longname="Database Description Option">
+				<field type="bit" name="Ubit" longname="U bit" mask="0x8000" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="S2bit" longname="S2 bit" mask="0x4000" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="S1bit" longname="S1 bit" mask="0x2000" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="LSAfunctionCode" longname="LSA Function Code" mask="0x1FFF" size="2" showtemplate="FieldHex"/>
+			</block>
+			<field type="fixed" name="linkStateID" longname="Link State ID" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="advertisingRouter" longname="Advertising Router" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="LSsequence" longname="LS sequence" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="LSchecksum" longname="LS checksum" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Length of LSA" size="2" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(LSAfunctionCode)">
+				<case value="1">
+					<!-- Router - LSA 1 -->
+					<block name="options" longname="Options">
+						<field type="bit" name="res" longname="Reserved (must be zero)" mask="0xF0" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Wbit" longname="Wildcard multicast reciver" mask="0x08" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Vbit" longname="virtula link endpoint" mask="0x04" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Ebit" longname="External" mask="0x02" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Bbit" longname="Border Router" mask="0x01" size="1" showtemplate="FieldBin"/>
+					</block>
+					<includeblk name="ocsr"/>
+					<block name="RouterPayl" longname="Router Payload">
+						<loop type="size" expr="buf2int(length) - 24">
+							<includeblk name="RouterPayload"/>
+						</loop>
+					</block>
+				</case>
+
+				<case value="2">
+					<!-- Network - LSA 2 -->
+					<field type="fixed" name="0" longname="Reserved (must be zero)" size="1" showtemplate="FieldDec"/>
+					<includeblk name="ocsr"/>
+					<block name="NetworkPayload" longname="Attached Routers">
+						<loop type="size" expr="buf2int(length) - 24">
+							<field type="fixed" name="attachedRouter" longname="Attached Router" size="4" showtemplate="ip4addr-noplg"/>
+						</loop>
+					</block>
+				</case>
+						
+				<case value="3">
+					<!-- Inter Area Prefix - LSA 3 -->
+					<field type="fixed" name="0" longname="Reserved (must be zero)" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="metrics" longname="cost of route" size="3" showtemplate="FieldDec"/>
+					<field type="fixed" name="prefixLength" longname="Prefix Lengh" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="prefixOptions" longname="Prefix Options" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="0" longname="Reserved (must be zero)" size="2" showtemplate="FieldDec"/>
+					<field type="variable" name="addressPrefix" longname="Address Prefix" expr="buf2int(prefixLength)" showtemplate="Field4BytesHex"/>
+				</case>
+
+				<case value="4">
+					<!-- Inter Area Router - LSA 4 -->
+					<field type="fixed" name="0" longname="Reserved (must be zero)" size="1" showtemplate="FieldDec"/>
+					<includeblk name="ocsr"/>
+					<field type="fixed" name="0" longname="Reserved (must be zero)" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="metrics" longname="Cost of route" size="3" showtemplate="FieldDec"/>
+					<field type="fixed" name="destinationRouterID" longname="Destination Router ID" size="4" showtemplate="ip4addr-noplg"/>
+				</case>
+
+				<case value="5">
+					<!-- AS external - LSA 5 -->
+					<block name="options" longname="Options">
+						<field type="bit" name="Ebit" longname="External metric" mask="0x04" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Fbit" longname="Forwarding Address" mask="0x02" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="Tbit" longname="External Route Tag" mask="0x01" size="1" showtemplate="FieldBin"/>
+					</block>
+					<field type="fixed" name="metrics" longname="Cost of route" size="3" showtemplate="FieldDec"/>
+					<field type="fixed" name="prefixLength" longname="Prefix Lengh" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="prefixOptions" longname="Prefix Options" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="ReferenceLStype" longname="Reference LS Type" size="2" showtemplate="FieldDec"/>
+					<field type="variable" name="addresPrefix" expr="buf2int(prefixLength)" showtemplate="Field4BytesHex"/>
+
+					<if expr="buf2int(Fbit) == 1">
+						<if-true>
+							<field type="fixed" name="forwardingAddres" longname="Forwarding Address" size="16" showtemplate="FieldDec"/>
+						</if-true>
+					</if>
+
+					<if expr="buf2int(Tbit) == 1">
+						<if-true>
+							<field type="fixed" name="ExternalRouteTag" longname="External Route Tag" size="4" showtemplate="FieldDec"/>
+						</if-true>
+					</if>
+
+					<if expr="buf2int(ReferenceLStype) != 0">
+						<if-true>
+							<field type="fixed" name="referenceLink" longname="Reference Link State ID" size="4" showtemplate="FieldDec"/>
+						</if-true>
+					</if>
+				</case>
+
+				<case value="8">
+					<!-- Link - LSA 8 -->
+					<field type="fixed" name="rtrPri" longname="Router s Router Priority" size="1" showtemplate="FieldDec"/>
+					<includeblk name="ocsr"/>
+					<field type="fixed" name="LLIA" longname="Link Local Interface Address" size="16" showtemplate="Field4BytesHex"/>
+					<field type="fixed" name="numPrefix" longname="Number Of prefix" size="4" showtemplate="FieldDec"/>
+					<block name="LsaLinkpayload" longname="LSA Links Payloads">
+						<loop type="size" expr="buf2int(numPrefix)">
+							<field type="fixed" name="prefixLength" longname="Prefix Lengh" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="prefixOptions" longname="Prefix Options" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="0" longname="Reserved (must be zero)" size="2" showtemplate="FieldDec"/>
+							<field type="variable" name="addresPrefix" expr="buf2int(prefixLength)" showtemplate="Field4BytesHex"/>
+	 					</loop>
+	 				</block>
+				</case>
+
+				<case value="9">
+					<!-- Intra Area prefix - LSA 9 -->
+					<field type="fixed" name="numPrefix" longname="Number of Prefix" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="ReferenceLStype" longname="Reference LS Type" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="referenceLinkStateID" longname="Reference Link State ID" size="4" showtemplate="FieldDec"/>
+					<field type="fixed" name="referenceAdvertisingRouter" longname="Reference Advertising Router" size="4" showtemplate="FieldDec"/>
+					<block name="LsaIntrPayload" longname="LSAIntrPayload">
+						<loop type="size" expr="buf2int(numPrefix)">
+							<field type="fixed" name="prefixLength" longname="Prefix Lengh" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="prefixOptions" longname="Prefix Options" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="metrics" longname="cost of route" size="2" showtemplate="FieldDec"/>
+							<field type="variable" name="addressPrefix" longname="Address Prefix" expr="buf2int(prefixLength)" showtemplate="Field4BytesHex"/>
+	 					</loop>
+	 				</block>
+				</case>
+			</switch>
+		</block>
+
+		<block name="RouterPayload" longname="Router Payload">
+			<field type="fixed" name="type" longname="type of interface" size="1" showtemplate="ospf.linktype"/>
+			<field type="fixed" name="0" longname="Reserved (must be zero)" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="metrics" longname="cost of using interface" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="interfaceID" longname="Interface ID" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="neighborInterface" longname="Neighbor Interface ID" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="neighborRouterInterface" longname="Neighbor Router Interface" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+			
+		<block name="ocsr" longname="optional capabilities supported by the router">
+			<field type="fixed" name="option1" longname="optional capabilities supported by the router (reserved)" size="2" showtemplate="FieldDec"/>
+			<block name="options2" longname="optional capabilities supported by the router (valid)">
+				<field type="bit" name="DCbit" longname="Demand Circuits" mask="0x20" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="Rbit" longname="Router Bit" mask="0x10" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="Nbit" longname="N bit" mask="0x08" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="MCbit" longname="Multicast Bit" mask="0x04" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="Ebit" longname="Rxternal bit" mask="0x02" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="V6bit" longname="IPv6 bit" mask="0x01" size="1" showtemplate="FieldBin"/>
+			</block>
+		</block>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="ospf6">
+			<section name="next"/>
+			<text value="ospf6"/>
+		</showsumtemplate>
+
+		<showtemplate name="ospf.linktype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Point-to-point connection to another router"/>
+					<case value="2" show="Connection to a transit network"/>
+					<case value="3" show="Connection to a stub network"/>
+					<case value="4" show="Virtual link"/>
+					<default show="Error in OSPF LinkType lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+	</visualization>
+
+</protocol>

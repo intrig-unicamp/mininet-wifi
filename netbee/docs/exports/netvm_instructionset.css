@@ -1,0 +1,50 @@
+body
+{
+	font-family: Tahoma, Verdana, Arial, Helvetica, sans-serif;
+	font-size: 1em;
+}
+
+th
+{
+	font-size:1em;
+	text-align: left;
+	vertical-align: top;
+	background-color: #FFFF80;
+}
+
+td
+{
+	font-size: 1em;
+	text-align: left;
+	vertical-align: top;
+}
+/*
+h1
+{
+	border-bottom: thin solid;
+	background-color: #BAFD9D;
+}
+*/
+
+#ItemDescription
+{
+	font-weight: bold;
+}
+
+#ItemName
+{
+	background-color: #BAFD9D /*8080FF*/;
+	/* color: #FFFF00 */
+}
+
+#TableInstruction
+{
+	margin-left: 5%;
+	border-collapse: collapse;
+	border-style: solid;
+	border-width: 1;
+	padding-left: 4;
+	padding-right: 4;
+	padding-top: 1;
+	padding-bottom: 1;
+}

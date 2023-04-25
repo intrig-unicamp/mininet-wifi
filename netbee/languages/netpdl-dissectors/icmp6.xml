@@ -1,0 +1,459 @@
+<protocol name="icmp6" longname="ICMPv6 (Internet Control Message Protocol version 6)" showsumtemplate="icmp6">
+	<format>
+		<fields>
+			<!-- The first three fields are common for every ICMPv6 message -->
+			<!-- 'Code' ad 'Checksum' are common among all the headers; however the meaning of the 'Code' is different -->
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="icmp6.type"/>
+
+			<switch expr="buf2int(type)">
+				<!-- Error messages -->
+				<case value="1">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="icmp6.code1"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Error"/>
+				</case>
+				<case value="2">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Error"/>
+				</case>
+				<case value="3">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="icmp6.code3"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Error"/>
+				</case>
+				<case value="4">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="icmp6.code4"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Error"/>
+				</case>
+
+				<!-- Informational messages -->
+				<case value="128">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Echo"/>
+				</case>
+				<case value="129">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Echo"/>
+				</case>
+
+				<!-- Group Management messages -->
+				<case value="130">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Group"/>
+				</case>
+				<case value="131">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Group"/>
+				</case>
+				<case value="132">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Group"/>
+				</case>
+
+				<!-- Router / Neighbor Advertisement / Solicitation -->
+				<case value="133">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="RoutSol"/>
+				</case>
+				<case value="134">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="RoutAdv"/>
+				</case>
+				<case value="135">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="NeighSol"/>
+				</case>
+				<case value="136">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="NeighAdv"/>
+				</case>
+		
+				<!-- Other messages -->
+				<case value="137">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Redir"/>
+				</case>
+		
+				<case value="138">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="icmp6.code138"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="RoutRen"/>
+				</case>
+		
+				<case value="141">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="INDS"/>
+				</case>
+		
+				<case value="142">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="INDA"/>
+				</case>
+			</switch>
+		</fields>
+
+		<block name="Error" longname="Error Packet">
+			<field type="fixed" name="unused" size="4" longname="Unused" showtemplate="FieldHex"/>
+			<!-- Here you can find the fragment of the IPv6 packet that caused the error -->
+		</block>
+
+		<block name="Echo" longname="Echo Packet">
+			<field type="fixed" name="id" size="2" longname="Identifier" showtemplate="FieldDec"/>
+			<field type="fixed" name="sequence_number" size="2" longname="Sequence Number" showtemplate="FieldDec"/>
+			<field type="variable" name="data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="Group" longname="Group Membership">
+			<field type="fixed" name="maximum_response_delay" size="2" longname="Maximum Response Delay" showtemplate="FieldDec"/>
+			<field type="fixed" name="unused" size="2" longname="unused" showtemplate="FieldDec"/>
+			<field type="fixed" name="multicast_address" longname="Multicast Address" size="16" showtemplate="ip6addr-noplg"/>
+		</block>
+
+		<block name="RoutSol" longname="Router Solicitation">
+			<field type="fixed" name="reserved" longname="Reserved" size="4" showtemplate="FieldDec"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="RoutAdv" longname="Router Advertisement">
+			<field type="fixed" name="cur_hop_limit" longname="Current Hop Limit" size="1" showtemplate="FieldDec"/>
+			<block name="flags" longname="Flags">
+				<field type="bit" name="managed_address_configuration" mask="0x80" size="1" longname="Managed Address Configuration" showtemplate="FieldBin"/>
+				<field type="bit" name="other_stateful_configuration" mask="0x40" size="1" longname="Other Stateful Configuration" showtemplate="FieldBin"/>
+				<field type="bit" name="reserved" mask="0x3F" size="1" longname="Reserved" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="router_lifetime" size="2" longname="Router Lifetime" showtemplate="FieldDec"/>
+			<field type="fixed" name="reachable_time" size="4" longname="Reachable Time" showtemplate="FieldDec"/>
+			<field type="fixed" name="retrans_time" size="4" longname="Retransmission Time" showtemplate="FieldDec"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="NeighSol" longname="Neighbor Solicitation" showsumtemplate="icmp6.neighsol">
+			<field type="fixed" size="4" name="reserved" longname="Reserved" showtemplate="FieldDec"/>
+			<field type="fixed" name="target_address" longname="Target Address" size="16" showtemplate="ip6addr-noplg"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="NeighAdv" longname="Neighbor Advertisement" showsumtemplate="icmp6.neighadv">>
+			<block name="flags" longname="Flags">
+				<field type="bit" name="router_flag" mask="0x80000000" size="4" longname="Router Flag" showtemplate="FieldBin"/>
+				<field type="bit" name="solicited_flag" mask="0x40000000" size="4" longname="Solicited Flag" showtemplate="FieldBin"/>
+				<field type="bit" name="override_flag" mask="0x20000000" size="4" longname="Override Flag" showtemplate="FieldBin"/>
+				<field type="bit" name="reserved" mask="0x1FFFFFFF" size="4" longname="Reserved" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="target_address" longname="Target Address" size="16" showtemplate="ip6addr-noplg"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="Redir" longname="Redirect">
+			<field type="fixed" name="reserved" longname="Reserved" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="target_address" longname="Target Address" size="16" showtemplate="ip6addr-noplg"/>
+			<field type="fixed" name="destination_address" longname="Destination Address" size="4" showtemplate="ip6addr-noplg"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="RoutRen" longname="Router Renumbering">
+			<field type="fixed" name="sequence_number" size="4" longname="Sequence Number" showtemplate="FieldDec"/>
+			<field type="fixed" name="segment_number" longname="Segment Number" size="1" showtemplate="FieldDec"/>
+			<block name="flags" longname="Flags">
+				<field type="bit" name="test_command" mask="0x80" size="1" longname="Test Command" showtemplate="FieldBin"/>
+				<field type="bit" name="result_requested" mask="0x40" size="1" longname="Result Requested" showtemplate="FieldBin"/>
+				<field type="bit" name="all_interfaces" mask="0x20" size="1" longname="All Interfaces" showtemplate="FieldBin"/>
+				<field type="bit" name="site_specific" mask="0x10" size="1" longname="Site Specific" showtemplate="FieldBin"/>
+				<field type="bit" name="processed_previously" mask="0x08" size="1" longname="Processed Previously" showtemplate="FieldBin"/>
+				<field type="bit" name="reserved" mask="0x07" size="1" longname="Reserved" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="maximum_delay" size="2" longname="Maximum Delay" showtemplate="FieldDec"/>
+			<field type="fixed" name="reserved" size="4" longname="Reserved" showtemplate="FieldHex"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="RR_command" type="continue" longname="Router Renumbering Command"/>
+				<includeblk name="RR_result" type="continue" longname="Router Renumbering Result"/>
+			</loop>
+		</block>
+
+		<block name="INDS" longname="Inverse Neighbor Discovery Solicitation">
+			<field type="fixed" name="reserved" size="4" longname="Reserved" showtemplate="FieldDec"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="INDA" longname="Inverse Neighbor Discovery Advertisement">
+			<field type="fixed" name="reserved" size="4" longname="Reserved" showtemplate="FieldDec"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+
+		<!-- Common Options; these are called several times from within other options -->
+<!--
+		<block name="NDO" longname="Neighbor Discovery Option" showtemplate="icmp6.ndo">
+-->
+		<block name="NDO" longname="Neighbor Discovery Option">
+			<field type="fixed" name="ndotype" longname="Type" size="1" showtemplate="icmp6.ndotype"/>
+			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(ndotype)">
+				<case value="1" name="source_link_layer_address" longname="Source Link Layer Address">
+					<field type="fixed" name="link_layer_address" longname="Link Layer Address" size="6" showtemplate="MAC-dash"/>
+				</case>
+
+				<case value="2" name="target_link_layer_address" longname="Target Link Layer Address">
+					<field type="fixed" name="link_layer_address" longname="Link Layer Address" size="6" showtemplate="MAC-dash"/>
+				</case>
+
+				<case value="3" name="prefix_information" longname="Prefix Information">
+					<field type="fixed" name="prefix_length" longname="Prefix Length" size="1" showtemplate="FieldDec"/>
+					<block name="flags" longname="Flags">
+						<field type="bit" name="L" mask="0x80" size="1" longname="On-link" showtemplate="FieldBin"/>
+						<field type="bit" name="A" mask="0x40" size="1" longname="Autonomous address-configuration" comment="Can be used as a prefix for interface auto-configuration" showtemplate="FieldBin"/>
+						<field type="bit" name="reserved_1" mask="0x3F" size="1" longname="Reserved" showtemplate="FieldBin"/>
+					</block>
+					<field type="fixed" name="valid_lifetime" size="4" longname="Valid Lifetime" showtemplate="FieldDec"/>
+					<field type="fixed" name="preferred_lifetime" size="4" longname="Preferred Lifetime" showtemplate="FieldDec"/>
+					<field type="fixed" name="reserved_2" size="4" longname="Reserved" showtemplate="FieldDec"/>
+					<field type="fixed" name="prefix" longname="Prefix" size="16" showtemplate="ip6addr-noplg"/>
+				</case>
+
+				<case value="4" name="redirect_header" longname="Redirect Header">
+					<field type="fixed" name="reserved" size="6" longname="Reserved" showtemplate="FieldDec"/>
+					<!-- Here you can find the IPv6 original packet -->
+				</case>
+
+				<case value="5" name="MTU" longname="MTU Option">
+					<field type="fixed" name="reserved" size="2" longname="Reserved" showtemplate="FieldDec"/>
+					<field type="fixed" name="MTU" size="4" longname="MTU (Maximum Transfer Unit)" showtemplate="FieldDec"/>
+				</case>
+
+				<case value="9" name="source_address_list" longname="Source Address List">
+					<field type="fixed" name="reserved" size="6" longname="Reserved" showtemplate="FieldDec"/>
+					<loop type="times2repeat" expr="(buf2int(length) - 1) div 2">
+						<field type="fixed" name="IPv6_address" longname="IPv6 Address" size="16" showtemplate="ip6addr-noplg"/>
+					</loop>
+				</case>
+
+				<case value="10" name="target_address_list" longname="Target Address List">
+					<field type="fixed" name="reserved" size="6" longname="Reserved" showtemplate="FieldDec"/>
+					<loop type="times2repeat" expr="(buf2int(length) - 1) div 2">
+						<field type="fixed" name="IPv6_address" longname="IPv6 Address" size="16" showtemplate="ip6addr-noplg"/>
+					</loop>
+				</case>
+			</switch>
+		</block>
+
+		<block name="RR_command" longname="Router Renumbering Command">
+			<field type="fixed" name="opcode" longname="Opcode" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="oplength" longname="Oplength" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="ordinal" longname="Ordinal" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="matchlength" longname="Match Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="minlength" longname="Minimum Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="maxlength" longname="Maximum Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="reserved" size="2" longname="Reserved" showtemplate="FieldHex"/>
+			<field type="fixed" name="match_prefix" longname="Match-Prefix" size="16" showtemplate="ip6addr-noplg"/>
+
+			<block name="use-prefix_part" longname="Use-Prefix Part">
+				<loop type="times2repeat" expr="(buf2int(oplength) - 3) div 2">
+					<field type="fixed" name="uselength" longname="Use Length" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="keeplength" longname="Keep Length" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="flagmask" longname="Flagmask" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="RAFlags" longname="RA Flags" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="valid_lifetime" size="4" longname="Valid Lifetime" showtemplate="FieldDec"/>
+					<field type="fixed" name="preferred_lifetime" size="4" longname="Preferred Lifetime" showtemplate="FieldDec"/>
+					<block name="flags" longname="Flags">
+						<field type="bit" name="V" mask="0x80000000" size="4" longname="V" showtemplate="FieldBin"/>
+						<field type="bit" name="P" mask="0x40000000" size="4" longname="P" showtemplate="FieldBin"/>
+						<field type="bit" name="reserved" mask="0x3FFFFFFF" size="4" longname="Reserved" showtemplate="FieldBin"/>
+					</block>
+					<field type="fixed" name="userprefix" longname="User Prefix" size="16" showtemplate="ip6addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="RR_result" longname="Router Renumbering Result">
+			<block name="flags" longname="Flags">
+				<field type="bit" name="reserved" mask="0xFFFC" size="2" longname="Reserved" showtemplate="FieldBin"/>
+				<field type="bit" name="B" mask="0x0002" size="2" longname="B" showtemplate="FieldBin"/>
+				<field type="bit" name="F" mask="0x0001" size="2" longname="F" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="ordinal" longname="Ordinal" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="matchedlength" longname="Matched Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="interfaceindex" size="4" longname="Interface Index" showtemplate="FieldDec"/>
+			<field type="fixed" name="matchedprefix" longname="Matched Prefix" size="16" showtemplate="ip6addr-noplg"/>
+		</block>
+	</format>
+
+
+	<encapsulation>
+		<!--
+			Ivano:
+				Some ICMP6 packets carry the IP datagram that caused the error.
+				The encapsulation section was written according with the ICMP6
+				descriptions provided at the following addresses:
+					* http://tools.ietf.org/html/rfc4443
+		-->
+		<if expr="(buf2int(type) == 1) or (buf2int(type) == 2) or (buf2int(type) == 3) or (buf2int(type) == 4)">
+			<if-true>
+				<nextproto proto="#ipv6" preferred="true"/>
+			</if-true>
+		</if>
+	</encapsulation>
+
+	<visualization>
+		<showtemplate name="icmp6.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Destination Unreachable"/> <!-- ok -->
+					<case value="2" show="Packet Too Big"/><!-- ok -->
+					<case value="3" show="Time Exceeded"/><!-- ok -->
+					<case value="4" show="Parameter Problem"/> <!-- ok -->
+					<case value="128" show="Echo Request"/> <!-- ok -->
+					<case value="129" show="Echo Reply"/> <!-- ok -->
+					<case value="130" show="Group Membership Query"/>
+					<case value="131" show="Group Membership Report"/>
+					<case value="132" show="Group Membership Reduction"/>
+					<case value="133" show="Router Solicitation"/>
+					<case value="134" show="Router Advertisement"/>
+					<case value="135" show="Neighbor Solicitation"/> <!-- ok -->
+					<case value="136" show="Neighbor Advertisement"/>
+					<case value="137" show="Redirect"/>
+					<case value="138" show="Router Renumbering"/>
+					<case value="141" show="Inverse Neighbor Discovery Solicitation"/>
+					<case value="142" show="Inverse Neighbor Discovery Advertisement"/>
+					<default show="Error in ICMP6 type lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp6.code1" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="No Route To Destination"/>
+					<case value="1" show="Communication With Destination Administratively Prohibited"/>
+					<case value="2" show="Not A Neighbor"/>
+					<case value="3" show="Address Unreachable"/>
+					<case value="4" show="Port Unreachable"/>
+					<default show="Error in ICMP6 Code 1 lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp6.code3" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Hop Limit Exceeded In Transit"/>
+					<case value="1" show="Fragment Reassembly Time Exceeded"/>
+					<default show="Error in ICMP6 Code 3 lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp6.code4" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Erroneous Header Field"/>
+					<case value="1" show="Unrecognized Next Header"/>
+					<case value="2" show="Unrecognized IPv6 Option"/>
+					<default show="Error in ICMP6 Code 4 lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp6.code138" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Router Renumbering Command"/>
+					<case value="1" show="Router Renumbering Result"/>
+					<case value="255" show="Sequence Number Reset"/>
+					<default show="Error in ICMP6 Code 138 lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp6.ndotype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Source Link Layer Address"/>
+					<case value="2" show="Target Link Layer Address"/>
+					<case value="3" show="Prefix Information"/>
+					<case value="4" show="Redirect Header"/>
+					<case value="5" show="MTU"/>
+					<case value="6" show="NBMA Shortcut Limit Option"/>
+					<case value="7" show="Advertisement Interval"/>
+					<case value="8" show="Home Agent Information"/>
+					<case value="9" show="Source Address List"/>
+					<case value="10" show="Target Address List"/>
+					<default show="Error in ICMP6 NDO Type lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="icmp6">
+			<section name="next"/>
+			<text value="ICMP6: "/>
+			<protofield name="type" showdata="showmap"/>
+			<if expr="(buf2int(type) == 1) or (buf2int(type) == 3) or (buf2int(type) == 4) or (buf2int(type) == 138)">
+				<!-- In this case, print the 'code' as well -->				
+				<if-true>
+					<text value=" ("/>
+					<protofield name="code" showdata="showmap"/>
+					<text value=")"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+
+		<showsumtemplate name="icmp6.neighsol">
+			<text value=": who has "/>
+			<protofield name="target_address" showdata="showvalue"/>
+			<if expr="ispresent(link_layer_address)">
+				<if-true>
+					<!-- Source MA address is optional -->
+					<text value="? I am at "/>
+					<protofield name="link_layer_address" showdata="showvalue"/>
+				</if-true>
+				<if-false>
+					<text value="?"/>
+				</if-false>
+			</if>
+		</showsumtemplate>
+
+		<showsumtemplate name="icmp6.neighadv">
+			<text value=": I am "/>
+			<protofield name="target_address" showdata="showvalue"/>
+			<text value=" at "/>
+			<protofield name="link_layer_address" showdata="showvalue"/>
+		</showsumtemplate>
+
+<!--
+		<showtemplate name="icmp6.ndo">
+			<protofield name="NDO" showdata="longname"/>
+			<text value=" "/>
+			<protofield name="ndotype" showdata="showmap"/>
+		</showsumtemplate>
+-->
+	</visualization>
+	
+</protocol>

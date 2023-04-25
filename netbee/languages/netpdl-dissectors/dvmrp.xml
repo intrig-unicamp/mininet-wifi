@@ -1,0 +1,114 @@
+<protocol name="dvmrp" longname="Distance Vector Multicast Routing Protocol" comment="RFC1075 - November 1988 - Experimental">
+	<format>
+		<fields>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<switch expr="buf2int($packet[$currentoffset:1])">
+					<case value="0"> <includeblk name="NULL"/> </case>
+					<case value="2"> <includeblk name="AFI"/> </case>
+					<case value="3"> <includeblk name="Subnet"/> </case>
+					<case value="4"> <includeblk name="Metric"/> </case>
+					<case value="5"> <includeblk name="Flags0"/> </case>
+					<case value="6"> <includeblk name="Infinity"/> </case>
+					<case value="7"> <includeblk name="DA"/> </case>
+					<case value="8"> <includeblk name="RDA"/> </case>
+					<case value="9"> <includeblk name="NMR"/> </case>
+					<case value="10"> <includeblk name="NMRC"/> </case>
+				</switch>
+			</loop>
+		</fields>
+
+
+		<block name="NULL" longname="NULL Command">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="dvmrp.type"/>
+			<field type="fixed" name="ignored" longname="ignored" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="AFI" longname="AFI Optional Command">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="dvmrp.type"/>
+			<field type="fixed" name="family" longname="Value" description="Default=2" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="Subnet" longname="Subnet Mask Optional Command">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="dvmrp.type"/>
+			<field type="fixed" name="count" longname="Count" description="Possible value=[0,1]" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="mask" longname="Subnet Mask" expr="buf2int(count) * 4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="Metric" longname="Metric Optional Command">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="dvmrp.type"/>
+			<field type="fixed" name="value" longname="Value" description="Possible value=[1,255]" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="Flags0" longname="Flags0 Optional Command">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="dvmrp.type"/>
+			<field type="fixed" name="value" longname="Bit6: Split Horizon concealed route; Bit7: Destination unreachable" size="1" description="Default: all bits 0" showtemplate="FieldHex"/>
+		</block>
+
+		<block name="Infinity" longname="Infinity Optional Command">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="dvmrp.type"/>
+			<field type="fixed" name="value" longname="Value" description="Possible value=[1,255]; Default=16" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="DA" longname="DA Optional Command">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="dvmrp.type"/>
+			<field type="fixed" name="count" longname="Count" description="Possible value=[1,255]" size="1" showtemplate="FieldDec"/>
+			<block name="Destination Addresses" longname="Destination Addresses">
+				<loop type="times2repeat" expr="buf2int(count)">
+					<field type="fixed" name="destaddr" longname="Destination Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="RDA" longname="RDA Optional Command">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="dvmrp.type"/>
+			<field type="fixed" name="count" longname="Count" description="Possible value=[1,255]" size="1" showtemplate="FieldDec"/>
+			<block name="Requested Destination Addresses" longname="Requested Destination Addresses">
+				<loop type="times2repeat" expr="buf2int(count)">
+					<field type="fixed" name="req_destaddr" longname="Requested Destination Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="NMR" longname="NMR Optional Command">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="dvmrp.type"/>
+			<field type="fixed" name="count" longname="Count" description="Possible value=[1,255]" size="1" showtemplate="FieldDec"/>
+			<block name="Multicast Addresses" longname="Multicast Addresses">
+				<loop type="times2repeat" expr="buf2int(count)">
+					<field type="fixed" name="mcastaddr" longname="Multicast Address" size="4" showtemplate="ip4addr-noplg"/>
+					<field type="fixed" name="holddown_time" longname="Hold Down Time" size="4" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="NMRC" longname="NMR Cancel Optional Command">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="dvmrp.type"/>
+			<field type="fixed" name="count" longname="Count" description="Possible value=[1,255]" size="1" showtemplate="FieldDec"/>
+			<block name="Multicast Addresses" longname="Multicast Addresses">
+				<loop type="times2repeat" expr="buf2int(count)">
+					<field type="fixed" name="mcastaddr" longname="Multicast Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+	</format>
+
+
+	<visualization>
+		<showtemplate name="dvmrp.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Null Command"/>
+					<case value="2" show="Address Family Indicator Command"/>
+					<case value="3" show="Subnet Mask Command"/>
+					<case value="4" show="Metric Command"/>
+					<case value="5" show="Flags0 Command"/>
+					<case value="6" show="Infinity Command"/>
+					<case value="7" show="Destination Address Command"/>
+					<case value="8" show="Requested Destination Address Command"/>
+					<case value="9" show="Non Membership Report Command"/>
+					<case value="10" show="Non Membership Report Cancel"/>
+					<default show="Error in DVMRP type lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>

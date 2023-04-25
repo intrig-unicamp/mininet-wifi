@@ -1,0 +1,3971 @@
+/*****************************************************************************/
+/*                                                                           */
+/* Copyright notice: please read file license.txt in the NetBee root folder. */
+/*                                                                           */
+/*****************************************************************************/
+
+#include <stdio.h>
+#include "nbnetvm.h"
+#include "mirnode.h"
+#include "opcodes.h"
+#include "cfg.h"
+#include "../../../nbee/globals/debug.h"
+#include "x86-asm.h"
+#include "offsets.h"
+#include "application.h"
+#include "x86_switch_lowering.h"
+
+#include "int_structs.h"
+#include "rt_environment.h"
+#include <iostream>
+#include <sstream>
+
+
+
+#define MBMAX_OPCODES 256
+#define MBTREE_TYPE jit::MIRNode
+#define MBREG_TYPE jit::RegisterInstance
+#define MBTREE_LEFT(t) ((t)->getKid(0))
+#define MBTREE_RIGHT(t) ((t)->getKid(1))
+#define MBTREE_OP(t) ((t)->getOpcode())
+#define MBTREE_STATE(t) ((t)->state)
+#define MBTREE_VALUE(t) ((t)->getDefReg())
+#define MBALLOC_STATE   new MBState()
+#define MBGET_OP_NAME(opcode) nvmOpCodeTable[opcode].CodeName
+
+#define MBTREE_GET_CONST_VALUE(t) (((ConstNode *)t)->getValue())
+
+#define REG_NAME(R) (R).get_model()->get_name()
+#define APPLICATION Application::getApp(BB)
+#define REG_SPACE 1
+
+typedef jit::ia32::x86Instruction IR;
+
+namespace jit
+{
+	namespace ia32 {
+
+
+		typedef enum
+			{
+				packet,
+				info,
+				data,
+				invalid
+			} mem_type;
+
+
+		class x86_base_address_man{
+
+			public:
+
+			typedef enum
+			{
+				packet,
+				info,
+				data,
+				invalid
+			} base_mem_type;
+
+			void setBase(base_mem_type type, MBREG_TYPE& base_reg);
+			MBREG_TYPE* getBase(base_mem_type type) const;
+
+			void reset();
+			base_mem_type getType(MIRNode* insn);
+
+			x86_base_address_man();
+
+			static MBREG_TYPE load_base(CFG<IR>& cfg, base_mem_type type);
+			static MBREG_TYPE load_base(CFG<IR>& cfg, MIRNode* insn);
+
+
+
+			static std::string get_mem_string(base_mem_type type);
+
+			private:
+			MBREG_TYPE* bases[2];
+
+		};
+
+		class x86_dim_man{
+
+			public:
+
+			typedef enum
+			{
+				packet,
+				info,
+				data,
+				invalid
+			} dim_mem_type;
+
+
+			void setDim(dim_mem_type type, MBREG_TYPE& dim_reg);
+			MBREG_TYPE* getDim(dim_mem_type type) const;
+			void reset();
+			dim_mem_type getType(MIRNode* insn);
+
+			x86_dim_man();
+
+
+			static MBREG_TYPE load_dim(CFG<IR>& cfg, dim_mem_type type);
+			static MBREG_TYPE load_dim(CFG<IR>& cfg, MIRNode* insn);
+
+			static std::string get_mem_string(dim_mem_type type);
+
+			private:
+			MBREG_TYPE* dim[2];
+		};
+
+		x86ConditionCodes get_cond_code(JumpMIRNode* insn, bool leftConst = false);
+		x86OpCodesEnum get_alu_opcode(MIRNode* insn);
+
+		void load_coprocessors_regs(BasicBlock<IR>& BB, CopMIRNode* insn);
+		void store_coprocessors_regs(BasicBlock<IR>& BB, CopMIRNode* insn);
+
+		void emit_stop_prof_counter(BasicBlock<IR>& BB, intptr_t stack_offset = 0);
+		void emit_start_prof_counter(BasicBlock<IR>& BB, intptr_t stack_offset = 0);
+
+		x86OpndSz get_size_op(MIRNode* insn);
+
+
+		extern jit::nvmStructOffsets<intptr_t> x86_offsets;
+		extern x86_base_address_man base_manager;
+		extern x86_dim_man dim_manager;
+	}
+}
+
+
+#include "x86_counters.h"
+
+using namespace jit;
+using namespace ia32;
+
+
+#ifdef _EXP_COPROCESSOR_MODEL
+static MBREG_TYPE newReg;
+#endif
+
+//#define _DEBUG_X86_INSSEL
+
+%%
+
+%term CNST RET SNDPKT IINC_1 IDEC_1 LDREG STREG PHI SWITCH
+%term CMP
+%term AND OR
+%term SUBUOV ADDUOV SUB ADD IMUL MOD USHR SHR  SHL NEG NOT
+%term JCMPEQ JCMPNEQ JCMPLE JCMPL JCMPG JCMPGE JUMPW JNE JEQ JUMP
+%term COPRUN COPPKTOUT COPINIT
+%term  PBL LDPORT
+%term  PCHECK ICHECK DCHECK
+
+;packet load terminals
+%term PBLDS PBLDU PSLDS PSLDU PILD
+;packet store terminals
+%term PBSTR PSSTR PISTR
+;info load terminals
+%term ISBLD ISSBLD ISSLD ISSSLD ISSILD
+;info store terminals
+%term IBSTR ISSTR IISTR
+;data load terminals
+%term DBLDS DBLDU DSLDS DSLDU DILD
+;data store terminals
+%term DBSTR DSSTR DISTR
+
+%term INFOCLR
+
+%term JFLDEQ JFLDNEQ JFLDGT JFLDLT NOP
+
+%term TSTAMP_S TSTAMP_US
+
+%start stmt
+
+stmt: PCHECK(con, con)
+{
+		counter_check_profiling( BB, x86_dim_man::packet);
+
+		x86Instruction* bound_check_insn;
+		x86ConditionCodes cond_code_check = L;
+
+		std::string comment = std::string("CHECK PKT I-I");
+		MBREG_TYPE dim_mem(x86_dim_man::load_dim(cfg, x86_dim_man::packet));
+
+		intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+		intptr_t num_byte = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+		bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, displ + num_byte, dim_mem, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+}
+
+stmt: PCHECK(reg, con)
+{
+		counter_check_profiling( BB, x86_dim_man::packet);
+
+		x86Instruction* bound_check_insn;
+		x86ConditionCodes cond_code_check = G;
+
+		std::string comment = std::string("CHECK PKT R-I");
+		MBREG_TYPE dim_mem(x86_dim_man::load_dim(cfg, x86_dim_man::packet));
+
+		MBREG_TYPE displ = MBTREE_VALUE(MBTREE_LEFT(tree));
+		intptr_t num_byte = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+		MBREG_TYPE displ_tmp(X86_NEW_VIRT_REG);
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ,  displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn, comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, num_byte , displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_CMP, dim_mem, displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+
+}
+
+stmt: PCHECK(con, reg)
+{
+		counter_check_profiling( BB, x86_dim_man::packet);
+
+		x86Instruction* bound_check_insn;
+		x86ConditionCodes cond_code_check = G;
+
+		std::string comment = std::string("CHECK PKT I-R");
+		MBREG_TYPE dim_mem(x86_dim_man::load_dim(cfg, x86_dim_man::packet));
+
+		intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+		MBREG_TYPE num_byte = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+		bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, displ, num_byte , x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_CMP, dim_mem, num_byte, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+
+}
+
+stmt: PCHECK(reg, reg)
+{
+		counter_check_profiling( BB, x86_dim_man::packet);
+
+		x86Instruction* bound_check_insn;
+		x86ConditionCodes cond_code_check = G;
+
+		std::string comment = std::string("CHECK PKT R-R");
+		MBREG_TYPE dim_mem(x86_dim_man::load_dim(cfg, x86_dim_man::packet));
+
+		MBREG_TYPE displ = MBTREE_VALUE(MBTREE_LEFT(tree));
+		MBREG_TYPE num_byte = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+		MBREG_TYPE displ_tmp(X86_NEW_VIRT_REG);
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ,  displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn, comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, num_byte , displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_CMP, dim_mem, displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+}
+
+
+stmt: ICHECK(con, con)
+{
+	counter_check_profiling( BB, x86_dim_man::info);
+
+		x86Instruction* bound_check_insn;
+		// x86ConditionCodes cond_code_check = L;
+		std::string comment = std::string("CHECK INFO I-I");
+
+		intptr_t dim_mem = (intptr_t)jit::Application::getApp(BB.getId()).getMemDescriptor(jit::Application::info).Size;
+
+		intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+		intptr_t num_byte = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+		if( displ + num_byte > dim_mem )
+		{
+		//bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		//x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+			bound_check_insn = x86_Asm_JMP_Label(BB.getCode(), cfg.getExitBB()->getId());
+
+			x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		}
+
+}
+
+stmt: ICHECK(reg, con)
+{
+	counter_check_profiling( BB, x86_dim_man::info);
+
+			x86Instruction* bound_check_insn;
+			x86ConditionCodes cond_code_check = G;
+			std::string comment = std::string("CHECK INFO R-I");
+			intptr_t dim_mem = (intptr_t)jit::Application::getApp(BB.getId()).getMemDescriptor(jit::Application::info).Size;
+
+			MBREG_TYPE displ = MBTREE_VALUE(MBTREE_LEFT(tree));
+			intptr_t num_byte = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+			MBREG_TYPE displ_tmp(X86_NEW_VIRT_REG);
+
+			bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ,  displ_tmp, x86_DWORD);
+			x86_Asm_Append_Comment(bound_check_insn, comment.c_str());
+
+			//bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, num_byte , displ_tmp, x86_DWORD);
+			//x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+			bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, dim_mem - num_byte , displ_tmp, x86_DWORD);
+			x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+			bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+			x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+}
+
+stmt: ICHECK(con, reg)
+{
+		counter_check_profiling( BB, x86_dim_man::info);
+
+		x86Instruction* bound_check_insn;
+		x86ConditionCodes cond_code_check = G;
+		std::string comment = std::string("CHECK INFO I-R");
+		intptr_t dim_mem = (intptr_t)jit::Application::getApp(BB.getId()).getMemDescriptor(jit::Application::info).Size;
+
+		intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+		MBREG_TYPE num_byte = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+		//bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, displ, num_byte , x86_DWORD);
+		//x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, dim_mem - displ, num_byte, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+
+}
+
+stmt: ICHECK(reg, reg)
+{
+		counter_check_profiling( BB, x86_dim_man::info);
+
+		x86Instruction* bound_check_insn;
+		x86ConditionCodes cond_code_check = G;
+		std::string comment = std::string("CHECK INFO R-R");
+		intptr_t dim_mem = (intptr_t)jit::Application::getApp(BB.getId()).getMemDescriptor(jit::Application::info).Size;
+
+		MBREG_TYPE displ = MBTREE_VALUE(MBTREE_LEFT(tree));
+		MBREG_TYPE num_byte = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+		MBREG_TYPE displ_tmp(X86_NEW_VIRT_REG);
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ,  displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn, comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, num_byte , displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, dim_mem, displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+}
+
+
+
+stmt: DCHECK(con, con)
+{
+		counter_check_profiling( BB, x86_dim_man::data);
+
+
+		x86Instruction* bound_check_insn;
+		//x86ConditionCodes cond_code_check = L;
+		std::string comment = std::string("CHECK DATA I-I");
+		intptr_t dim_mem = (intptr_t)jit::Application::getApp(BB.getId()).getMemDescriptor(jit::Application::data).Size;
+
+		intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+		intptr_t num_byte = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+		if( displ + num_byte > dim_mem )
+		{
+		//bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		//x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+		bound_check_insn = x86_Asm_JMP_Label(BB.getCode(), cfg.getExitBB()->getId());
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+		}
+
+}
+
+stmt: DCHECK(reg, con)
+{
+		counter_check_profiling( BB, x86_dim_man::data);
+
+		x86Instruction* bound_check_insn;
+		x86ConditionCodes cond_code_check = G;
+		std::string comment = std::string("CHECK DATA R-I");
+		intptr_t dim_mem = (intptr_t)jit::Application::getApp(BB.getId()).getMemDescriptor(jit::Application::data).Size;
+
+		MBREG_TYPE displ = MBTREE_VALUE(MBTREE_LEFT(tree));
+		intptr_t num_byte = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+		MBREG_TYPE displ_tmp(X86_NEW_VIRT_REG);
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ,  displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn, comment.c_str());
+
+		//bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, num_byte , displ_tmp, x86_DWORD);
+		//x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, dim_mem - num_byte, displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+
+
+}
+
+stmt: DCHECK(con, reg)
+{
+		counter_check_profiling( BB, x86_dim_man::data);
+
+		x86Instruction* bound_check_insn;
+		x86ConditionCodes cond_code_check = G;
+		std::string comment = std::string("CHECK DATA I-R");
+		intptr_t dim_mem = (intptr_t)jit::Application::getApp(BB.getId()).getMemDescriptor(jit::Application::data).Size;
+
+		intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+		MBREG_TYPE num_byte = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+		//bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, displ, num_byte , x86_DWORD);
+		//x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, dim_mem - displ, num_byte, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+}
+
+stmt: DCHECK(reg, reg)
+{
+		counter_check_profiling( BB, x86_dim_man::data);
+
+		x86Instruction* bound_check_insn;
+		x86ConditionCodes cond_code_check = G;
+		std::string comment = std::string("CHECK DATA R-R");
+		intptr_t dim_mem = (intptr_t)jit::Application::getApp(BB.getId()).getMemDescriptor(jit::Application::data).Size;
+
+		MBREG_TYPE displ = MBTREE_VALUE(MBTREE_LEFT(tree));
+		MBREG_TYPE num_byte = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+		MBREG_TYPE displ_tmp(X86_NEW_VIRT_REG);
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ,  displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn, comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, num_byte , displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, dim_mem, displ_tmp, x86_DWORD);
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+		bound_check_insn = x86_Asm_J_Label(BB.getCode(), cond_code_check, cfg.getExitBB()->getId());
+		x86_Asm_Append_Comment(bound_check_insn,  comment.c_str());
+
+}
+
+
+stmt: INFOCLR
+{
+MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, x86_base_address_man::info));
+intptr_t dim_mem = (intptr_t)jit::Application::getApp(BB.getId()).getMemDescriptor(jit::Application::info).Size;
+
+
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, 0, X86_MACH_REG(AL), x86_BYTE);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, dim_mem,  X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op(BB.getCode(), X86_STOSB);
+
+}
+
+reg: LDPORT
+{
+	#ifdef _DEBUG_X86_INSSEL
+		std::cout << "\tldport\n";
+	#endif
+}
+
+con: CNST
+{
+	#ifdef _DEBUG_X86_INSSEL
+		std::cout << "\tcon" << MBTREE_VALUE(tree) << "\t: CNST\n";
+	#endif
+}
+
+stmt: RET
+{
+	#ifdef _DEBUG_X86_INSSEL
+		std::cout << "\tRET\n";
+	#endif
+
+	#ifdef JIT_RTE_PROFILE_COUNTERS
+	emit_stop_prof_counter(BB);
+	#endif
+
+	x86_Asm_Comment(BB.getCode(), "Dropping packet!!!");
+	x86_Asm_Comment(BB.getCode(), "Now go to function epilogue");
+	//x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, nvmFAILURE , X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_JMP_Label(BB.getCode(), cfg.getExitBB()->getId());
+}
+
+reg: COPINIT
+{
+	CopMIRNode* insn = dynamic_cast<CopMIRNode*>(tree);
+	assert(insn != NULL);
+
+	nvmCoprocessorState* copro = APPLICATION.getCoprocessor(insn->getcoproId());
+	intptr_t init_func_addr = (intptr_t)copro->init;
+
+	nvmMemDescriptor mem = APPLICATION.getMemDescriptor(Application::inited);
+	intptr_t base_addr = (intptr_t)mem.Base;
+
+	MBREG_TYPE dst = MBTREE_VALUE(insn);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("salvo i registri\n");
+	printf("\tPUSH %d\t;push offset\n", base_addr + insn->getcoproInitOffset());
+	printf("\tPUSH 0x%x\t;coprocessor state address\n", (intptr_t)copro);
+	printf("\tCALL 0x%x\t;invoke function address\n", init_func_addr);
+	printf("\tADD ESP, 8\n");
+	printf("\tMOV R%d, EAX\t;save return value\n", REG_NAME(dst));
+	printf("recupero i registri\n");
+#endif
+
+	//x86_Asm_Op(BB.getCode(), X86_SAVEREGS);
+
+	x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, base_addr + insn->getcoproInitOffset());
+	x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, (intptr_t)copro);
+	x86_Asm_Op_Imm(BB.getCode(), X86_CALL, init_func_addr);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, 8, X86_MACH_REG(ESP), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(EAX), dst, x86_DWORD);
+
+	//x86_Asm_Op(BB.getCode(), X86_LOADREGS);
+}
+
+stmt: COPRUN
+{
+	CopMIRNode* insn = dynamic_cast<CopMIRNode*>(tree);
+	assert(insn != NULL);
+
+	nvmCoprocessorState* copro = APPLICATION.getCoprocessor(insn->getcoproId());
+	intptr_t run_func_addr = (intptr_t)copro->invoke;
+
+	//load_coprocessors_regs(BB, insn);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tPUSH %d\t;push value to write\n", insn->getcoproOp());
+	printf("\tPUSH 0x%x\t;coprocessor state address\n", (intptr_t)copro);
+	printf("\tCALL 0x%x\t;invoke function address\n", run_func_addr);
+	printf("\tADD ESP, 8\n");
+#endif
+
+
+	//x86_Asm_Op(BB.getCode(), X86_SAVEREGS);
+
+#ifdef JIT_RTE_PROFILE_COUNTERS
+	emit_stop_prof_counter(BB, 12);
+#endif
+
+#ifdef _EXP_COPROCESSOR_MODEL
+	if (strcmp(copro->name, "lookupnew") == 0)
+	{
+
+		if (copro->OpFunctions[insn->getcoproOp()] == NULL)
+		{
+			x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, insn->getcoproOp());
+			x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, (intptr_t)copro);
+			x86_Asm_Op_Imm(BB.getCode(), X86_CALL, run_func_addr);
+			x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, 8, X86_MACH_REG(ESP), x86_DWORD);
+		}
+		else
+		{
+			x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, (intptr_t)copro);
+			x86_Asm_Op_Imm(BB.getCode(), X86_CALL, (intptr_t)copro->OpFunctions[insn->getcoproOp()]);
+			x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, 4, X86_MACH_REG(ESP), x86_DWORD);
+			if (insn->getcoproOp() == 2) //lookup
+			{
+				newReg = X86_NEW_VIRT_REG;
+				x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(EAX), newReg, x86_DWORD);
+			}
+		}
+	}
+	else
+	{
+#endif
+
+	x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, insn->getcoproOp());
+	x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, (intptr_t)copro);
+	x86_Asm_Op_Imm(BB.getCode(), X86_CALL, run_func_addr);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, 8, X86_MACH_REG(ESP), x86_DWORD);
+
+#ifdef _EXP_COPROCESSOR_MODEL
+	}
+#endif
+
+#ifdef JIT_RTE_PROFILE_COUNTERS
+	emit_start_prof_counter(BB, 12);
+#endif
+	//x86_Asm_Op(BB.getCode(), X86_LOADREGS);
+
+	//store_coprocessors_regs(BB, insn);
+}
+
+stmt: COPPKTOUT
+{
+	CopMIRNode* insn = dynamic_cast<CopMIRNode*>(tree);
+	assert(insn != NULL);
+
+	nvmCoprocessorState* copro = APPLICATION.getCoprocessor(insn->getcoproId());
+	intptr_t store_addr = (intptr_t)&copro->xbuf;
+
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV %d, 8[EBP]\t;COPPKTOUT\n", REG_NAME(reg));
+	printf("\tMOV %d, [%d]\t;COPPKTOUT\n", REG_NAME(reg), REG_NAME(reg));
+	printf("\tMOV [0x%x], %d\t;COPPKTOUT\n", store_addr, REG_NAME(reg));
+#endif
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(EBP), 8, reg, x86_DWORD);
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, reg, 0, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Displ(BB.getCode(), X86_MOV, reg, store_addr, x86_DWORD);
+}
+
+stmt: SNDPKT
+{
+#ifndef CODE_PROFILING
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+	intptr_t port = ((SndPktNode *)tree)->getPort_number();
+	nvmHandlerState* HandlerState = APPLICATION.getCurrentPEHandler()->HandlerState;
+
+	nvmHandlerFunction *f = HandlerState->PEState->ConnTable[port].CtdHandlerFunct;
+	nvmHandlerState *h    = HandlerState->PEState->ConnTable[port].CtdHandler;
+	intptr_t ctdPort     = HandlerState->Handler->OwnerPE->PortTable[port].CtdPort;
+
+#ifdef JIT_RTE_PROFILE_COUNTERS
+   emit_stop_prof_counter(BB);
+#endif
+
+	x86Instruction* insn;
+
+	//x86_Asm_Comment(BB.getCode(), "Pass packet to next handler");
+	insn = x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, (intptr_t)h); x86_Asm_Append_Comment(insn, "handler pointer on stack");
+	insn = x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, ctdPort); x86_Asm_Append_Comment(insn, "next port on stack");
+	insn = x86_Asm_Op_Mem_Base(BB.getCode(), X86_PUSH, X86_MACH_REG(EBP), 8, x86_DWORD); x86_Asm_Append_Comment(insn, "exbuf pointer on stack");
+
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(EBP), 8, reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, reg, 0, reg, x86_DWORD);
+	//x86_Asm_Op_Reg(BB.getCode(), X86_PUSH, reg, x86_DWORD);
+
+	//char* next_name;
+	//if (h->Handler != NULL)
+	//	next_name = h->Handler->OwnerPE->Name;
+	//else
+	//	next_name = "send out callback";
+
+	//std::ostringstream next;
+	//next << "go to " << next_name;
+
+	insn = x86_Asm_CALL_NetVM_API(BB.getCode(), (void *)f); //x86_Asm_Append_Comment(insn, next.str().c_str());
+	insn = x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, 12, X86_MACH_REG(ESP), x86_DWORD); x86_Asm_Append_Comment(insn, "clean the stack");
+	//x86_Asm_Comment(BB.getCode(), "now go to function epilogue");
+#endif
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; JFLDxx operations
+;
+
+stmt: JFLDNEQ(con, NOP(con, con)),
+stmt: JFLDLT(con, NOP(con, con)),
+stmt: JFLDGT(con, NOP(con, con)),
+stmt: JFLDEQ(con, NOP(con, con))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+	intptr_t target = jump->getTrueTarget();
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet));
+	intptr_t len = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+
+	MIRNode* nop = MBTREE_RIGHT(tree);
+	intptr_t off1 = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(nop));
+	intptr_t off2 = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(nop));
+
+	x86ConditionCodes code = get_cond_code(jump);
+
+	//bounds_check_IMM_IMM(cfg,  BB , off1 , len, x86_dim_man::packet);
+	//bounds_check_IMM_IMM(cfg,  BB ,off2 , len, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, off1, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, off2, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, len,  X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op(BB.getCode(), X86_CMPSB);
+	x86_Asm_J_Label(BB.getCode(), code, target);
+}
+
+stmt: JFLDNEQ(reg, NOP(con, con)),
+stmt: JFLDLT(reg, NOP(con, con)),
+stmt: JFLDGT(reg, NOP(con, con)),
+stmt: JFLDEQ(reg, NOP(con, con))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+	intptr_t target = jump->getTrueTarget();
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet));
+	MBREG_TYPE len = MBTREE_VALUE(MBTREE_LEFT(tree));
+
+	MIRNode* nop = MBTREE_RIGHT(tree);
+	intptr_t off1 = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(nop));
+	intptr_t off2 = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(nop));
+
+	//bounds_check_IMM_REG(cfg, BB, off1 , len, x86_dim_man::packet);
+	//bounds_check_IMM_REG(cfg, BB, off2 , len, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+	x86ConditionCodes code = get_cond_code(jump);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, off1, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, off2, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, len,  X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op(BB.getCode(), X86_CMPSB);
+	x86_Asm_J_Label(BB.getCode(), code, target);
+}
+
+stmt: JFLDNEQ(con, NOP(reg, con)),
+stmt: JFLDLT (con, NOP(reg, con)),
+stmt: JFLDGT (con, NOP(reg, con)),
+stmt: JFLDEQ (con, NOP(reg, con))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+	intptr_t target = jump->getTrueTarget();
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet));
+	intptr_t len = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+
+	MIRNode* nop = MBTREE_RIGHT(tree);
+	MBREG_TYPE off1 = MBTREE_VALUE(MBTREE_LEFT(nop));
+	intptr_t off2 = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(nop));
+
+	//bounds_check_REG_IMM(cfg, BB, off1 , len, x86_dim_man::packet);
+	//bounds_check_IMM_IMM(cfg, BB ,off2 , len, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	x86ConditionCodes code = get_cond_code(jump);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, off1, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, off2, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, len,  X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op(BB.getCode(), X86_CMPSB);
+	x86_Asm_J_Label(BB.getCode(), code, target);
+}
+
+stmt: JFLDNEQ(con, NOP(con, reg)),
+stmt: JFLDLT (con, NOP(con, reg)),
+stmt: JFLDGT (con, NOP(con, reg)),
+stmt: JFLDEQ (con, NOP(con, reg))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+	intptr_t target = jump->getTrueTarget();
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet));
+	intptr_t len = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+
+	MIRNode* nop = MBTREE_RIGHT(tree);
+	intptr_t off1 = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(nop));
+	MBREG_TYPE off2 = MBTREE_VALUE(MBTREE_RIGHT(nop));
+
+	//bounds_check_IMM_IMM(cfg, BB, off1 , len, x86_dim_man::packet);
+	//bounds_check_REG_IMM(cfg, BB, off2 , len, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	x86ConditionCodes code = get_cond_code(jump);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, off1, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, off2, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, len,  X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op(BB.getCode(), X86_CMPSB);
+	x86_Asm_J_Label(BB.getCode(), code, target);
+}
+
+stmt: JFLDNEQ(con, NOP(reg, reg)),
+stmt: JFLDLT (con, NOP(reg, reg)),
+stmt: JFLDGT (con, NOP(reg, reg)),
+stmt: JFLDEQ (con, NOP(reg, reg))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+	intptr_t target = jump->getTrueTarget();
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet));
+	intptr_t len = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+
+	MIRNode* nop = MBTREE_RIGHT(tree);
+	MBREG_TYPE off1 = MBTREE_VALUE(MBTREE_LEFT(nop));
+	MBREG_TYPE off2 = MBTREE_VALUE(MBTREE_RIGHT(nop));
+
+	//bounds_check_REG_IMM(cfg, BB , off1 , len, x86_dim_man::packet);
+	//bounds_check_REG_IMM(cfg, BB, off2 , len, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	x86ConditionCodes code = get_cond_code(jump);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, off1, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, off2, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, len,  X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op(BB.getCode(), X86_CMPSB);
+	x86_Asm_J_Label(BB.getCode(), code, target);
+}
+
+stmt: JFLDNEQ(reg, NOP(con, reg)),
+stmt: JFLDLT (reg, NOP(con, reg)),
+stmt: JFLDGT (reg, NOP(con, reg)),
+stmt: JFLDEQ (reg, NOP(con, reg))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+	intptr_t target = jump->getTrueTarget();
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet));
+	MBREG_TYPE len = MBTREE_VALUE(MBTREE_LEFT(tree));
+
+	MIRNode* nop = MBTREE_RIGHT(tree);
+	intptr_t off1 = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(nop));
+	MBREG_TYPE off2 = MBTREE_VALUE(MBTREE_RIGHT(nop));
+
+	//bounds_check_IMM_REG(cfg, BB, off1 , len, x86_dim_man::packet);
+	//bounds_check_REG_REG(cfg, BB, off2 , len, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	x86ConditionCodes code = get_cond_code(jump);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, off1, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, off2, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, len,  X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op(BB.getCode(), X86_CMPSB);
+	x86_Asm_J_Label(BB.getCode(), code, target);
+}
+
+stmt: JFLDNEQ(reg, NOP(reg, con)),
+stmt: JFLDLT (reg, NOP(reg, con)),
+stmt: JFLDGT (reg, NOP(reg, con)),
+stmt: JFLDEQ (reg, NOP(reg, con))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+	intptr_t target = jump->getTrueTarget();
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet));
+	MBREG_TYPE len = MBTREE_VALUE(MBTREE_LEFT(tree));
+
+	MIRNode* nop = MBTREE_RIGHT(tree);
+	MBREG_TYPE off1 = MBTREE_VALUE(MBTREE_LEFT(nop));
+	intptr_t off2 = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(nop));
+
+	//bounds_check_REG_REG(cfg, BB, off1 , len, x86_dim_man::packet);
+	//bounds_check_IMM_REG(cfg, BB, off2 , len, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	x86ConditionCodes code = get_cond_code(jump);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, off1, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, off2, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, len,  X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op(BB.getCode(), X86_CMPSB);
+	x86_Asm_J_Label(BB.getCode(), code, target);
+}
+
+stmt: JFLDNEQ(reg, NOP(reg, reg)),
+stmt: JFLDLT (reg, NOP(reg, reg)),
+stmt: JFLDGT (reg, NOP(reg, reg)),
+stmt: JFLDEQ (reg, NOP(reg, reg))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+	intptr_t target = jump->getTrueTarget();
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet));
+	MBREG_TYPE len = MBTREE_VALUE(MBTREE_LEFT(tree));
+
+	MIRNode* nop = MBTREE_RIGHT(tree);
+	MBREG_TYPE off1 = MBTREE_VALUE(MBTREE_LEFT(nop));
+	MBREG_TYPE off2 = MBTREE_VALUE(MBTREE_RIGHT(nop));
+
+	//bounds_check_REG_REG(cfg, BB, off1 , len, x86_dim_man::packet);
+	//bounds_check_REG_REG(cfg, BB, off2 , len, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	x86ConditionCodes code = get_cond_code(jump);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, off1, X86_MACH_REG(ESI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, base_reg, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, off2, X86_MACH_REG(EDI), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, len,  X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op(BB.getCode(), X86_CMPSB);
+	x86_Asm_J_Label(BB.getCode(), code, target);
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+stmt: JEQ(CMP(reg, reg)),
+stmt: JNE(CMP(reg, reg))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+
+	intptr_t target = jump->getTrueTarget();
+
+	MBTREE_TYPE* cmp_tree = MBTREE_LEFT(jump);
+	MBREG_TYPE srcReg1 = MBTREE_VALUE(MBTREE_LEFT(cmp_tree));
+	MBREG_TYPE srcReg2 = MBTREE_VALUE(MBTREE_RIGHT(cmp_tree));
+
+	x86ConditionCodes cond_code = get_cond_code(jump);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tCMP R%d, R%d\t;CMP(reg, reg)\n", REG_NAME(srcReg1), REG_NAME(srcReg2));
+	printf("\tJ%s L%d\t;J%s(reg)\n", x86CC[cond_code], target, x86CC[cond_code]);
+#endif
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_CMP, srcReg2, srcReg1, x86_DWORD);
+	x86_Asm_J_Label(BB.getCode(), cond_code, target);
+
+}
+
+stmt: JEQ(CMP(reg, con)),
+stmt: JNE(CMP(reg, con))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+
+	intptr_t target = jump->getTrueTarget();
+
+	MBTREE_TYPE* cmp_tree = MBTREE_LEFT(jump);
+	MBREG_TYPE reg = MBTREE_VALUE(MBTREE_LEFT(cmp_tree));
+	intptr_t imm = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(cmp_tree));
+
+	x86ConditionCodes cond_code = get_cond_code(jump);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tCMP R%d, %d\t;CMP(reg, reg)\n", REG_NAME(reg), imm);
+	printf("\tJ%s L%d\t;J%s(reg)\n", x86CC[cond_code], target, x86CC[cond_code]);
+#endif
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, imm, reg, x86_DWORD);
+	x86_Asm_J_Label(BB.getCode(), cond_code, target);
+}
+
+stmt: JEQ(CMP(con, reg)),
+stmt: JNE(CMP(con, reg))
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+
+	intptr_t target = jump->getTrueTarget();
+
+	MBTREE_TYPE* cmp_tree = MBTREE_LEFT(jump);
+	MBREG_TYPE reg = MBTREE_VALUE(MBTREE_RIGHT(cmp_tree));
+	intptr_t imm = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(cmp_tree));
+
+	x86ConditionCodes cond_code = get_cond_code(jump);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tCMP R%d, %d\t;CMP(reg, reg)\n", REG_NAME(reg), imm);
+	printf("\tJ%s L%d\t;J%s(reg)\n", x86CC[cond_code], target, x86CC[cond_code]);
+#endif
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, imm, reg, x86_DWORD);
+	x86_Asm_J_Label(BB.getCode(), cond_code, target);
+}
+
+stmt: JEQ(reg),
+stmt: JNE(reg)
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+
+	intptr_t target = jump->getTrueTarget();
+
+	MBTREE_TYPE* cmp_tree = MBTREE_LEFT(jump);
+	MBREG_TYPE reg = MBTREE_VALUE(cmp_tree);
+	intptr_t imm = 0;
+
+	x86ConditionCodes cond_code = get_cond_code(jump);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tCMP R%d, %d\t;CMP(reg, reg)\n", REG_NAME(reg), imm);
+	printf("\tJ%s L%d\t;J%s(reg)\n", x86CC[cond_code], target, x86CC[cond_code]);
+#endif
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, imm, reg, x86_DWORD);
+	x86_Asm_J_Label(BB.getCode(), cond_code, target);
+}
+
+stmt: JCMPGE (mem, con),
+stmt: JCMPG  (mem, con),
+stmt: JCMPL  (mem, con),
+stmt: JCMPLE (mem, con),
+stmt: JCMPNEQ(mem, con),
+stmt: JCMPEQ (mem, con)
+{
+// jcmp ( stack[i-2] , stack[i -1] )  CMP stack[i -2] ,stack[i -1] mem-con
+
+	JumpMIRNode* insn = dynamic_cast<JumpMIRNode*>(tree);
+	assert(insn != NULL);
+
+	//jump data
+	intptr_t jt = insn->getTrueTarget();
+	x86ConditionCodes cond_code = get_cond_code(insn);
+
+
+	MIRNode* load = MBTREE_LEFT(tree);
+
+	x86OpndSz size_op = get_size_op(load);
+
+	//memory operation data
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, load));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(load));
+
+	if(size_op == x86_BYTE){
+		uint8_t con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+		x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_CMP, con, base_reg, displ,  x86_BYTE);
+	} else if(size_op == x86_WORD){
+		uint16_t con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+		x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_CMP, con, base_reg, displ, x86_WORD);
+	} else {
+		intptr_t con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+		x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_CMP, con, base_reg, displ, x86_DWORD);
+	}
+
+	x86_Asm_J_Label(BB.getCode(), cond_code, jt);
+
+
+}
+
+
+stmt: JCMPGE (memi, con),
+stmt: JCMPG  (memi, con),
+stmt: JCMPL  (memi, con),
+stmt: JCMPLE (memi, con),
+stmt: JCMPNEQ(memi, con),
+stmt: JCMPEQ (memi, con)
+{
+// jcmp ( stack[i-2] , stack[i -1] )  CMP stack[i -2] ,stack[i -1] memi-con
+
+	JumpMIRNode* insn = dynamic_cast<JumpMIRNode*>(tree);
+	assert(insn != NULL);
+
+	//jump data
+	intptr_t jt = insn->getTrueTarget();
+
+	x86ConditionCodes cond_code = get_cond_code(insn);
+
+	MIRNode* load = MBTREE_LEFT(tree);
+
+	x86OpndSz size_op = get_size_op(load);
+
+	//memory operation data
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, load));
+	MBREG_TYPE off_reg = MBTREE_VALUE(MBTREE_LEFT(load));
+
+	if(size_op == x86_BYTE){
+		uint8_t con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+		x86_Asm_Op_Imm_To_Mem_Index(BB.getCode(), X86_CMP, con, base_reg, /*X86_MACH_REG(ESI)*/ off_reg, x86_BYTE);
+	} else if(size_op == x86_WORD){
+		uint16_t con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+		x86_Asm_Op_Imm_To_Mem_Index(BB.getCode(), X86_CMP, con, base_reg, /*X86_MACH_REG(ESI)*/ off_reg, x86_WORD);
+	} else {
+		intptr_t con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+		x86_Asm_Op_Imm_To_Mem_Index(BB.getCode(), X86_CMP, con, base_reg, /*X86_MACH_REG(ESI)*/ off_reg, x86_DWORD);
+	}
+
+//	con = nvm_htonl(con);
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, off_reg, X86_MACH_REG(ESI), x86_DWORD);
+
+	x86_Asm_J_Label(BB.getCode(), cond_code, jt);
+
+
+}
+
+
+
+%ifdef SWAP_CONST
+
+
+stmt: JCMPNEQ (smem , con),
+stmt: JCMPEQ  (smem , con)
+{
+	JumpMIRNode* insn = dynamic_cast<JumpMIRNode*>(tree);
+	assert(insn != NULL);
+
+	//jump data
+	intptr_t jt = insn->getTrueTarget();
+	x86ConditionCodes cond_code = get_cond_code(insn);
+
+	MIRNode* load = MBTREE_LEFT(tree);
+
+	x86OpndSz size_op = get_size_op(load);
+
+
+	//memory operation data
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, load));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(load));
+
+
+	if(size_op == x86_WORD){
+		uint16_t con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+		con = nvm_htons(con);
+		x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_CMP, con, base_reg, displ, x86_WORD);
+	} else if(size_op == x86_DWORD){
+		intptr_t con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+		con = nvm_htonl(con);
+		x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_CMP, con, base_reg, displ, x86_DWORD);
+	}
+
+
+	x86_Asm_J_Label(BB.getCode(), cond_code, jt);
+}
+
+stmt: JCMPNEQ(smemi, con),
+stmt: JCMPEQ (smemi, con)
+{
+	JumpMIRNode* insn = dynamic_cast<JumpMIRNode*>(tree);
+	assert(insn != NULL);
+
+	//jump data
+	intptr_t jt = insn->getTrueTarget();
+	x86ConditionCodes cond_code = get_cond_code(insn);
+
+		MIRNode* load = MBTREE_LEFT(tree);
+
+	x86OpndSz size_op = get_size_op(load);
+
+
+
+	//memory operation data
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, load));
+	MBREG_TYPE off_reg = MBTREE_VALUE(MBTREE_LEFT(load));
+
+
+	if(size_op == x86_WORD){
+		uint16_t con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+		con = nvm_htons(con);
+		x86_Asm_Op_Imm_To_Mem_Index(BB.getCode(), X86_CMP, con, base_reg, /*X86_MACH_REG(ESI)*/ off_reg, x86_WORD);
+	} else if(size_op == x86_DWORD){
+		intptr_t con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+		con = nvm_htonl(con);
+		x86_Asm_Op_Imm_To_Mem_Index(BB.getCode(), X86_CMP, con, base_reg, /*X86_MACH_REG(ESI)*/ off_reg, x86_DWORD);
+	}
+
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, off_reg, X86_MACH_REG(ESI), x86_DWORD);
+
+	x86_Asm_J_Label(BB.getCode(), cond_code, jt);
+
+}
+
+
+%endif
+
+
+stmt: JCMPNEQ(reg, reg),
+stmt: JCMPGE(reg, reg),
+stmt: JCMPG(reg, reg),
+stmt: JCMPL(reg, reg),
+stmt: JCMPLE(reg, reg),
+stmt: JCMPEQ(reg, reg)
+{
+// jcmp ( stack[i-2] , stack[i -1] )  CMP stack[i -2] ,stack[i -1] reg-reg
+
+	JumpMIRNode* insn = dynamic_cast<JumpMIRNode*>(tree);
+	assert(insn != NULL);
+
+	intptr_t jt = insn->getTrueTarget();
+	MBREG_TYPE reg0 = MBTREE_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE reg1 = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+	x86ConditionCodes cond_code = get_cond_code(insn);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tCMP R%d, R%d\t;JCMP%s(reg, reg)\n", REG_NAME(reg0), REG_NAME(reg1), x86CC[cond_code]);
+	printf("\tJ%s L%d\t;JCMP%s(reg, reg)\n", x86CC[cond_code], jt, x86CC[cond_code]);
+#endif
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_CMP, reg1, reg0, x86_DWORD);
+
+	x86_Asm_J_Label(BB.getCode(), cond_code, jt);
+
+
+}
+
+stmt: JCMPGE(reg, con),
+stmt: JCMPG(reg, con),
+stmt: JCMPL(reg, con),
+stmt: JCMPLE(reg, con),
+stmt: JCMPNEQ(reg, con),
+stmt: JCMPEQ(reg, con)
+{
+// jcmp ( stack[i-2] , stack[i -1] )  CMP stack[i -2] ,stack[i -1] reg-con
+
+	JumpMIRNode* insn = dynamic_cast<JumpMIRNode*>(tree);
+	assert(insn != NULL);
+
+	intptr_t jt = insn->getTrueTarget();
+	MBREG_TYPE reg0 = MBTREE_VALUE(MBTREE_LEFT(tree));
+	intptr_t value = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+	x86ConditionCodes cond_code = get_cond_code(insn);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tCMP R%d, %d\t;JCMP%s(reg, con)\n", REG_NAME(reg0), value, x86CC[cond_code]);
+	printf("\tJ%s L%d\t;JCMP%s(reg, reg)\n", x86CC[cond_code], jt, x86CC[cond_code]);
+#endif
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, value, reg0, x86_DWORD);
+
+
+	x86_Asm_J_Label(BB.getCode(), cond_code, jt);
+
+}
+
+stmt: JCMPNEQ(con, reg),
+stmt: JCMPGE(con, reg),
+stmt: JCMPG(con, reg),
+stmt: JCMPL(con, reg),
+stmt: JCMPLE(con, reg),
+stmt: JCMPEQ(con, reg)
+{
+// jcmp ( stack[i-2] , stack[i -1] )  CMP stack[i -1] ,stack[i -2] con condizione salto invertita con-reg
+
+	JumpMIRNode* insn = dynamic_cast<JumpMIRNode*>(tree);
+	assert(insn != NULL);
+
+	intptr_t jt = insn->getTrueTarget();
+	intptr_t value = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE reg0 = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+ 	x86ConditionCodes cond_code = get_cond_code(insn, true); // con TRUE inverto condizione salto
+
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tCMP R%d, %d\t;JCMP%s(reg, con)\n", REG_NAME(reg0), value, x86CC[cond_code]);
+	printf("\tJ%s L%d\t;JCMP%s(reg, con)\n", x86CC[cond_code], jt, x86CC[cond_code]);
+#endif
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, value, reg0, x86_DWORD);
+	x86_Asm_J_Label(BB.getCode(), cond_code, jt);
+
+
+}
+
+stmt: JCMPNEQ(con, con),
+stmt: JCMPGE(con, con),
+stmt: JCMPG(con, con),
+stmt: JCMPL(con, con),
+stmt: JCMPLE(con, con),
+stmt: JCMPEQ(con, con)
+{
+
+//jcmp ( stack[i-2] , stack[i -1] )  CMP stack[i -2] ,stack[i -1] con-con
+
+	JumpMIRNode* insn = dynamic_cast<JumpMIRNode*>(tree);
+	assert(insn != NULL);
+
+	intptr_t jt = insn->getTrueTarget();
+	intptr_t value1 = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	intptr_t value2 = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE reg0(X86_NEW_VIRT_REG);
+
+	x86ConditionCodes cond_code = get_cond_code(insn);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV R%d, %d\t,JCMP%s(con, con)\n", REG_NAME(reg0), value1, x86CC[cond_code]);
+	printf("\tCMP R%d, %d\t;JCMP%s(con, con)\n", REG_NAME(reg0), value2, x86CC[cond_code]);
+	printf("\tJ%s L%d\t;JCMP%s(con, con)\n", x86CC[cond_code], jt, x86CC[cond_code]);
+#endif
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, value1, reg0, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, value2, reg0, x86_DWORD);
+
+
+ 	x86_Asm_J_Label(BB.getCode(), cond_code, jt);
+
+ }
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; load from memory types
+;
+
+;;;;;;;;;;;;;;;; PACKET ;;;;;;;;;;;;;;;;;;;;;;;
+
+pload8_mem_con: PBLDS(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+}
+
+
+reg: pload8_mem_con
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVSX, base_reg, displ, dst_reg, x86_BYTE);
+}
+
+pload8_memi_reg: PBLDS(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+}
+;1 byte signed
+reg: pload8_memi_reg
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, base_reg, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVSX, dst_reg, 0, dst_reg, x86_BYTE);
+	x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_MOVSX, base_reg, displ, 0, 0, dst_reg, x86_BYTE);
+}
+
+pload8_memu_con: PBLDU(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+}
+
+reg: pload8_memu_con
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, dst_reg, x86_BYTE);
+}
+
+
+;1 byte unsigned
+pload8_memiu_reg: PBLDU(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+}
+
+reg: pload8_memiu_reg
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, base_reg, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, dst_reg, 0, dst_reg, x86_BYTE);
+	x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ,0, 0,  dst_reg, x86_BYTE);
+}
+
+mem: pload8_mem_con
+{
+}
+
+mem: pload8_memu_con
+{
+}
+
+memi: pload8_memi_reg
+{
+}
+memi: pload8_memiu_reg
+{
+}
+
+;16 bit...
+
+pload16_smem_con: PSLDS(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+}
+
+
+reg: pload16_smem_con
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVSX, base_reg, displ, dst_reg, x86_WORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, dst_reg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, dst_reg, x86_DWORD);
+}
+
+;2 byte signed to swap
+pload16_smemi_reg: PSLDS(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+}
+
+reg: pload16_smemi_reg
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, base_reg, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVSX, dst_reg, 0, dst_reg, x86_WORD);
+	x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_MOVSX, base_reg, displ,0, 0,  dst_reg, x86_WORD);
+
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, dst_reg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, dst_reg, x86_DWORD);
+}
+
+pload16_smemu_con: PSLDU(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+}
+
+
+reg: pload16_smemu_con
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, dst_reg, x86_WORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, dst_reg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, dst_reg, x86_DWORD);
+}
+
+pload16_smemiu_reg: PSLDU(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+}
+
+reg: pload16_smemiu_reg
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, base_reg, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, dst_reg, 0, dst_reg, x86_WORD);
+	x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, 0, 0, dst_reg, x86_WORD);
+
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, dst_reg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, dst_reg, x86_DWORD);
+}
+
+smem: pload16_smemu_con
+{
+}
+
+smem: pload16_smem_con
+{
+}
+
+smemi: pload16_smemi_reg
+{
+}
+smemi: pload16_smemiu_reg
+{
+}
+
+;32bit............
+
+pload32_smem_con: PILD(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 4, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+}
+
+reg: pload32_smem_con
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, base_reg, displ, dst_reg, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, dst_reg, x86_DWORD);
+}
+
+pload32_smemi_reg: PILD(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 4, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+}
+
+reg: pload32_smemi_reg
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, base_reg, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, dst_reg, 0, dst_reg, x86_DWORD);
+	x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_MOV, base_reg, displ, 0, 0, dst_reg, x86_DWORD);
+
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, dst_reg, x86_DWORD);
+}
+
+smem: pload32_smem_con
+{
+}
+
+smemi: pload32_smemi_reg
+{
+}
+;;;;;;;;;;;;;;;;; OTHER ;;;;;;;;;;;;;;;;;;;;;;;;
+
+iload8_mem_con: ISSBLD(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+}
+
+reg: iload8_mem_con
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVSX, base_reg, displ, dst_reg, x86_BYTE);
+}
+
+;1 byte signed
+iload8_memi_reg: ISSBLD(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+}
+
+reg: iload8_memi_reg
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, base_reg, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVSX, dst_reg, 0, dst_reg, x86_BYTE);
+
+	x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_MOVSX, base_reg, displ, 0, 0, dst_reg, x86_BYTE);
+}
+
+iload8_memu_con: ISBLD(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+}
+
+reg: iload8_memu_con
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, dst_reg, x86_BYTE);
+}
+
+;1 byte unsigned
+iload8_memiu_reg: ISBLD(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+}
+
+reg: iload8_memiu_reg
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, base_reg, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, dst_reg, 0, dst_reg, x86_BYTE);
+	x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, 0, 0, dst_reg, x86_BYTE);
+}
+
+iload8_memi_reg: iload8_memiu_reg
+{
+}
+
+iload8_mem_con: iload8_memu_con
+{
+}
+
+memi: iload8_memi_reg
+{
+}
+
+mem: iload8_mem_con
+{
+}
+;16 bit...............
+
+iload16_mem_con: ISSSLD(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+}
+
+reg: iload16_mem_con
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVSX, base_reg, displ, dst_reg, x86_WORD);
+}
+
+;2 byte signed
+iload16_memi_reg: ISSSLD(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+}
+
+reg: iload16_memi_reg
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, base_reg, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVSX, dst_reg, 0, dst_reg, x86_WORD);
+	x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_MOVSX, base_reg, displ, 0, 0, dst_reg, x86_WORD);
+
+}
+
+iload16_memu_con: ISSLD(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+}
+
+reg: iload16_memu_con
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, dst_reg, x86_WORD);
+}
+
+iload16_memiu_reg: ISSLD(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+}
+
+reg: iload16_memiu_reg
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, base_reg, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, dst_reg, 0, dst_reg, x86_WORD);
+	x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, 0, 0, dst_reg, x86_WORD);
+
+}
+
+iload16_mem_con: iload16_memu_con
+{
+}
+
+iload16_memi_reg: iload16_memiu_reg
+{
+}
+
+mem: iload16_mem_con
+{
+}
+
+memi: iload16_memi_reg
+{
+}
+
+;32 bit...............
+
+iload32_mem_con: ISSILD(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 4, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+}
+
+reg: iload32_mem_con
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, base_reg, displ, dst_reg, x86_DWORD);
+}
+
+iload32_memi_reg: ISSILD(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 4, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+}
+
+reg: iload32_memi_reg
+{
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, base_reg, dst_reg, x86_DWORD);
+	//x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, dst_reg, 0, dst_reg, x86_DWORD);
+
+	x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, 0, 0, dst_reg, x86_DWORD);
+}
+
+mem: iload32_mem_con
+{
+}
+
+memi: iload32_memi_reg
+{
+}
+
+reg: DBLDS(reg)
+{
+
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE base_reg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVSX, base_reg, data_base, dst_reg, x86_BYTE);
+}
+
+reg: DBLDS(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Displ_To_Reg(BB.getCode(), X86_MOVSX, data_base + displ, dst_reg, x86_BYTE);
+}
+
+reg: DBLDU(reg)
+{
+
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE base_reg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, base_reg, data_base, dst_reg, x86_BYTE);
+}
+
+reg: DBLDU(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 1, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Displ_To_Reg(BB.getCode(), X86_MOVZX, data_base + displ, dst_reg, x86_BYTE);
+}
+
+reg: DSLDS(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 2 , x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE base_reg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVSX, base_reg, data_base, dst_reg, x86_WORD);
+}
+
+reg: DSLDS(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Displ_To_Reg(BB.getCode(), X86_MOVSX, data_base + displ, dst_reg, x86_WORD);
+}
+
+reg: DSLDU(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE base_reg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, base_reg, data_base, dst_reg, x86_WORD);
+}
+
+reg: DSLDU(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 2, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Displ_To_Reg(BB.getCode(), X86_MOVZX, data_base + displ, dst_reg, x86_WORD);
+}
+
+reg: DILD(reg)
+{
+	//bounds_check_REG_IMM(cfg, BB, MBTREE_VALUE(MBTREE_LEFT(tree)) , 4, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE base_reg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, base_reg, data_base, dst_reg, x86_DWORD);
+}
+
+reg: DILD(con)
+{
+	//bounds_check_IMM_IMM(cfg, BB, MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)) , 4, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dst_reg(MBTREE_VALUE(tree));
+
+	x86_Asm_Op_Mem_Displ_To_Reg(BB.getCode(), X86_MOV, data_base + displ, dst_reg, x86_DWORD);
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; store to memory
+;
+
+;
+; 1 BYTE
+;
+
+stmt: PBSTR(con, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	intptr_t value = MBTREE_GET_CONST_VALUE( MBTREE_RIGHT(tree) );
+	intptr_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 1, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_BYTE);
+}
+
+stmt: PBSTR(reg, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	uint8_t value(MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 1, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+//	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+
+//	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+//	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, reg, displ, x86_DWORD);
+//	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, reg, baseReg, x86_DWORD);
+//	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_BYTE);
+
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV,  displ, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD,  baseReg, reg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_BYTE);
+
+}
+
+stmt: PBSTR(con, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	intptr_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 1, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_BYTE);
+}
+
+stmt: PBSTR(reg, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 1, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_BYTE);
+*/
+
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV,  displ, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD,  baseReg, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_BYTE);
+}
+
+;
+; 2 BYTE
+;
+
+stmt: PSSTR(con, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	intptr_t value = MBTREE_GET_CONST_VALUE( MBTREE_RIGHT(tree) );
+	uint16_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+	value = nvm_htons(value);
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 2, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_WORD);
+}
+
+stmt: PSSTR(reg, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	uint16_t value(MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree)));
+	value = nvm_htons(value);
+
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 2, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_WORD);
+*/
+
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV,  displ, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD,  baseReg, reg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_BYTE);
+
+
+}
+
+stmt: PSSTR(con, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	intptr_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 2, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, value, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_WORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, value, x86_DWORD);
+}
+
+stmt: PSSTR(reg, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 2, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, value, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_WORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, value, x86_DWORD);
+*/
+
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV,  displ, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, baseReg, reg, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, value, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_WORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, value, x86_DWORD);
+}
+
+;
+; 4 BYTE
+;
+
+stmt: PISTR(con, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	intptr_t value = MBTREE_GET_CONST_VALUE( MBTREE_RIGHT(tree) );
+	intptr_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+	value = nvm_htonl(value);
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 4, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_DWORD);
+}
+
+stmt: PISTR(reg, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	intptr_t value(MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree)));
+	value = nvm_htonl(value);
+
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 4, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_DWORD);
+*/
+
+	MBREG_TYPE  reg(X86_NEW_VIRT_REG); \
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV,  displ, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, baseReg, reg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_DWORD);
+
+}
+
+stmt: PISTR(con, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	intptr_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 4, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+}
+
+stmt: PISTR(reg, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 4, x86_dim_man::packet);
+
+	counter_access_mem_profiling( BB, x86_dim_man::packet);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+
+*/
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, reg,  x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, baseReg, reg, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, value, x86_DWORD);
+}
+
+;;;;;;;;;;;;;;;;;;;;;;; STORE OTHER MEMORY ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+stmt: IBSTR(con, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	intptr_t value = MBTREE_GET_CONST_VALUE( MBTREE_RIGHT(tree) );
+	intptr_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 1, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_BYTE);
+}
+
+stmt: IBSTR(reg, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	uint8_t value(MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 1, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_BYTE);
+*/
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, displ, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, baseReg, reg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_BYTE);
+
+
+}
+
+stmt: IBSTR(con, reg)
+{
+
+
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	intptr_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 1, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_BYTE);
+}
+
+stmt: IBSTR(reg, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 1, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, value, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_BYTE);
+*/
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, displ, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, baseReg, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_BYTE);
+}
+
+
+
+stmt: ISSTR(con, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	intptr_t value = MBTREE_GET_CONST_VALUE( MBTREE_RIGHT(tree) );
+	uint16_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 2, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_WORD);
+}
+
+stmt: ISSTR(reg, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	uint16_t value(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 2, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_WORD);
+*/
+
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, displ,  reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, baseReg,  reg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_WORD);
+
+}
+
+stmt: ISSTR(con, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	intptr_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 2, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_WORD);
+}
+
+stmt: ISSTR(reg, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 2 , x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_WORD);
+*/
+
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD,  baseReg, reg,  x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_WORD);
+
+}
+
+;
+; 4 BYTE
+;
+
+stmt: IISTR(con, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	intptr_t value = MBTREE_GET_CONST_VALUE( MBTREE_RIGHT(tree) );
+	intptr_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 4, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_DWORD);
+}
+
+stmt: IISTR(reg, con)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	intptr_t value(MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree)));
+
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 4, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+	//x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_DWORD);
+*/
+
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_MOV, displ, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(),  X86_ADD, baseReg, reg,  x86_DWORD);
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_DWORD);
+}
+
+stmt: IISTR(con, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	intptr_t displ = MBTREE_GET_CONST_VALUE( MBTREE_LEFT(tree) );
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 4, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, baseReg, displ, x86_DWORD);
+}
+
+stmt: IISTR(reg, reg)
+{
+	MBREG_TYPE baseReg(x86_base_address_man::load_base(cfg, x86_base_address_man::info ));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 4, x86_dim_man::info);
+
+	counter_access_mem_profiling( BB, x86_dim_man::info);
+
+/*
+	MBREG_TYPE reg( MBREG_TYPE::get_new(REG_SPACE) );
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, reg, displ, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, reg, baseReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_DWORD);
+*/
+
+	MBREG_TYPE reg(X86_NEW_VIRT_REG);
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, displ,  reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_ADD, baseReg, reg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, reg, 0, x86_DWORD);
+}
+
+;
+; ;;;;;;;;;;;;;;;; DATA ;;;;;;;;;;;;;;;;,,;;;;;;;
+;
+
+stmt: DBSTR(con, con)
+{
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	intptr_t value = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+
+	//MBREG_TYPE src_reg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 1, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Imm_To_Mem_Displ(BB.getCode(), X86_MOV, value, displ + data_base, x86_BYTE);
+}
+
+stmt: DBSTR(con, reg)
+{
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 1, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Reg_To_Mem_Displ(BB.getCode(), X86_MOV, value, displ + data_base, x86_BYTE);
+}
+
+stmt: DBSTR(reg, con)
+{
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	intptr_t value = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 1, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, displ, data_base, x86_BYTE);
+}
+
+stmt: DBSTR(reg, reg)
+{
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 1, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, displ, data_base, x86_BYTE);
+}
+
+stmt: DSSTR(con, con)
+{
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	intptr_t value = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+
+	//MBREG_TYPE src_reg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 2, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Imm_To_Mem_Displ(BB.getCode(), X86_MOV, value, displ + data_base, x86_WORD);
+}
+
+stmt: DSSTR(con, reg)
+{
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 2, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Reg_To_Mem_Displ(BB.getCode(), X86_MOV, value, displ + data_base, x86_WORD);
+}
+
+stmt: DSSTR(reg, con)
+{
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	intptr_t value = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 2, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, displ, data_base, x86_WORD);
+}
+
+stmt: DSSTR(reg, reg)
+{
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 2, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, displ, data_base, x86_WORD);
+}
+
+stmt: DISTR(con, con)
+{
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	intptr_t value = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+
+	//MBREG_TYPE src_reg(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 4, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Imm_To_Mem_Displ(BB.getCode(), X86_MOV, value, displ + data_base, x86_DWORD);
+}
+
+stmt: DISTR(con, reg)
+{
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	//bounds_check_IMM_IMM(cfg, BB, displ , 4, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Reg_To_Mem_Displ(BB.getCode(), X86_MOV, value, displ + data_base, x86_DWORD);
+}
+
+stmt: DISTR(reg, con)
+{
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	intptr_t value = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 4, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_MOV, value, displ, data_base, x86_DWORD);
+}
+
+stmt: DISTR(reg, reg)
+{
+	MBREG_TYPE displ(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	intptr_t data_base = (intptr_t)APPLICATION.getMemDescriptor(Application::data).Base;
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	//bounds_check_REG_IMM(cfg, BB, displ , 4, x86_dim_man::data);
+
+	counter_access_mem_profiling( BB, x86_dim_man::data);
+
+	x86_Asm_Op_Reg_To_Mem_Base(BB.getCode(), X86_MOV, value, displ, data_base, x86_DWORD);
+}
+
+reg: LDREG
+{
+	MBREG_TYPE reg = MBTREE_VALUE(tree);
+
+	if(reg.get_model()->get_space() == APPLICATION.getCoprocessorRegSpace())
+	{
+		MBREG_TYPE dstReg(X86_NEW_VIRT_REG);
+		tree->setDefReg(dstReg);
+
+		intptr_t regname = reg.get_model()->get_name();
+		intptr_t coproId = regname / MAX_COPRO_REGISTERS;
+		intptr_t coproReg = regname % MAX_COPRO_REGISTERS;
+
+		nvmCoprocessorState* copro = APPLICATION.getCoprocessor(coproId);
+
+#ifdef _EXP_COPROCESSOR_MODEL
+		if (strcmp(copro->name, "lookupnew") == 0 && coproReg == 7)
+		{
+
+			x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, newReg, dstReg, x86_DWORD);
+		}
+		else
+		{
+#endif
+
+		intptr_t regAddr = (intptr_t)&copro->registers[coproReg];
+
+		x86_Asm_Op_Mem_Displ_To_Reg(BB.getCode(), X86_MOV, regAddr, dstReg, x86_DWORD);
+
+#ifdef _EXP_COPROCESSOR_MODEL
+		}
+#endif
+
+	}
+#ifdef _DEBUG_X86_INSSEL
+	printf("\t[LDREG %d]\t;LDREG\n", REG_NAME(MBTREE_VALUE(tree)));
+#endif
+}
+
+reg: PBL
+{
+
+//MBREG_TYPE reg(x86_dim_man::load_dim(cfg, x86_dim_man::packet));
+
+	MBREG_TYPE reg = MBTREE_VALUE(tree);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, x86_dim_man::load_dim(cfg, x86_dim_man::packet), reg, x86_DWORD);
+
+/*
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(EBP), 8, reg, x86_DWORD);
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, reg, 0, reg, x86_DWORD);
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, reg, x86_offsets.ExchangeBuffer.PacketLen, reg, x86_DWORD);
+*/
+
+}
+
+reg: TSTAMP_S
+{
+	MBREG_TYPE reg = MBTREE_VALUE(tree);
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(EBP), 8, reg, x86_DWORD);
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, reg, 0, reg, x86_DWORD);
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, reg, x86_offsets.ExchangeBuffer.TStamp_s, reg, x86_DWORD);
+}
+
+reg: TSTAMP_US
+{
+	MBREG_TYPE reg = MBTREE_VALUE(tree);
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(EBP), 8, reg, x86_DWORD);
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, reg, 0, reg, x86_DWORD);
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, reg, x86_offsets.ExchangeBuffer.TStamp_us, reg, x86_DWORD);
+}
+
+reg: IINC_1(con),
+reg: IDEC_1(con)
+{
+	intptr_t imm = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV R%d, %d\t;%s(reg)\n", REG_NAME(dstReg), imm, x86OpDescriptions[OP_ONLY(opcode)].Name);
+	printf("\t%s R%d     \t;%s(reg)\n", x86OpDescriptions[OP_ONLY(opcode)].Name, REG_NAME(dstReg), x86OpDescriptions[OP_ONLY(opcode)].Name);
+#endif
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, imm, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), opcode, dstReg, x86_DWORD);
+}
+
+reg: IINC_1(reg),
+reg: IDEC_1(reg),
+reg: NEG(reg)
+{
+	MBREG_TYPE srcReg = MBTREE_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV R%d, R%d\t;%s(reg)\n", REG_NAME(dstReg), REG_NAME(srcReg), x86OpDescriptions[OP_ONLY(opcode)].Name);
+	printf("\t%s R%d     \t;%s(reg)\n", x86OpDescriptions[OP_ONLY(opcode)].Name, REG_NAME(dstReg), x86OpDescriptions[OP_ONLY(opcode)].Name);
+#endif
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), opcode, dstReg, x86_DWORD);
+}
+
+reg: SHR(reg, con),
+reg: USHR(reg, con)
+{
+	intptr_t imm = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE srcReg = MBTREE_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+#ifdef _DEBUG_X86_INSSEL
+	char *name = x86OpDescriptions[OP_ONLY(opcode)].Name;
+
+	printf("\tMOV R%d, %d\t;%s(reg, reg)", REG_NAME(dstReg), imm, name);
+	printf("\tMOV ECX, R%d\t;%s(reg, reg)", REG_NAME(srcReg), name);
+	printf("\t%s R%d, ECX\t;%s(reg, reg)", name, REG_NAME(dstReg), name);
+#endif
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, dstReg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), opcode, imm, dstReg, x86_DWORD);
+
+}
+
+reg: SHR(con, reg),
+reg: USHR(con, reg)
+{
+	intptr_t imm = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE srcReg = MBTREE_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+	//Have to move the count to ECX
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, imm, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), opcode, X86_MACH_REG(ECX), dstReg, x86_DWORD);
+
+}
+
+reg: SHR(reg, reg),
+reg: USHR(reg, reg)
+{
+	MBREG_TYPE srcReg1 = MBTREE_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE srcReg2 = MBTREE_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+#ifdef _DEBUG_X86_INSSEL
+	char *name = x86OpDescriptions[OP_ONLY(opcode)].Name;
+
+	printf("\tMOV R%d, R%d\t;%s(reg, reg)", REG_NAME(dstReg), REG_NAME(srcReg2), name);
+	printf("\tMOV ECX, R%d\t;%s(reg, reg)", REG_NAME(srcReg1), name);
+	printf("\t%s R%d, ECX\t;%s(reg, reg)", name, REG_NAME(dstReg), name);
+#endif
+
+	//Have to move the count to ECX
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg1, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg2, X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), opcode, X86_MACH_REG(ECX), dstReg, x86_DWORD);
+}
+
+
+
+reg: SHL(reg, con)
+{
+	intptr_t imm = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE srcReg = MBTREE_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+#ifdef _DEBUG_X86_INSSEL
+	char *name = x86OpDescriptions[OP_ONLY(opcode)].Name;
+
+	printf("\tMOV R%d, %d\t;%s(reg, reg)", REG_NAME(dstReg), imm, name);
+	printf("\tMOV ECX, R%d\t;%s(reg, reg)", REG_NAME(srcReg), name);
+	printf("\t%s R%d, ECX\t;%s(reg, reg)", name, REG_NAME(dstReg), name);
+#endif
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, dstReg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), opcode, imm, dstReg, x86_DWORD);
+
+}
+
+reg: SHL(con, reg)
+{
+	intptr_t imm = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE srcReg = MBTREE_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+	//Have to move the count to ECX
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, imm, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), opcode, X86_MACH_REG(ECX), dstReg, x86_DWORD);
+
+}
+
+reg: SHL(reg, reg)
+{
+	MBREG_TYPE srcReg1 = MBTREE_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE srcReg2 = MBTREE_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+#ifdef _DEBUG_X86_INSSEL
+	char *name = x86OpDescriptions[OP_ONLY(opcode)].Name;
+
+	printf("\tMOV R%d, R%d\t;%s(reg, reg)", REG_NAME(dstReg), REG_NAME(srcReg2), name);
+	printf("\tMOV ECX, R%d\t;%s(reg, reg)", REG_NAME(srcReg1), name);
+	printf("\t%s R%d, ECX\t;%s(reg, reg)", name, REG_NAME(dstReg), name);
+#endif
+
+	//Have to move the count to ECX
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg1, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg2, X86_MACH_REG(ECX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), opcode, X86_MACH_REG(ECX), dstReg, x86_DWORD);
+}
+
+
+
+
+
+
+
+
+reg: ADDUOV(reg, reg),
+reg: ADD(reg, reg),
+reg: SUBUOV(reg, reg),
+reg: SUB(reg, reg),
+reg: AND(reg, reg),
+reg: OR(reg, reg)
+{
+	MBREG_TYPE dstReg  = MBTREE_VALUE(tree);
+	MBREG_TYPE srcReg0 = MBTREE_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE srcReg1 = MBTREE_VALUE(MBTREE_RIGHT(tree));
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV R%d, R%d\t;%s(reg, reg)\n", REG_NAME(dstReg), REG_NAME(srcReg1), x86OpDescriptions[OP_ONLY(opcode)].Name);
+	printf("\t%s R%d, R%d\t;%s(reg, reg)\n", x86OpDescriptions[OP_ONLY(opcode)].Name, REG_NAME(dstReg), REG_NAME(srcReg0), x86OpDescriptions[OP_ONLY(opcode)].Name);
+#endif
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg0, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), opcode,  srcReg1, dstReg, x86_DWORD);
+
+}
+
+
+reg: NOT(reg)
+{
+
+	MBREG_TYPE dstReg  = MBTREE_VALUE(tree);
+	MBREG_TYPE srcReg = MBTREE_VALUE(MBTREE_LEFT(tree));
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg(BB.getCode(), opcode, dstReg, x86_DWORD);
+}
+
+
+
+reg: SUBUOV(reg, con),
+reg: SUB(reg, con)
+{
+
+	MBREG_TYPE dstReg  = MBTREE_VALUE(tree);
+	MBREG_TYPE srcReg  = MBTREE_VALUE(MBTREE_LEFT(tree));
+	intptr_t imm = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV R%d, %d\t;%s(reg, con)\n", REG_NAME(dstReg),  REG_NAME(srcReg), x86OpDescriptions[OP_ONLY(opcode)].Name);
+	printf("\t%s R%d, R%d\t;%s(reg, con)\n", x86OpDescriptions[OP_ONLY(opcode)].Name, REG_NAME(dstReg), imm, x86OpDescriptions[OP_ONLY(opcode)].Name);
+#endif
+
+
+ 	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, dstReg, x86_DWORD);
+  	x86_Asm_Op_Imm_To_Reg(BB.getCode(),  opcode, imm, dstReg, x86_DWORD);
+
+
+}
+
+reg: OR(reg, con),
+reg: AND(reg, con),
+reg: ADD(reg, con),
+reg: ADDUOV(reg, con)
+{
+	MBREG_TYPE dstReg  = MBTREE_VALUE(tree);
+	MBREG_TYPE srcReg  = MBTREE_VALUE(MBTREE_LEFT(tree));
+	intptr_t imm = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV R%d, R%d\t;%s(reg, con)\n", REG_NAME(dstReg), REG_NAME(srcReg), x86OpDescriptions[OP_ONLY(opcode)].Name);
+	printf("\t%s R%d, %d\t;%s(reg, con)\n", x86OpDescriptions[OP_ONLY(opcode)].Name, REG_NAME(dstReg), imm, x86OpDescriptions[OP_ONLY(opcode)].Name);
+#endif
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, dstReg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), opcode, imm, dstReg, x86_DWORD);
+}
+
+reg: OR(con, con),
+reg: AND(con, con),
+reg: SUB(con, con),
+reg: SUBUOV(con, con),
+reg: ADDUOV(con, con),
+reg: ADD(con, con),
+reg: SHR(con, con),
+reg: USHR(con, con)
+{
+	MBREG_TYPE dstReg  = MBTREE_VALUE(tree);
+	intptr_t src0 = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	intptr_t src1 = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+	x86OpCodesEnum opcode = get_alu_opcode(tree);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV R%d, %d\t;%s(con, con)\n", REG_NAME(dstReg), src1, x86OpDescriptions[OP_ONLY(opcode)].Name);
+	printf("\t%s R%d, %d\t;%s(con, con)\n", x86OpDescriptions[OP_ONLY(opcode)].Name, REG_NAME(dstReg), src0, x86OpDescriptions[OP_ONLY(opcode)].Name);
+#endif
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, src0, dstReg, x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(),  opcode, src1, dstReg, x86_DWORD);
+}
+
+reg: MOD(con, reg)
+{
+	intptr_t src1 = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE src2 = MBTREE_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86Regs_32 res = EDX;//(tree->getOpcode() == IMUL ?  EAX : EDX);
+	x86OpCodesEnum opcode = X86_DIV;//(tree->getOpcode() == IMUL ? X86_MOV : X86_DIV);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tXOR EDX, EDXd\n");
+	printf("\tMOV EAX, %d\n", src1);
+	printf("\tMOV R%d, %d", REG_NAME(dstReg), REG_NAME(src2));
+	printf("\t%s R%d\n", x86OpDescriptions[OP_ONLY(opcode)].Name, REG_NAME(dstReg));
+	printf("\tMOV R%d, %s\n", REG_NAME(dstReg), x86RegNames[res + 16]);
+#endif
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_XOR, X86_MACH_REG(EDX), X86_MACH_REG(EDX), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, src1, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, src2, dstReg, x86_DWORD);
+
+	x86_Asm_Op_Reg(BB.getCode(), opcode, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(res), dstReg, x86_DWORD);
+}
+
+reg: IMUL(reg, con),
+reg: MOD(reg, con)
+{
+	MBREG_TYPE src1 = MBTREE_VALUE(MBTREE_LEFT(tree));
+	intptr_t src2 = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86Regs_32 res = (tree->getOpcode() == IMUL ?  EAX : EDX);
+	x86OpCodesEnum opcode = (tree->getOpcode() == IMUL ? X86_MUL : X86_DIV);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV EAX, R%d\n", REG_NAME(src1));
+	printf("\tMOV R%d, %d", REG_NAME(dstReg), src2);
+	printf("\t%s R%d\n", x86OpDescriptions[OP_ONLY(opcode)].Name, REG_NAME(dstReg));
+	printf("\tMOV R%d, %s\n", REG_NAME(dstReg), x86RegNames[res + 16]);
+#endif
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, src1, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, src2, dstReg, x86_DWORD);
+
+	x86_Asm_Op_Reg(BB.getCode(), opcode, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(res), dstReg, x86_DWORD);
+}
+
+reg: IMUL(con, con),
+reg: MOD(con, con)
+{
+	intptr_t src1 = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	intptr_t src2 = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86Regs_32 res = (tree->getOpcode() == IMUL ?  EAX : EDX);
+	x86OpCodesEnum opcode = (tree->getOpcode() == IMUL ? X86_MUL : X86_DIV);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV EAX, %d\n", src1);
+	printf("\tMOV R%d, %d", REG_NAME(dstReg), src2);
+	printf("\t%s R%d\n", x86OpDescriptions[OP_ONLY(opcode)].Name, REG_NAME(dstReg));
+	printf("\tMOV R%d, %s\n", REG_NAME(dstReg), x86RegNames[res + 16]);
+#endif
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, src1, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, src2, dstReg, x86_DWORD);
+
+	x86_Asm_Op_Reg(BB.getCode(), opcode, dstReg, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(res), dstReg, x86_DWORD);
+}
+
+reg: IMUL(reg, reg),
+reg: MOD(reg, reg)
+{
+	MBREG_TYPE srcReg1 = MBTREE_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE srcReg2 = MBTREE_VALUE(MBTREE_RIGHT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	x86Regs_32 res = (tree->getOpcode() == IMUL ?  EAX : EDX);
+	x86OpCodesEnum opcode = (tree->getOpcode() == IMUL ? X86_MUL : X86_DIV);
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV EAX, R%d\n", REG_NAME(srcReg1));
+	printf("\t%s R%d\n", x86OpDescriptions[OP_ONLY(opcode)].Name, REG_NAME(srcReg2));
+	printf("\tMOV R%d, %s\n", REG_NAME(dstReg), x86RegNames[res + 16]);
+#endif
+
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg1, X86_MACH_REG(EAX), x86_DWORD);
+
+	x86_Asm_Op_Reg(BB.getCode(), opcode, srcReg2, x86_DWORD);
+	x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(res), dstReg, x86_DWORD);
+}
+
+reg: CMP(reg, reg)
+{
+std::cout << "CMP opcode not implemented\n";
+}
+
+reg: CMP(reg, con)
+{
+std::cout << "CMP opcode not implemented\n";
+}
+
+reg: CMP(con, reg)
+{
+std::cout << "CMP opcode not implemented\n";
+}
+
+stmt: STREG(reg)
+{
+	MBREG_TYPE srcReg = MBTREE_VALUE(MBTREE_LEFT(tree));
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+
+	if(dstReg.get_model()->get_space() == APPLICATION.getCoprocessorRegSpace())
+	{
+		intptr_t regname = dstReg.get_model()->get_name();
+		intptr_t coproId = regname / MAX_COPRO_REGISTERS;
+
+		nvmCoprocessorState* copro = APPLICATION.getCoprocessor(coproId);
+
+		intptr_t coproReg = regname % MAX_COPRO_REGISTERS;
+		intptr_t regAddr = (intptr_t)&copro->registers[coproReg];
+
+		x86_Asm_Op_Reg_To_Mem_Displ(BB.getCode(), X86_MOV, srcReg, regAddr, x86_DWORD);
+
+	}
+	else
+	{
+#ifdef _DEBUG_X86_INSSEL
+		printf("\tMOV R%d, R%d\t; STREG(reg)\n", REG_NAME(dstReg), REG_NAME(srcReg));
+#endif
+
+		x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, srcReg, dstReg, x86_DWORD);
+	}
+}
+
+stmt: STREG(con)
+{
+	MBREG_TYPE dstReg = MBTREE_VALUE(tree);
+	intptr_t value  = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+
+	if(dstReg.get_model()->get_space() == APPLICATION.getCoprocessorRegSpace())
+	{
+		intptr_t regname = dstReg.get_model()->get_name();
+		intptr_t coproId = regname / MAX_COPRO_REGISTERS;
+		intptr_t coproReg = regname % MAX_COPRO_REGISTERS;
+
+		nvmCoprocessorState* copro = APPLICATION.getCoprocessor(coproId);
+		intptr_t regAddr = (intptr_t)&copro->registers[coproReg];
+
+		MBREG_TYPE tmp(X86_NEW_VIRT_REG);
+
+		x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, value, tmp, x86_DWORD);
+		x86_Asm_Op_Reg_To_Mem_Displ(BB.getCode(), X86_MOV, tmp, regAddr, x86_DWORD);
+	}
+	else
+	{
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tMOV R%d, %d\t; STREG(con)\n", REG_NAME(dstReg), value);
+#endif
+
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, value, dstReg, x86_DWORD);
+	}
+}
+
+%ifdef _EXP_COPROCESSOR_MODEL
+stmt: STREG(PSLDU(con))
+{
+	MBREG_TYPE dst_reg = MBTREE_VALUE(tree);
+
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, MBTREE_LEFT(tree)));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(MBTREE_LEFT(tree)));
+	MBREG_TYPE tmp_dst_reg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tSTREG(PSLDU(con))\n");
+#endif
+
+	if(dst_reg.get_model()->get_space() == APPLICATION.getCoprocessorRegSpace())
+	{
+		intptr_t regname = dst_reg.get_model()->get_name();
+		intptr_t coproId = regname / MAX_COPRO_REGISTERS;
+		intptr_t coproReg = regname % MAX_COPRO_REGISTERS;
+
+		nvmCoprocessorState* copro = APPLICATION.getCoprocessor(coproId);
+		intptr_t regAddr = (intptr_t)&copro->registers[coproReg];
+
+		if (strcmp(copro->name, "lookupnew") == 0)
+		{
+
+			x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, tmp_dst_reg, x86_WORD);
+			x86_Asm_Op_Reg_To_Mem_Displ(BB.getCode(), X86_MOV, tmp_dst_reg, regAddr, x86_DWORD);
+		}
+		else
+		{
+			x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, dst_reg, x86_WORD);
+			x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, dst_reg, x86_DWORD);
+			x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, dst_reg, x86_DWORD);
+		}
+	}
+	else
+	{
+
+		x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, dst_reg, x86_WORD);
+		x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, dst_reg, x86_DWORD);
+		x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_SHR, 16, dst_reg, x86_DWORD);
+
+	}
+}
+
+
+stmt: STREG(PILD(con))
+{
+
+
+	MBREG_TYPE dst_reg = MBTREE_VALUE(tree);
+
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, MBTREE_LEFT(tree)));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(MBTREE_LEFT(tree)));
+	MBREG_TYPE tmp_dst_reg(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tSTREG(PILD(con))\n");
+#endif
+
+
+	if(dst_reg.get_model()->get_space() == APPLICATION.getCoprocessorRegSpace())
+	{
+		intptr_t regname = dst_reg.get_model()->get_name();
+		intptr_t coproId = regname / MAX_COPRO_REGISTERS;
+		intptr_t coproReg = regname % MAX_COPRO_REGISTERS;
+
+		nvmCoprocessorState* copro = APPLICATION.getCoprocessor(coproId);
+		intptr_t regAddr = (intptr_t)&copro->registers[coproReg];
+
+		if (strcmp(copro->name, "lookupnew") == 0)
+		{
+			x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, base_reg, displ, tmp_dst_reg, x86_DWORD);
+			x86_Asm_Op_Reg_To_Mem_Displ(BB.getCode(), X86_MOV, tmp_dst_reg, regAddr, x86_DWORD);
+		}
+		else
+		{
+			x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, base_reg, displ, dst_reg, x86_DWORD);
+			x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, dst_reg, x86_DWORD);
+		}
+
+	}
+	else
+	{
+		x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOV, base_reg, displ, dst_reg, x86_DWORD);
+		x86_Asm_Op_Reg(BB.getCode(), X86_BSWAP, dst_reg, x86_DWORD);
+	}
+}
+%endif
+
+stmt: reg
+{
+	std::cout << "!!!reg!!!";
+}
+
+stmt: con
+{
+	std::cout << "!!!con!!!";
+}
+
+stmt: PHI
+{
+	#ifdef _DEBUG_X86_INSSEL
+	std::cout << "PHI" << std::endl;
+	#endif
+}
+
+stmt: JUMP,
+stmt: JUMPW
+{
+	JumpMIRNode* insn = dynamic_cast<JumpMIRNode*>(tree);
+	assert(insn !=  NULL);
+
+	intptr_t jt = insn->getTrueTarget();
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tJUMP L%d\t;JUMPW\n", jt);
+#endif
+
+	x86_Asm_JMP_Label(BB.getCode(), jt);
+}
+
+stmt: SWITCH(reg)
+{
+	SwitchMIRNode* insn = dynamic_cast<SwitchMIRNode*>(tree);
+	assert(insn != NULL);
+
+	if(insn->get_targets_num() > 3)
+	{
+		x86SwitchHelper helper(BB, *insn);
+		SwitchEmitter sw(helper, *insn);
+
+		sw.run();
+		x86_Asm_JMP_Label(BB.getCode(), insn->getDefaultTarget());
+	}
+	else
+	{
+
+		MBREG_TYPE reg = MBTREE_VALUE(MBTREE_LEFT(insn));
+
+		SwitchMIRNode::targets_iterator i;
+		for(i = insn->TargetsBegin(); i != insn->TargetsEnd(); i++)
+		{
+#ifdef _DEBUG_X86_INSSEL
+			printf("\tCMP R%d, %d\t;SWITCH(reg)\n", REG_NAME(reg), i->first);
+			printf("\tJEQ %d\t;SWITCH(reg)\n", i->second);
+#endif
+			x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, i->first, reg, x86_DWORD);
+			x86_Asm_J_Label(BB.getCode(), E, i->second);
+		}
+
+		x86_Asm_JMP_Label(BB.getCode(), insn->getDefaultTarget());
+	}
+}
+
+stmt: SWITCH(con)
+{
+	SwitchMIRNode* insn = dynamic_cast<SwitchMIRNode*>(tree);
+	assert(insn != NULL);
+
+	intptr_t value= MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree));
+	uint16_t target;
+
+	SwitchMIRNode::targets_iterator i;
+	for(i = insn->TargetsBegin();
+		i != insn->TargetsEnd() && i->first != value;
+		i++);
+
+	if(i == insn->TargetsEnd())
+		target = insn->getDefaultTarget();
+	else
+		target = i->second;
+
+#ifdef _DEBUG_X86_INSSEL
+	printf("\tJMP %d\t;SWITCH(con)\n", target);
+#endif
+
+	x86_Asm_JMP_Label(BB.getCode(), target);
+}
+
+%ifdef SWAP_CONST
+stmt: JCMPNEQ ( AND ( pload16_smemu_con, con ), con )
+{
+	JumpMIRNode* jump = dynamic_cast<JumpMIRNode*>(tree);
+	assert(jump != NULL);
+	intptr_t target = jump->getTrueTarget();
+
+	MBTREE_TYPE* and_insn(MBTREE_LEFT(jump));
+	MBTREE_TYPE* load(MBTREE_LEFT(and_insn));
+
+	MBREG_TYPE tmp = MBTREE_VALUE(and_insn);
+	uint16_t mask = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(and_insn));
+	intptr_t cmp_const = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+	MBREG_TYPE base_reg(x86_base_address_man::load_base(cfg, x86_base_address_man::packet));
+	intptr_t displ = MBTREE_GET_CONST_VALUE(MBTREE_LEFT(load));
+
+	x86_Asm_Op_Mem_Base_To_Reg(BB.getCode(), X86_MOVZX, base_reg, displ, tmp, x86_WORD);
+	mask = nvm_htons(mask);
+	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_AND, mask, tmp, x86_DWORD);
+	if(cmp_const != 0)
+	{
+		cmp_const = nvm_htonl(cmp_const);
+		x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_CMP, cmp_const, tmp, x86_DWORD);
+	}
+	x86_Asm_J_Label(BB.getCode(), NE, target);
+}
+
+reg: ADD ( IMUL ( reg, con), con)
+{
+	MBTREE_TYPE* mul = MBTREE_LEFT(tree);
+	MBREG_TYPE src(MBTREE_VALUE(MBTREE_LEFT(mul)));
+	intptr_t mul_con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(mul));
+	intptr_t add_con = MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree));
+
+
+	MBREG_TYPE dst = MBTREE_VALUE(tree);
+
+	if(mul_con == 4 || mul_con == 8)
+	{
+		intptr_t scale = 0;
+		switch(mul_con)
+		{
+			case 4:
+				scale = 2;
+				break;
+			case 8:
+				scale = 3;
+				break;
+		}
+		x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_XOR, dst, dst, x86_DWORD);
+		x86_Asm_Op_Mem_Index_To_Reg(BB.getCode(), X86_LEA, dst, src, add_con, scale, dst, x86_DWORD);
+	}
+	else
+	{
+		x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, src, X86_MACH_REG(EAX), x86_DWORD);
+		x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, mul_con, dst, x86_DWORD);
+
+		x86_Asm_Op_Reg(BB.getCode(), X86_MUL, dst, x86_DWORD);
+		x86_Asm_Op_Reg_To_Reg(BB.getCode(), X86_MOV, X86_MACH_REG(EAX), dst, x86_DWORD);
+		x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, add_con, dst, x86_DWORD);
+	}
+}
+
+%endif
+
+;reg: con
+;{
+;	MBREG_TYPE reg(RegisterInstance::get_new(REG_SPACE));
+;	intptr_t value = MBTREE_GET_CONST_VALUE(tree);
+;
+;	x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_MOV, value, reg, x86_DWORD);
+;	tree->setDefReg(reg);
+;}
+%%
+
+jit::nvmStructOffsets<intptr_t> jit::ia32::x86_offsets;
+jit::ia32::x86_base_address_man  jit::ia32::base_manager;
+jit::ia32::x86_dim_man  jit::ia32::dim_manager;
+
+jit::ia32::x86ConditionCodes jit::ia32::get_cond_code(JumpMIRNode* insn, bool leftConst)
+{
+	assert(insn != NULL);
+	switch(insn->getOpcode())
+	{
+		case JNE:
+		case JCMPNEQ:
+		case JFLDNEQ:
+			return NE;
+			break;
+		case JCMPGE:
+			if (leftConst)
+				return L;
+			return GE;
+			break;
+		case JCMPG:
+		case JFLDGT:
+			if (leftConst)
+				return LE;
+			return G;
+			break;
+		case JCMPL:
+		case JFLDLT:
+			if (leftConst)
+				return GE ;
+			return L ;
+			break;
+		case JCMPLE:
+			if (leftConst)
+				return G ;
+			return LE;
+
+			break;
+		case JCMPEQ:
+		case JEQ:
+		case JFLDEQ:
+			return E;
+			break;
+		default:
+			assert(1 == 0 && "jump opcode invalid");
+			;
+	}
+	// Never reached
+	return NE;
+}
+
+x86OpCodesEnum jit::ia32::get_alu_opcode(MIRNode* insn)
+{
+	assert(insn != NULL);
+
+	x86OpCodesEnum res = X86_NOP;
+
+	switch(insn->getOpcode())
+	{
+		case ADD:
+		case ADDUOV:
+			res = X86_ADD;
+			break;
+		case SUB:
+		case SUBUOV:
+			res = X86_SUB;
+			break;
+		case AND:
+			res = X86_AND;
+			break;
+		case OR:
+			res = X86_OR;
+			break;
+		case IINC_1:
+			res = X86_INC;
+			break;
+		case IDEC_1:
+			res = X86_DEC;
+			break;
+		case SHR:
+			res = X86_SHR;
+			break;
+		case USHR:
+			res = X86_SHR;
+			break;
+		case SHL:
+			res = X86_SHL;
+			break;
+		case NEG:
+			res = X86_NEG;
+			break;
+		case NOT:
+			res = X86_NOT;
+			break;
+		default:
+			assert(1 == 0 && "alu opcode invalid");
+			;
+	}
+
+	return res;
+}
+
+void jit::ia32::store_coprocessors_regs(BasicBlock<x86Instruction>& BB, CopMIRNode* insn)
+{
+	assert(insn != NULL);
+
+	nvmCoprocessorState* copro = APPLICATION.getCoprocessor(insn->getcoproId());
+	intptr_t read_func_addr = (intptr_t)copro->read;
+
+	for(intptr_t i(0); i < insn->regNo(); ++i) {
+		if(insn->isDefdReg(i)) {
+			MBREG_TYPE dst = insn->getCoproReg(i, false);
+#ifdef _DEBUG_X86_INSSEL
+			printf("\tADD ESP, -4\t;Place to save value\n");
+			printf("\tPUSH ESP\t;Place to save value\n");
+			printf("\tPUSH %d\t;register Id\n", i);
+			printf("\tPUSH 0x%x\t;coprocessor state address\n", (intptr_t)copro);
+			printf("\tCALL 0x%x\t;read function address\n", read_func_addr);
+			printf("\tADD ESP, 12\n");
+			printf("\tPOP R%d\t;il valore era sullo stack\n", REG_NAME(dst));
+#endif
+
+
+			x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, -4, X86_MACH_REG(ESP), x86_DWORD);
+
+			//x86_Asm_Op(BB.getCode(), X86_SAVEREGS);
+
+			x86_Asm_Op_Reg(BB.getCode(), X86_PUSH, X86_MACH_REG(ESP), x86_DWORD);
+			x86_Asm_Op_Imm_To_Mem_Base(BB.getCode(), X86_ADD, 12, X86_MACH_REG(ESP), 0, x86_DWORD);
+			x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, i);
+			x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, (intptr_t)copro);
+			x86_Asm_Op_Imm(BB.getCode(), X86_CALL, read_func_addr);
+			x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, 12, X86_MACH_REG(ESP), x86_DWORD);
+
+			//x86_Asm_Op(BB.getCode(), X86_LOADREGS);
+			x86_Asm_Op_Reg(BB.getCode(), X86_POP, dst, x86_DWORD);
+		}
+	}
+}
+
+void jit::ia32::load_coprocessors_regs(BasicBlock<x86Instruction>& BB, CopMIRNode* insn)
+{
+	assert(insn != NULL);
+
+	nvmCoprocessorState* copro = APPLICATION.getCoprocessor(insn->getcoproId());
+	intptr_t write_func_addr = (intptr_t)copro->write;
+	MBREG_TYPE dst = MBTREE_VALUE(insn);
+
+	for(intptr_t i(0); i < insn->regNo(); ++i) {
+		if(insn->isUsedReg(i)) {
+			MBREG_TYPE src = insn->getCoproReg(i, true);
+
+#ifdef _DEBUG_X86_INSSEL
+			printf("\tPUSH R%d\t;push value to write\n", REG_NAME(src));
+			printf("\tPUSH ESP\t;address of value to write\n");
+			printf("\tPUSH %d\t;register Id\n", i);
+			printf("\tPUSH 0x%x\t;coprocessor state address\n", (intptr_t)copro);
+			printf("\tCALL 0x%x\t;write function address\n", write_func_addr);
+			printf("\tADD ESP, 16\n");
+#endif
+
+			//x86_Asm_Op(BB.getCode(), X86_SAVEREGS);
+
+			x86_Asm_Op_Reg(BB.getCode(), X86_PUSH, src, x86_DWORD);
+			x86_Asm_Op_Reg(BB.getCode(), X86_PUSH, X86_MACH_REG(ESP), x86_DWORD);
+			x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, i);
+			x86_Asm_Op_Imm(BB.getCode(), X86_PUSH, (intptr_t)copro);
+			x86_Asm_Op_Imm(BB.getCode(), X86_CALL, write_func_addr);
+			x86_Asm_Op_Imm_To_Reg(BB.getCode(), X86_ADD, 16, X86_MACH_REG(ESP), x86_DWORD);
+
+			//x86_Asm_Op(BB.getCode(), X86_LOADREGS);
+		}
+	}
+}
+
+void jit::ia32::x86_base_address_man::setBase(base_mem_type type, MBREG_TYPE& base_reg)
+{
+	MBREG_TYPE* new_reg = new MBREG_TYPE(base_reg);
+	bases[type] = new_reg;
+}
+
+MBREG_TYPE* jit::ia32::x86_base_address_man::getBase(base_mem_type type) const
+{
+	return bases[type];
+}
+
+
+
+MBREG_TYPE jit::ia32::x86_base_address_man::load_base(CFG<IR>& cfg, MIRNode* insn)
+{
+	return load_base(cfg, base_manager.getType(insn));
+}
+
+std::string jit::ia32::x86_base_address_man::get_mem_string(base_mem_type type)
+{
+	switch(type)
+	{
+		case packet:
+			return std::string("packet");
+		case info:
+			return std::string("info");
+		case data:
+			return std::string("data");
+		case invalid:
+			return std::string("invalid");
+	}
+
+	return std::string();
+}
+
+MBREG_TYPE jit::ia32::x86_base_address_man::load_base(CFG<x86Instruction>& cfg, base_mem_type type)
+{
+	MBREG_TYPE* base = base_manager.getBase(type);
+	x86Instruction* insn;
+
+	if(base == NULL)
+	{
+		MBREG_TYPE res(X86_NEW_VIRT_REG);
+		BasicBlock<x86Instruction>* BB = cfg.getEntryBB();
+
+		std::string comment = std::string("load base for ") + get_mem_string(type) + " mem";
+
+		/*
+		intptr_t offset = (type == packet ? x86_offsets.ExchangeBuffer.PacketBuffer : x86_offsets.ExchangeBuffer.InfoData);
+
+		std::string comment = std::string("load base for ") + get_mem_string(type) + " mem";
+		//x86_Asm_Comment(BB->getCode(), comment.c_str());
+		insn = x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, X86_MACH_REG(EBP), 8, res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, comment.c_str());
+		x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, res, 0, res, x86_DWORD);
+		insn = x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, res, offset, res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, "base address in register");
+		*/
+
+		if( type == x86_base_address_man::packet){
+		insn = x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, X86_MACH_REG(EBP), 8, res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, comment.c_str());
+		x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, res, 0, res, x86_DWORD);
+		insn = x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, res, x86_offsets.ExchangeBuffer.PacketBuffer , res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, "base address PKT mem in register");
+		}
+		if( type == x86_base_address_man::info){
+		insn = x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, X86_MACH_REG(EBP), 8, res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, comment.c_str());
+		x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, res, 0, res, x86_DWORD);
+		insn = x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, res, x86_offsets.ExchangeBuffer.InfoData, res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, "base address INFO BUFFER in register");
+		}
+
+		if( type == x86_base_address_man::data){
+		insn = x86_Asm_Op_Imm_To_Reg(BB->getCode(), X86_MOV, (intptr_t)jit::Application::getApp(*BB).getMemDescriptor(jit::Application::data).Base , res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, "base address DATA BUFFER in register");
+		}
+
+
+		base_manager.setBase(type, res);
+		return res;
+	}
+
+	return *base;
+}
+
+
+
+x86_base_address_man::base_mem_type x86_base_address_man::getType(MIRNode *insn)
+{
+	assert(insn != NULL);
+
+	switch(insn->getOpcode())
+	{
+		case PBLDS:
+		case PBLDU:
+		case PSLDS:
+		case PSLDU:
+		case PILD:
+		case PBSTR:
+		case PSSTR:
+		case PISTR:
+			return packet;
+
+		case ISSBLD:
+		case ISBLD:
+		case ISSSLD:
+		case ISSLD:
+		case ISSILD:
+		case IBSTR:
+		case ISSTR:
+		case IISTR:
+			return info;
+
+		case DBLDS:
+		case DBLDU:
+		case DSLDS:
+		case DSLDU:
+		case DILD:
+		case DBSTR:
+		case DSSTR:
+		case DISTR:
+			return data;
+	}
+
+	assert(1 == 0 && "invalid memory type");
+	return invalid;
+}
+
+jit::ia32::x86_base_address_man::x86_base_address_man()
+{
+	bases[0] = bases[1] = NULL;
+}
+
+void jit::ia32::x86_base_address_man::reset()
+{
+	if(bases[0])
+		delete bases[0];
+
+	if(bases[1])
+		delete bases[1];
+
+
+	bases[0] = bases[1] = NULL;
+}
+
+jit::ia32::x86_dim_man::x86_dim_man()
+{
+	dim[0] = dim[1] = NULL;
+}
+
+void jit::ia32::x86_dim_man::reset()
+{
+
+	if(dim[0])
+		delete dim[0];
+
+	if(dim[1])
+		delete dim[1];
+
+	dim[0] = dim[1] = NULL;
+}
+
+
+MBREG_TYPE* jit::ia32::x86_dim_man::getDim(dim_mem_type type) const
+{
+	return dim[type];
+}
+
+void jit::ia32::x86_dim_man::setDim(dim_mem_type type, MBREG_TYPE& dim_reg)
+{
+	MBREG_TYPE* new_reg = new MBREG_TYPE(dim_reg);
+	dim[type] = new_reg;
+}
+
+MBREG_TYPE jit::ia32::x86_dim_man::load_dim(CFG<IR>& cfg, MIRNode* insn)
+{
+	return load_dim(cfg, dim_manager.getType(insn));
+}
+
+MBREG_TYPE jit::ia32::x86_dim_man::load_dim(CFG<x86Instruction>& cfg, dim_mem_type type)
+{
+	MBREG_TYPE* dim = dim_manager.getDim(type);
+	x86Instruction* insn;
+
+	if(dim == NULL)
+	{
+		MBREG_TYPE res(X86_NEW_VIRT_REG);
+		BasicBlock<x86Instruction>* BB = cfg.getEntryBB();
+
+		std::string comment = std::string("load dim for ") + get_mem_string(type) + " mem";
+
+
+
+		if( type == x86_dim_man::packet){
+		insn = x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, X86_MACH_REG(EBP), 8, res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, comment.c_str());
+		x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, res, 0, res, x86_DWORD);
+		insn = x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, res, x86_offsets.ExchangeBuffer.PacketLen , res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, "Dim PKT in register");
+		}
+		if( type == x86_dim_man::info){
+		insn = x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, X86_MACH_REG(EBP), 8, res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, comment.c_str());
+		x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, res, 0, res, x86_DWORD);
+		insn = x86_Asm_Op_Mem_Base_To_Reg(BB->getCode(), X86_MOV, res, x86_offsets.ExchangeBuffer.InfoLen , res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, "Dim INFO BUFFER in register");
+		}
+
+		if( type == x86_dim_man::data){
+		insn = x86_Asm_Op_Imm_To_Reg(BB->getCode(), X86_MOV, (intptr_t)jit::Application::getApp(BB->getId()).getMemDescriptor(jit::Application::data).Size , res, x86_DWORD);
+		x86_Asm_Append_Comment(insn, "Dim DATA BUFFER in register");
+		}
+
+
+		dim_manager.setDim(type, res);
+		return res;
+	}
+
+	return *dim;
+}
+
+std::string jit::ia32::x86_dim_man::get_mem_string(dim_mem_type type)
+{
+	switch(type)
+	{
+		case packet:
+			return std::string("packet");
+		case info:
+			return std::string("info");
+		case data:
+			return std::string("data");
+		case invalid:
+			return std::string("invalid");
+	}
+
+	return std::string();
+}
+
+x86_dim_man::dim_mem_type x86_dim_man::getType(MIRNode *insn)
+{
+	assert(insn != NULL);
+
+	switch(insn->getOpcode())
+	{
+		case PBLDS:
+		case PBLDU:
+		case PSLDS:
+		case PSLDU:
+		case PILD:
+		case PBSTR:
+		case PSSTR:
+		case PISTR:
+			return packet;
+
+		case ISSBLD:
+		case ISBLD:
+		case ISSSLD:
+		case ISSLD:
+		case ISSILD:
+		case IBSTR:
+		case ISSTR:
+		case IISTR:
+			return info;
+
+		case DBLDS:
+		case DBLDU:
+		case DSLDS:
+		case DSLDU:
+		case DILD:
+		case DBSTR:
+		case DSSTR:
+		case DISTR:
+			return data;
+	}
+
+	assert(1 == 0 && "invalid memory type");
+	return invalid;
+}
+
+x86OpndSz jit::ia32::get_size_op(MIRNode *insn)
+{
+	assert(insn != NULL);
+
+	switch(insn->getOpcode())
+	{
+		case PBLDS:
+		case PBLDU:
+		case PBSTR:
+		case DBLDS:
+		case DBLDU:
+		case DBSTR:
+		case ISSBLD:
+		case ISBLD:
+		case IBSTR:
+			return x86_BYTE;
+
+		case PSLDS:
+		case PSLDU:
+		case PSSTR:
+		case ISSSLD:
+		case ISSLD:
+		case ISSTR:
+		case DSLDS:
+		case DSLDU:
+		case DSSTR:
+			return x86_WORD;
+
+		case PILD:
+		case PISTR:
+		case IISTR:
+		case ISSILD:
+		case DILD:
+		case DISTR:
+			return x86_DWORD;
+	}
+
+	assert(1 == 0 && "invalid memory type");
+	return x86_BYTE;
+}
+
+void jit::ia32::emit_start_prof_counter(BasicBlock<IR>& BB, intptr_t stack_offset)
+{
+    x86_Asm_Op( BB.getCode(), X86_RDTSC);
+
+	x86_Asm_Op_Reg_To_Mem_Base( BB.getCode(), X86_MOV, X86_MACH_REG(EAX), X86_MACH_REG(ESP), stack_offset + 0, x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Base( BB.getCode(), X86_MOV, X86_MACH_REG(EDX), X86_MACH_REG(ESP), stack_offset + 4, x86_DWORD);
+}
+
+void jit::ia32::emit_stop_prof_counter(jit::BasicBlock<IR>& BB, intptr_t stack_offset)
+{
+#ifdef RTE_PROFILE_COUNTERS
+	x86_Asm_Comment(BB.getCode(), "profiling instructions");
+    //put stop in edx:eax
+    x86_Asm_Op( BB.getCode(), X86_RDTSC);
+
+	//current ticks -= start-ticks
+
+	x86_Asm_Op_Mem_Base_To_Reg( BB.getCode(), X86_SUB, X86_MACH_REG(ESP), stack_offset + 0, X86_MACH_REG(EAX), x86_DWORD);
+	x86_Asm_Op_Mem_Base_To_Reg( BB.getCode(), X86_SBB, X86_MACH_REG(ESP), stack_offset + 4, X86_MACH_REG(EDX), x86_DWORD);
+
+	//subtract delta ticks
+	nvmHandlerState *HandlerState = APPLICATION.getCurrentPEHandler()->HandlerState;
+	uint64_t* addr = &HandlerState->ProfCounters->TicksDelta;
+
+	//x86_Asm_Op_Mem_Displ_To_Reg( BB.getCode(), X86_SUB, (intptr_t)addr,       X86_MACH_REG(EAX), x86_DWORD);
+	//x86_Asm_Op_Mem_Displ_To_Reg( BB.getCode(), X86_SBB, ((intptr_t)addr) + 4, X86_MACH_REG(EDX), x86_DWORD);
+
+	//add to NumTicks
+	addr = &HandlerState->ProfCounters->NumTicks;
+
+	x86_Asm_Op_Reg_To_Mem_Displ( BB.getCode(), X86_ADD, X86_MACH_REG(EAX), (intptr_t)addr,       x86_DWORD);
+	x86_Asm_Op_Reg_To_Mem_Displ( BB.getCode(), X86_ADC, X86_MACH_REG(EDX), ((intptr_t)addr) + 4, x86_DWORD);
+#endif
+}

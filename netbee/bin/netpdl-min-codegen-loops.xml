@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="utf-8"?>
+<netpdl name="nbee.org NetPDL Database" version="0.9" creator="nbee.org" date="09-04-2007">
+<protocol name="startproto" longname="Starting Protocol (used only for beginning the parsing)" showsumtemplate="startproto">
+		<execute-code>
+		<init>
+	
+			<!-- NetPDL default variables -->
+			<variable name="$linklayer" type="number" validity="static"/>
+			<variable name="$framelength" type="number" validity="thispacket"/>
+			<variable name="$packetlength" type="number" validity="thispacket"/>
+			<variable name="$currentoffset" type="number" validity="thispacket"/>
+			<variable name="$currentprotooffset" type="number" validity="thispacket"/>
+			<variable name="$timestamp_sec" type="number" validity="thispacket"/>
+			<variable name="$timestamp_usec" type="number" validity="thispacket"/>
+			<variable name="$packet" type="refbuffer" validity="thispacket"/>
+			<variable name="$nextproto" type="protocol" validity="thispacket"/>
+			<variable name="$prevproto" type="protocol" validity="thispacket"/>
+			<variable name="$protoverify_result" type="number" validity="thispacket"/>
+
+			<!-- Variables for tokenXXX fields; these are updated after each field (of the proper type), so we do not have to reset them at each packet -->
+			<variable name="$token_begintlen" type="number" validity="static"/>
+			<variable name="$token_fieldlen" type="number" validity="static"/>
+			<variable name="$token_endtlen" type="number" validity="static"/>
+			
+			<!-- Required configuration variables (usually used for selecting some optional functions in the code) -->
+			<variable name="$show_networknames" type="number" validity="static"/>
+			<variable name="$track_L4sessions" type="number" value="1" validity="static"/>
+			<variable name="$enable_protoverify" type="number" value="1" validity="static"/>
+			<variable name="$enable_tentativeproto" type="number" value="1" validity="static"/>
+			
+			<variable name="$ipsrc" type="refbuffer" validity="thispacket"/>
+			<variable name="$ipdst" type="refbuffer" validity="thispacket"/>
+
+			<variable name="$type" type="number" validity="thispacket"/>
+			<variable name="$proc" type="number" validity="thispacket"/>
+		</init>
+	</execute-code>
+
+	<encapsulation>
+			<switch expr="$linklayer">
+				<case value="1"> <nextproto proto="#ethernet"/> </case>
+			</switch>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="startproto">
+			<section name="NUMBER"/>
+			<protofield name="num" showdata="showvalue"/>
+
+			<section name="TIME"/>
+			<protofield name="timestamp" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="ethernet" longname="Ethernet 802.3" comment="Ethernet DIX has recently been included in 802.3" showsumtemplate="ethernet">
+	<format>
+		<fields>
+			<field type="fixed" name="dst" longname="MAC Destination" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="src" longname="MAC Source" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="type" longname="Ethertype - Length" size="2" showtemplate="eth.typelength"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<switch expr="buf2int(type)">
+			<case value="0x800"> <nextproto proto="#ip"/> </case>
+			<case value="0x806"> <nextproto proto="#arp"/> </case>
+                        <case value="0x86DD"> <nextproto proto="#ipv6"/> </case> <!-- commentare questo per provare i loop IP-IPv6 senza che IPv6 sia incluso dal liv2 -->
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="ethernet">
+			<section name="next"/>
+			<text value="Eth: "/>
+			<protofield name="src" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dst" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="etherpadding" longname="Ethernet padding">
+	<format>
+		<fields>
+			<field type="variable" name="etherpad" longname="Ethernet Padding (frame less than 64 bytes)" expr="$framelength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+</protocol>
+
+<protocol name="arp" longname="ARP (Address Resolution Protocol)">
+	<format>
+		<fields>
+			<field type="fixed" name="stdheader" longname="Standard header chunk" size="8" showtemplate="FieldHex"/>
+			<field type="fixed" name="sHwAddr" longname="Sender MAC address" size="6" showtemplate="FieldHex"/>
+			<field type="fixed" name="sIPAddr" longname="Sender IP address" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="dHwAddr" longname="Destination MAC address" size="6" showtemplate="FieldHex"/>
+			<field type="fixed" name="dIPAddr" longname="Destination IP address" size="4" showtemplate="FieldHex"/>
+		</fields>
+	</format>
+</protocol>
+
+<protocol name="ipv6" longname="IPv6 (Internet Protocol version 6) - narrowed down a lot">
+        <format>
+                <fields>
+                        <field type="fixed" name="header1" longname="chunk1ofheader" size="6" showtemplate="FieldDec"/>
+                        <field type="fixed" name="nexthdr" longname="Next Header" size="1" showtemplate="FieldHex"/>
+                        <field type="fixed" name="hop" longname="Hop limit" size="1" showtemplate="FieldDec"/>
+                        <field type="fixed" name="src" longname="Source address" size="16" showtemplate="ip6addr"/>
+                        <field type="fixed" name="dst" longname="Destination address" size="16" showtemplate="ip6addr"/>
+                </fields>
+        </format>
+
+        <encapsulation>
+                <switch expr="buf2int(nexthdr)">
+                        <case value="4"> <nextproto proto="#ip"/> </case> <!-- problema numero 2: loop lunghezza 2 -->
+                        <case value="6"> <nextproto proto="#tcp"/> </case>
+                        <case value="17"> <nextproto proto="#udp"/> </case>
+                </switch>
+        </encapsulation>
+
+</protocol>
+
+<protocol name="ip" longname="IPv4 (Internet Protocol version 4)" showsumtemplate="ipv4">
+	<format>
+		<fields>
+			<field type="fixed" name="stdheader" longname="Standard header chunk1" size="9" showtemplate="FieldHex"/>
+			<field type="fixed" name="nextp" longname="Next protocol" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="stdheader2" longname="Header Checksum2" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="src" longname="Source address" size="4" showtemplate="ip4addr"/>
+			<field type="fixed" name="dst" longname="Destination address" size="4" showtemplate="ip4addr"/>
+		</fields>
+	</format>
+
+
+	<encapsulation>
+				<switch expr="buf2int(nextp)">
+					<case value="4"> <nextproto proto="#ip"/> </case> <!-- problema numero 1: loop lunghezza 1 -->
+					<case value="6"> <nextproto proto="#tcp"/> </case>
+					<case value="17"> <nextproto proto="#udp"/> </case>
+                                        <case value="41"> <nextproto proto="#ipv6"/> </case> <!-- problema numero 2: loop lunghezza 2-->
+				</switch>
+	</encapsulation>
+
+
+	<visualization>
+
+		<showsumtemplate name="ipv4">
+			<section name="next"/>
+<!--			<section name="L3"/> -->
+			<text value=" - " when="onlysectionhastext"/>
+			<text value="IP: "/>
+			<protofield name="src" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dst" showdata="showvalue"/>
+			<text value=" (Len "/>
+			<protofield name="tlen" showdata="showvalue"/>
+			<text value=")"/>
+			<if expr="(buf2int(mf) == 1) or (buf2int(foffset) != 0)">
+				<if-true>
+					<text value=" Fragment " expr="buf2int(foffset)*8"/>
+
+					<!-- the packet ends at: fragment offset * 8 + (total length - header length * 4 - 1) -->
+					<text value=":" expr="buf2int(foffset) * 8 + buf2int(tlen) - 1 - buf2int(hlen) * 4"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+
+
+<protocol name="tcp" longname="TCP (Transmission Control Protocol)" showsumtemplate="tcp">
+
+	<format>
+		<fields>
+			<field type="fixed" name="sport" longname="Source port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="dport" longname="Destination port" size="2" showtemplate="FieldDec"/>
+                        <field type="fixed" name="rest" longname="Rest of the packet" size="16" showtemplate="FieldDec"/>
+<!--			<field type="fixed" name="seq" longname="Sequence number" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="ack" longname="Acknowledgement Number" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="hlen" longname="Header length" mask="0xF000" size="2" comment="This field is in multiple of 4 bytes" showtemplate="FieldMul4Dec"/>
+			<field type="bit" name="res" longname="Reserved (must be zero)" mask="0x0FC0" size="2" showtemplate="FieldHex"/>
+			<field type="bit" name="flags" longname="Flags" mask="0x003F" size="2" showtemplate="FieldHex">
+				<field type="bit" name="urg" longname="Urgent pointer" mask="0x0020" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="ackf" longname="Ack valid" mask="0x0010" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="push" longname="Push requested" mask="0x0008" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="rst" longname="Reset requested" mask="0x0004" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="syn" longname="Syn requested" mask="0x0002" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="fin" longname="Fin requested" mask="0x0001" size="2" showtemplate="FieldBin"/>
+			</field>
+			<field type="fixed" name="win" longname="Window size" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="crc" longname="Checksum" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="urg" longname="Urgent Pointer" size="2" showtemplate="FieldHex"/>
+-->
+    </fields>
+
+
+	</format>
+  
+  <visualization>
+		<showsumtemplate name="tcp">
+			<section name="next"/>
+			<text value="TCP: port "/>
+			<protofield name="sport" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dport" showdata="showvalue"/>
+			<text value=" ("/>
+<!--
+			<if expr="buf2int(syn) == 1">
+				<if-true>
+					<text value="SYN "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(fin) == 1">
+				<if-true>
+					<text value="FIN "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(ackf) == 1">
+				<if-true>
+					<text value="ACK "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(rst) == 1">
+				<if-true>
+					<text value="RST "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(push) == 1">
+				<if-true>
+					<text value="PUSH "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(urg) == 1">
+				<if-true>
+					<text value="URG "/>
+				</if-true>
+			</if>
+			<text value=")"/>
+			<text value=" Seq "/>
+			<protofield name="seq" showdata="showvalue"/>
+			<text value=", Ack "/>
+			<protofield name="ack" showdata="showvalue"/>
+			<text value=", Win "/>
+			<protofield name="win" showdata="showvalue"/>
+-->
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+
+<protocol name="udp" longname="UDP (User Datagram protocol)" showsumtemplate="udp">
+
+	<format>
+		<fields>
+			<field type="fixed" name="sport" longname="Source port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="dport" longname="Destination port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Payload length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="crc" longname="Checksum" size="2" showtemplate="FieldHex"/>
+		</fields>
+	</format>
+
+
+	<visualization>
+		<showsumtemplate name="udp">
+			<section name="next"/>
+			<text value="UDP: port "/>
+			<protofield name="sport" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dport" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+
+
+<protocol name="defaultproto" longname="Other data" comment="Generic protocol that is called when no other protocols are available" showsumtemplate="defaultproto">
+	<format>
+		<fields>
+			<field type="variable" name="payload" longname="Data payload" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+
+	
+	<visualization>
+		<showsumtemplate name="defaultproto">
+			<!-- print something only if there is some data and not Ethernet padding -->
+			<if expr="$packetlength == $framelength">
+				<if-true>
+					<section name="L7"/>
+					<text value="Generic Data"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>
+<visualization>
+
+	<!-- Defines the structure of the summary view of each packet -->
+	<showsumstruct>
+		<sumsection name="NUMBER" longname="N."/>
+		<sumsection name="TIME" longname="Time"/>
+		<sumsection name="L2" longname="Data Link"/>
+		<sumsection name="L3" longname="Network"/>
+		<sumsection name="L4" longname="Transport"/>
+		<sumsection name="L7" longname="Application"/>
+	</showsumstruct>
+
+
+	<!-- Very simple and common templates -->
+	<showtemplate name="FieldBin" showtype="bin"/>
+	<showtemplate name="FieldDec" showtype="dec"/>
+	<showtemplate name="FieldHex" showtype="hex"/>
+	<showtemplate name="FieldAscii" showtype="ascii" showgrp="1"/>
+
+	<showtemplate name="FieldHexBin" showtype="hex">
+		<showdtl>
+		    <text value="0x"/>
+			<protofield showdata="value"/>
+			<text value=" ("/>
+			<text expr="buf2int(this)"/>
+			<text value=")"/>					
+		</showdtl>
+	</showtemplate>	
+
+
+
+	<!-- Templates that prints a field as a continuous string of hex numbers (e.g. '0xAABBCCDDEE...') -->
+	<!-- with a delimiter every N bytes (in order to improve readability) -->
+	<showtemplate name="Field4BytesHex" showtype="hex" showgrp="4" showsep=" "/>			<!-- E.g. "AABBCCDD AABBCCDD" -->
+	<showtemplate name="Field1BytesHex" showtype="hex" showgrp="1" showsep=" "/>			<!-- E.g. "AA BB CC DD" -->
+	<showtemplate name="Field2BytesHexDash" showtype="hex" showgrp="2" showsep="-"/>		<!-- E.g. "AABB CCDD" -->
+	<showtemplate name="Field2BytesHexColon" showtype="hex" showgrp="2" showsep=":"/>		<!-- E.g. "AABB:CCDD" -->
+
+	<!-- Templates for fields that cannot be printed with standard NetPDL primitives -->
+	<showtemplate name="ip4addr" showtype="dec" showgrp="1" showsep="." showplg="IP46Name"/>
+
+	<showtemplate name="ip6addr" showtype="hexnox" showgrp="2" showsep=":" showplg="IP46Name">
+		<showdtl>
+			<protofield showdata="showvalue"/>
+			<if expr="this == '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'">
+				<if-true>
+					<text value=" (Unspecified Address)"/>
+				</if-true>
+			</if>
+			<if expr="this == '\xFF\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01'">
+				<if-true>
+					<text value=" (All nodes multicast address)"/>
+				</if-true>
+			</if>
+			<if expr="this[0:12] == '\xFF\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01'">
+				<if-true>
+					<text value=" (Multicast solicited node)"/>
+				</if-true>
+			</if>
+
+		</showdtl>
+	</showtemplate>
+
+	<!-- Template for printing IPv4 address using only numbers (e.g. netmasks) -->
+	<showtemplate name="ip4addr-noplg" showtype="dec" showgrp="1" showsep="."/>
+
+	<!-- Template for printing IPv6 address using only numbers (e.g. prefixes) -->
+	<showtemplate name="ip6addr-noplg" showtype="hexnox" showgrp="2" showsep=":"/>
+
+	<!-- Templates specific for MAC addresses -->
+	<showtemplate name="MAC-colon" showtype="hexnox" showgrp="1" showsep=":"/>
+	<showtemplate name="MAC-dash" showtype="hexnox" showgrp="3" showsep="-"/>
+
+
+
+
+	<!-- *********************************************************** -->
+	<!-- Generic templates with some common visualization primitives -->
+	<!-- *********************************************************** -->
+
+	<!-- Generic template that prints a field timed by '4' -->
+	<showtemplate name="FieldMul4Dec" showtype="dec">
+		<showdtl>
+			<text expr="buf2int(this) * 4"/>
+			<text value=" (field value = "/>
+			<protofield showdata="showvalue"/>
+			<text value=")"/>
+		</showdtl>
+	</showtemplate>
+
+	<!-- Generic template that prints a short-field timed by '8' -->
+	<showtemplate name="ShortMul8Dec" showtype="dec">
+		<showdtl>
+			<text expr="buf2int(this) * 8"/>
+			<text value=" (field value = "/>
+			<protofield showdata="showvalue"/>
+			<text value=")"/>
+		</showdtl>
+	</showtemplate>
+
+
+	<showtemplate name="ShortDiv256Dec" showtype="dec">
+		<showdtl>
+			<text expr="buf2int(this) div 256"/>
+			<text value=" sec (field value = "/>
+			<protofield showdata="showvalue"/>
+			<text value=")"/>
+		</showdtl>
+	</showtemplate>
+
+
+	<showtemplate name="eth.typelength" showtype="dec">
+		<showdtl>
+			<if expr="buf2int(this) le 1500">				
+				<if-true>
+					<protofield showdata="showvalue"/>
+					<text value=" (Length)"/>
+				</if-true>
+
+				<if-false>
+					<text value="0x"/>
+					<protofield showdata="value"/>
+					<text value=" (Ethertype)"/>
+				</if-false>
+			</if>
+		</showdtl>
+	</showtemplate>
+
+
+	<!-- Generic template for visualizing Ethernet MAC addresses -->
+	<showtemplate name="MACaddressEth" showtype="hexnox" showgrp="3" showsep="-">
+		<showdtl>
+			<protofield showdata="showvalue"/>
+			<if expr="(buf2int(this[0:1]) bitwand 0b00000001) == 0b00000001">
+				<!-- It extracts the first byte of the MAC address, then it matches the result against -->
+				<!-- the 'xxxxxxx1' pattern -->
+				<!-- Extract the first byte of the MAC address -->
+				<!-- If it is a broadcast address, the last char will be '1' (due to network/host byte order)-->
+				
+				<if-true>
+					<if expr="this == '\xFF\xFF\xFF\xFF\xFF\xFF'">
+						<if-true>
+							<text value=" (Broadcast address)"/>
+						</if-true>
+
+						<if-false>
+							<text value=" (Multicast address)"/>
+						</if-false>		
+					</if>
+				</if-true>
+
+				<if-false>
+					<text value=" (Unicast address, vendor "/>
+					<protofield showdata="showmap"/>
+					<text value=")"/>
+				</if-false>
+			</if>
+		</showdtl>
+
+		<showmap>
+			<switch expr="buf2int(this[0:3])">		<!-- Extracts the first 3 bytes of the MAC address -->
+				<case value="0xFFFFFF" show="Broadcast address"/>
+				<case value="0x00000C" show="Cisco"/> 
+				<case value="0x000A8A" show="Cisco Systems Aironet (802.11)"/> 
+				<case value="0x001007" show="Cisco Systems Catalyst 1900"/> 
+				<case value="0x00100B" show="Cisco Systems"/> 
+				<case value="0x00100D" show="Cisco Systems Catalyst 2924-XL"/> 
+				<case value="0x001011" show="Cisco Systems Cisco 75xx"/> 
+				<case value="0x00101F" show="Cisco Systems Catalyst 2901"/> 
+				<case value="0x001029" show="Cisco Systems Catalyst 5000"/> 
+				<case value="0x00102F" show="Cisco Systems Cisco 5000"/> 
+				<!-- Many codes are missing; we want to keep this file more compact -->
+				<case value="0xE20C0F" show="Kingston Technologies"/>
+				<default show="code not available"/>
+			</switch>
+		</showmap>
+	</showtemplate>
+
+</visualization>
+</netpdl>
+

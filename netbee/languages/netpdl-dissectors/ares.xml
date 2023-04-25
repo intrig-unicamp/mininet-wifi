@@ -1,0 +1,88 @@
+<protocol name="ares" longname="Ares Protocol (File Sharing)" showsumtemplate="ares"> 
+	<execute-code>
+		<verify>
+			<!--<if expr="hasstring($packet[$currentoffset:0], '(ares|\x09[\x01\x03\x05\x06\x07\x08]\x0F..\x14|\xE9\x70...\x14)', 0)">-->
+			<if expr="hasstring($packet[$currentoffset:0],'^(\x03\0\x5A|\x09[\0\x01\x03\x05\x06\x07\x08]\x0F)',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="($protoverify_result == %FOUND) and ($L4proto == #tcp)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#ares"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#ares"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#ares"/>
+					 				</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+		<before when="($protoverify_result == %FOUND) and ($L4proto == #udp)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#ares"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#ares"/>
+			</update-lookuptable>
+		</before>
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="variable" name="aresData" longname="Ares Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="ares">
+			<section name="next"/>
+			<text value="ARES"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

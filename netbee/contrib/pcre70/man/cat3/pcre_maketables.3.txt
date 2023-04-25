@@ -1,0 +1,30 @@
+PCRE_MAKETABLES(3)                                          PCRE_MAKETABLES(3)
+
+
+
+NAME
+       PCRE - Perl-compatible regular expressions
+
+SYNOPSIS
+
+       #include <pcre.h>
+
+       const unsigned char *pcre_maketables(void);
+
+DESCRIPTION
+
+       This function builds a set of character tables for char-
+       acter values less than  256.  These  can  be  passed  to
+       pcre_compile()  to  override  PCRE's  internal, built-in
+       tables (which were made by pcre_maketables()  when  PCRE
+       was  compiled).  You  might  want  to do this if you are
+       using a non-standard  locale.   The  function  yields  a
+       pointer to the tables.
+
+       There  is  a complete description of the PCRE native API
+       in the pcreapi page and a description of the  POSIX  API
+       in the pcreposix page.
+
+
+
+                                                            PCRE_MAKETABLES(3)

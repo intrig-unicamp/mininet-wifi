@@ -1,0 +1,277 @@
+<protocol name="smtp" longname="SMTP (Simple Mail Transfer Protocol)" showsumtemplate="smtp">
+	<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '^220[\x09-\x0d -~]* (e?smtp|simple mail)|^(HELO|EHLO) .*\x0d\x0a', 0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#smtp"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#smtp"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#smtp"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+	
+	<format>
+		<fields>
+			<if expr="hasstring($packet[$currentoffset:0], '^((HE|EH)LO|MAIL|RCPT|QUIT|DATA|RSET|HELP|NOOP|VRFY|EXPN)', 0)">
+				<!-- command message -->
+				<if-true>
+					<if expr="hasstring($packet[$currentoffset:0], 'MAIL FROM', 0)">
+						<if-true>
+							<field type="line" name="mailfrom" longname="Mail From" showtemplate="SmtpAddress">
+								<field type="tokenwrapped" begintoken="\x22" endtoken="\x22" name="alias" longname="Email alias" showtemplate="FieldAscii" />
+								<field type="tokenwrapped" begintoken="\x3C" endtoken="\x3E" name="email" longname="Email address" showtemplate="FieldAscii" />
+							</field>
+						</if-true>
+					</if>			
+						
+					<if expr="hasstring($packet[$currentoffset:0], 'HELO', 0)">
+						<if-true>
+							<field type="tokenended" endtoken=" " name="command" longname="Command" showtemplate="SmtpCommand" />
+							<field type="line" name="domain" longname="Domain" showtemplate="FieldAscii" />
+						</if-true>
+					</if>
+						
+					<if expr="hasstring($packet[$currentoffset:0], 'EHLO', 0)">
+						<if-true>
+							<field type="tokenended" endtoken=" " name="command" longname="Command" showtemplate="SmtpCommand" />
+							<field type="line" name="domain" longname="Domain" showtemplate="FieldAscii" />	
+						</if-true>
+					</if>
+						
+					<if expr="hasstring($packet[$currentoffset:0], 'VRFY', 0)">
+						<if-true>
+							<field type="tokenended" endtoken=" " name="command" longname="Command" showtemplate="SmtpCommand" />
+							<field type="line" name="user" longname="User" showtemplate="FieldAscii" />
+						</if-true>
+					</if>
+						
+					<if expr="hasstring($packet[$currentoffset:0], 'RCPT TO', 0)">
+						<if-true>
+							<!-- one rctp field per recipient -->
+							<field type="line" name="recipient" longname="Recipient" showtemplate="SmtpAddress">
+								<field type="tokenwrapped" begintoken="\x22" endtoken="\x22" name="alias" longname="Email alias" showtemplate="FieldAscii" />
+								<field type="tokenwrapped" begintoken="\x3C" endtoken="\x3E" name="email" longname="Email address" showtemplate="FieldAscii" />
+							</field>
+						</if-true>
+						
+						<if-false>
+							<!--  other command without value -->
+							<field type="line" name="command" longname= "Command" showtemplate="FieldAscii"/>
+						</if-false>
+					</if>
+				<!-- command message/ -->	
+				</if-true>
+				
+				<if-false>
+					<if expr="hasstring($packet[$currentoffset:0], '^([1-5][0-9][0-9])', 0)">
+						<if-true>
+							<!--  reply message -->
+							<loop type="size" expr="$packetlength - $currentoffset">
+								<!--<field type="line" name="reply" longname = "Reply" showtemplate="FieldAscii"/>-->
+								<block name="replymessage" longname="Reply Message">
+								<!-- code number -->
+									<field type="variable" name="codenumber" longname="Code Number" expr="3" showtemplate="SmtpReplay"/> 
+								<!-- string -->
+									<field type="line" name="stringmessage" longname="String Message" showtemplate="SmtpReplay"/>
+								</block>
+							</loop>	
+							<!--  reply message/ -->
+						</if-true>
+						
+						<if-false>
+
+<!--
+<fieldset type="tokenended" endregex="\r\n[^\t ]">
+
+	<field type="tokenwrapped" name="from" longname="From" begintoken="from:" endregex="\r\n[^\t ]" endoffset="curroff-1" showtemplate="FieldAscii">
+		<loop type="while" expr="1">
+			<field type="tokenended" name="recipient" longname="Destination address" endtoken="," showtemplate="FieldAscii">
+				<field type="tokenwrapped" begintoken="\x22" endtoken="\x22" name="alias" longname="Email alias" showtemplate="FieldAscii" />
+				<field type="tokenwrapped" begintoken="\x3C" endtoken="\x3E" name="email" longname="Email address" showtemplate="FieldAscii" />
+			</field>
+		</loop>
+	</field>
+
+	<fieldset-default>
+	</fieldset-default>
+</fieldset>
+-->
+							<!-- email header -->
+							<!-- Here we have several fields terminated by CRLF, unless thecase of field folding/unfolfing (RFC2822, section 2.2.3) -->
+							<!-- In this case, fields may be split on multiple lines, but there must be a SP or HTAB after the CRLF ==> CRLF[.^\xSP\xHTAB] -->
+		
+							<loop type= "size" expr= "$packetlength - $currentoffset">
+								<if expr="buf2int($packet [$currentoffset : 2]) == 0x0D0A">
+									<if-true>
+										<loopctrl type="break"/>
+									</if-true>
+								</if>
+								
+								<!-- extract from, to, subject,...  field -->				
+								<!-- <field type="line" name="data" longname="Data" showtemplate="FieldAscii"/> -->
+								<switch expr="extractstring($packet[$currentoffset: 0], '[^:]*', 1, 0)">
+		
+									<case value="'From'">
+										<!-- From pattern ==> From: ("nome" )?<mail_address>0x0d0a  -->
+										<field type="line" name="from" longname="From" showtemplate="SmtpFrom"/>
+									</case>
+									
+									<case value="'To'">
+										<!--  one or more recipients -->
+										<!-- recipient pattern: ([<address>[,]0x0D0A09])+[<address>0D0A] -->
+										<!-- non posso prendere tutti i destinatari e inserirli in un solo campo -->
+
+										<field type="line" name="mailto" longname="To" showtemplate="FieldAscii" />
+											
+										
+										<!--
+											The internal loop go out of buffer when a packet contain a field like this
+											To: foo@foo.com
+
+											instead of
+											To: My incredible alias <foo@foo.com>
+										<field type="tokenended" name="mailto" longname="To" endregex="\r\n[^\t ]" endoffset="$token_fieldlen + $token_endtlen - 1" showtemplate="FieldAscii">
+											<loop type="while" expr="1">
+												<field type="tokenwrapped" name="recipient" longname="Destination address" beginregex="[\t ]" endtoken="," beginoffset="$token_begintlen" endoffset="$token_begintlen + $token_fieldlen" showtemplate="FieldAscii">
+													<field type="tokenended" endtoken="\x3C" endoffset="$token_fieldlen" name="alias" longname="Email alias" showtemplate="FieldAscii"/>
+													<field type="tokenwrapped" begintoken="\x3C" endtoken="\x3E" beginoffset="1" endoffset="$token_begintlen + $token_fieldlen" name="email" longname="Email address" showtemplate="FieldAscii"/>
+												</field>
+											</loop>
+										</field>
+										-->
+									</case>
+									<case value="'Subject'">
+										<field type="line" name="subject" longname="Subject" showtemplate="SmtpField"/>
+									</case>
+									<case value="'Date'">
+										<field type="line" name="date" longname="Date" showtemplate="SmtpField"/>
+									</case>
+								
+									<!-- attachment -->
+									<case value="'MIME-Version'">
+										<field type="line" name="mimever" longname="MIME-Version" showtemplate="SmtpField"/>
+									</case>
+									<case value="'Content-Type'">
+										<field type="line" name="contenttype" longname="Content Type" showtemplate="SmtpField"/>
+									</case>
+									<default>
+										<field type="line" name="data" longname="Data" showtemplate="FieldAscii"/>
+									</default>
+								</switch>
+							</loop>
+							<!-- end email header -->
+
+							<!-- body of mail -->
+							<loop type= "size" expr= "$packetlength - $currentoffset">
+								<if expr="buf2int($packet [$currentoffset : 3]) == 0x2E0D0A">  <!-- .\r\n -->
+									<if-true>
+										<field type="line" name="endofdata" longname ="End of Data" showtemplate="FieldAscii"/>
+										<loopctrl type="break" />
+									</if-true>
+								</if>
+
+								<field type="line" name="body" longname ="Body" showtemplate="FieldAscii"/>
+							</loop>
+						</if-false>
+					</if>	
+				</if-false>
+			</if>	
+
+			<!-- The quality of this decoder is rather poor; it happens that we need to add this field at the end to consume --> 
+			<!-- all the data that is still in the packet buffer -->
+			<field type="variable" name="otherdata" longname="Other data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/> 
+		</fields>
+	</format>
+
+	
+	<visualization>
+		<showsumtemplate name="smtp">
+			<section name="next"/>
+			<text value="SMTP"/>
+			
+<!--
+			<if expr="ispresent(data)">
+				<if-true>
+					<text value=" body of mail"/>
+				</if-true>
+			</if>
+-->
+		</showsumtemplate>
+	
+		<showtemplate name="SmtpField" showtype="ascii" showgrp="1"> 
+			<showdtl>
+				<text expr="extractstring(this, ': ([[:print:]]*)', 1, 1)"/>
+			</showdtl>
+		</showtemplate>
+		
+		<showtemplate name="SmtpAddress" showtype="ascii" showgrp="1"> 
+			<showdtl>
+				<text expr="extractstring(this, '&lt;([[:print:]]*)&gt;', 1, 1)"/>
+			</showdtl>
+		</showtemplate>
+		
+		<showtemplate name="SmtpReplay" showtype="ascii" showgrp="1"> 
+			<showdtl>
+				<text expr="extractstring(this, '-([[:print:]]*)', 1, 1)"/>
+			</showdtl>
+		</showtemplate>
+		
+		<showtemplate name="SmtpCommand" showtype="ascii" showgrp="1"/> 
+			
+		<showtemplate name="SmtpFrom" showtype="ascii" showgrp="1"> 
+			<showdtl>
+				<!-- extraction of username -->
+				<text expr="extractstring(this,'&quot;([[:print:]]*)&quot;',1,1)"/>
+				<text value=" "/>
+				<!-- extraction of email address -->
+				<text expr="extractstring(this, '&lt;([[:print:]]*)&gt;', 1, 1)"/>
+			</showdtl>
+		</showtemplate>
+	</visualization>
+</protocol>
+

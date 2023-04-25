@@ -1,0 +1,14 @@
+<protocol name="sql" longname="SQL Services" showsumtemplate="sql">
+	<format>
+		<fields>
+			<field type="variable" name="sqldata" longname="SQL Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="sql">
+			<section name="next"/>
+			<text value="SQL Services"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

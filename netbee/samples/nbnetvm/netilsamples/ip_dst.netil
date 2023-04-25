@@ -1,0 +1,185 @@
+segment .ports
+  push_input in
+  push_output out1
+ends
+
+
+segment .init
+  ret
+ends
+
+
+segment .pull
+  ret
+ends
+
+
+; Code for filter: "ip.dst == 130.192.16.135 returnpacket on port 1"
+
+segment .push
+.maxstacksize 30
+.locals 32
+  pop  ; discard the "calling" port id
+
+l9:
+  ; PROTOCOL startproto: FORMAT
+  push 1
+  locstore 0  ; $linklayer_t0
+
+  push 0
+  locstore 3  ; $currentoffset_t3
+
+  
+  
+  ; PROTOCOL startproto: ENCAPSULATION
+  ; SWITCH '$linklayer'
+  jump.w case_l11
+case_l11:
+  jump.w jump_true_l12
+jump_true_l12:
+  ; PROTOCOL ethernet: FORMAT
+  push 6
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  push 6
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  upload.16
+  locstore 20  ; type_value_t20
+
+  locload 3  ; $currentoffset_t3
+  push 2
+  add
+  locstore 3  ; $currentoffset_t3
+
+  
+  
+  ; PROTOCOL ethernet: ENCAPSULATION
+  ; SWITCH 'buf2int(type)'
+    locload 20  ; type_value_t20
+switch 1:
+  2048: case_l15
+  default: DISCARD_l6  
+case_l15:
+  jump.w jump_true_l16
+case_l26:
+  jump.w jump_true_l16
+jump_true_l16:
+  ; PROTOCOL ip: FORMAT
+  locload 3  ; $currentoffset_t3
+  locstore 22  ; bit_union_0_ind_t22
+
+  locload 3  ; $currentoffset_t3
+  push 1
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  push 1
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  upload.16
+  locstore 24  ; tlen_value_t24
+
+  locload 3  ; $currentoffset_t3
+  push 2
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  push 2
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  locstore 26  ; bit_union_1_ind_t26
+
+  locload 3  ; $currentoffset_t3
+  push 2
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  push 1
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  locstore 28  ; nextp_ind_t28
+
+  locload 3  ; $currentoffset_t3
+  push 1
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  push 2
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  push 4
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  locstore 31  ; dst_ind_t31
+
+  locload 3  ; $currentoffset_t3
+  push 4
+  add
+  locstore 3  ; $currentoffset_t3
+
+  ; WHEN '$linklayer == 1'
+  jump.w if_true_l17
+if_true_l17:
+if_false_l18:
+end_if_l19:
+  ; END WHEN
+  ; condition
+    locload 31  ; dst_ind_t31
+  spload.32
+  push 2193625223
+  jcmp.eq SEND_PACKET_l7
+ip_encap_l20:
+  
+  ; PROTOCOL ip: ENCAPSULATION
+  ; IF 'buf2int(foffset) == 0'
+    locload 26  ; bit_union_1_ind_t26
+  upload.16
+  push 8191
+  and
+  push 0
+  jcmp.neq if_false_l23
+if_true_l22:
+  ; IF: TRUE
+  ; SWITCH 'buf2int(nextp)'
+    locload 28  ; nextp_ind_t28
+  upload.8
+switch 3:
+  4: case_l26
+  6: case_l27
+  17: case_l28
+  default: DISCARD_l6  
+case_l27:
+  jump.w DISCARD_l6
+case_l28:
+  jump.w DISCARD_l6
+if_false_l23:
+end_if_l24:
+  ; END IF
+  jump.w DISCARD_l6
+SEND_PACKET_l7:
+  pkt.send out1
+
+DISCARD_l6:
+  ret
+
+ends
+
+

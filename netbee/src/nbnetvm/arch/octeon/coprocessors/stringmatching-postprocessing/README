@@ -1,0 +1,6 @@
+This directory contains some scripts which process the regular expressions
+specified in the netil and extrated by the netvm compiler and produce the data
+needed by the octeon dfa hardware unit.
+
+For an example of how they are used have a look in the netvmsnort source tree,
+in the octeon-build directory.

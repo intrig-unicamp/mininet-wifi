@@ -1,0 +1,177 @@
+PCRECALLOUT(3)                                                  PCRECALLOUT(3)
+
+
+
+NAME
+       PCRE - Perl-compatible regular expressions
+
+PCRE CALLOUTS
+
+       int (*pcre_callout)(pcre_callout_block *);
+
+       PCRE  provides  a  feature  called "callout", which is a
+       means of temporarily passing control to  the  caller  of
+       PCRE  in  the  middle of pattern matching. The caller of
+       PCRE provides an external function by putting its  entry
+       point  in  the global variable pcre_callout. By default,
+       this variable contains NULL, which disables all  calling
+       out.
+
+       Within  a  regular expression, (?C) indicates the points
+       at which the external function is to be called.  Differ-
+       ent callout points can be identified by putting a number
+       less than 256 after the letter C. The default  value  is
+       zero.  For example, this pattern has two callout points:
+
+         (?C1)eabc(?C2)def
+
+       If  the  PCRE_AUTO_CALLOUT  option  bit  is   set   when
+       pcre_compile()  is  called,  PCRE  automatically inserts
+       callouts, all with number 255, before each item  in  the
+       pattern.  For example, if PCRE_AUTO_CALLOUT is used with
+       the pattern
+
+         A(\d{2}|--)
+
+       it is processed as if it were
+
+       (?C255)A(?C255)((?C255)\d{2}(?C255)|(?C255)-(?C255)-(?C255))(?C255)
+
+       Notice  that  there  is  a callout before and after each
+       parenthesis and alternation bar. Automatic callouts  can
+       be  used  for tracking the progress of pattern matching.
+       The pcretest command has an option that  sets  automatic
+       callouts;  when it is used, the output indicates how the
+       pattern is matched. This is useful information when  you
+       are  trying  to optimize the performance of a particular
+       pattern.
+
+MISSING CALLOUTS
+
+       You should be aware that, because  of  optimizations  in
+       the way PCRE matches patterns, callouts sometimes do not
+       happen. For example, if the pattern is
+
+         ab(?C4)cd
+
+       PCRE knows that any matching  string  must  contain  the
+       letter "d". If the subject string is "abyz", the lack of
+       "d" means that matching  doesn't  ever  start,  and  the
+       callout  is  never reached. However, with "abyd", though
+       the result is still no match, the callout is obeyed.
+
+THE CALLOUT INTERFACE
+
+       During matching, when PCRE reaches a callout point,  the
+       external  function defined by pcre_callout is called (if
+       it is set). This applies to both the pcre_exec() and the
+       pcre_dfa_exec() matching functions. The only argument to
+       the callout function is  a  pointer  to  a  pcre_callout
+       block. This structure contains the following fields:
+
+         int          version;
+         int          callout_number;
+         int         *offset_vector;
+         const char  *subject;
+         int          subject_length;
+         int          start_match;
+         int          current_position;
+         int          capture_top;
+         int          capture_last;
+         void        *callout_data;
+         int          pattern_position;
+         int          next_item_length;
+
+       The  version  field is an integer containing the version
+       number of the block format. The initial version  was  0;
+       the current version is 1. The version number will change
+       again in future if additional fields are added, but  the
+       intention is never to remove any of the existing fields.
+
+       The callout_number field  contains  the  number  of  the
+       callout, as compiled into the pattern (that is, the num-
+       ber after ?C for manual callouts, and 255 for  automati-
+       cally generated callouts).
+
+       The  offset_vector  field  is a pointer to the vector of
+       offsets that was passed by the caller to pcre_exec()  or
+       pcre_dfa_exec().  When pcre_exec() is used, the contents
+       can be inspected in order  to  extract  substrings  that
+       have  been  matched  so  far,  in  the  same  way as for
+       extracting substrings after a match has  completed.  For
+       pcre_dfa_exec() this field is not useful.
+
+       The  subject and subject_length fields contain copies of
+       the values that were passed to pcre_exec().
+
+       The start_match field contains  the  offset  within  the
+       subject  at  which the current match attempt started. If
+       the pattern is not anchored, the callout function may be
+       called  several times from the same point in the pattern
+       for different starting points in the subject.
+
+       The current_position field contains  the  offset  within
+       the subject of the current match pointer.
+
+       When  the  pcre_exec() function is used, the capture_top
+       field contains one more than the number of  the  highest
+       numbered  captured  substring  so  far. If no substrings
+       have been captured, the value  of  capture_top  is  one.
+       This  is  always  the case when pcre_dfa_exec() is used,
+       because it does not support captured substrings.
+
+       The capture_last field contains the number of  the  most
+       recently  captured substring. If no substrings have been
+       captured, its value is -1. This is always the case  when
+       pcre_dfa_exec() is used.
+
+       The  callout_data  field contains a value that is passed
+       to pcre_exec() or pcre_dfa_exec() specifically  so  that
+       it  can  be passed back in callouts. It is passed in the
+       pcre_callout field of the pcre_extra data structure.  If
+       no  such data was passed, the value of callout_data in a
+       pcre_callout block is NULL. There is  a  description  of
+       the pcre_extra structure in the pcreapi documentation.
+
+       The  pattern_position field is present from version 1 of
+       the pcre_callout structure. It contains  the  offset  to
+       the next item to be matched in the pattern string.
+
+       The  next_item_length field is present from version 1 of
+       the pcre_callout structure. It contains  the  length  of
+       the  next item to be matched in the pattern string. When
+       the callout immediately precedes an alternation  bar,  a
+       closing  parenthesis,  or  the  end  of the pattern, the
+       length is zero. When the  callout  precedes  an  opening
+       parenthesis,  the  length  is that of the entire subpat-
+       tern.
+
+       The pattern_position  and  next_item_length  fields  are
+       intended  to  help  in  distinguishing between different
+       automatic callouts, which all have the same callout num-
+       ber. However, they are set for all callouts.
+
+RETURN VALUES
+
+       The  external  callout  function  returns  an integer to
+       PCRE. If the value is zero, matching proceeds as normal.
+       If the value is greater than zero, matching fails at the
+       current point, but the testing of other matching  possi-
+       bilities  goes  ahead,  just as if a lookahead assertion
+       had failed. If the value is less than zero, the match is
+       abandoned,  and pcre_exec() (or pcre_dfa_exec()) returns
+       the negative value.
+
+       Negative values should normally be chosen from  the  set
+       of     PCRE_ERROR_xxx     values.     In     particular,
+       PCRE_ERROR_NOMATCH forces a standard "no match" failure.
+       The  error number PCRE_ERROR_CALLOUT is reserved for use
+       by callout functions; it will  never  be  used  by  PCRE
+       itself.
+
+Last updated: 28 February 2005
+Copyright (c) 1997-2005 University of Cambridge.
+
+
+
+                                                                PCRECALLOUT(3)

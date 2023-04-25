@@ -1,0 +1,11 @@
+/** \example filtercompiler.cpp
+
+<hr>
+<p>This program can be used to see how to interact with the NetPFLCompiler
+module. It prints to console the NetIL code generated from NetPFL filtering rule, e.g. 
+<tt>'ip.src == 10.0.0.1'</tt> by exploiting the protocol format information read from 
+a given NetPDL database.</p>
+<p>This program can be used also to simply check the syntax of the filtering string
+(according to the NetPFL syntax), without actually generating the NetIL code.</p>
+*/
+

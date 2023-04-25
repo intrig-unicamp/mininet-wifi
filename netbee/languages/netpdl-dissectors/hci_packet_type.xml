@@ -1,0 +1,45 @@
+
+<protocol name="hci_packet_type" longname="Packet Type" showsumtemplate="hci_packet_type">
+	<format>
+		<fields>
+			<field type="fixed" name="bt_packet_type" longname="Packet Type" size="1" showtemplate="hci.bt"/>
+		</fields>
+	</format>
+	
+	<encapsulation>
+		<switch expr="buf2int(bt_packet_type)">
+			<case value="1"> <nextproto proto="#hci_command"/> </case>
+			<case value="2"> <nextproto proto="#hci_acl_data"/> </case>
+			<case value="3"> <nextproto proto="#hci_sco_data"/> </case>
+			<case value="4"> <nextproto proto="#hci_event"/> </case>
+			<case value="5"> <nextproto proto="#hci_error_message"/> </case>
+			<case value="6"> <nextproto proto="#hci_negotiation"/> </case>
+<!-- FULVIO: is it needed this "hci_unknown_type"? Is it not enough to have the NetPDL "default protocol"? -->
+			<default comment="Unknown Packet Type"> <nextproto proto="#hci_unknown_type"/> </default>
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showtemplate name="hci.bt" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="HCI Command Packet"/>
+					<case value="2" show="HCI ACL Data Packet"/>
+					<case value="3" show="HCI SCO Data Packet"/>
+					<case value="4" show="HCI Event Packet"/>
+					<case value="5" show="HCI Error Code"/>
+					<case value="6" show="HCI Negotiation Packet"/>
+					<default show="Unknown Type Code"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="hci_packet_type">
+			<section name="next"/>
+			<text value="Packet Type:"/>
+			<protofield name="bt_packet_type" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>
+

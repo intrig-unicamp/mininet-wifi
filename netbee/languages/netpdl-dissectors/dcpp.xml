@@ -1,0 +1,187 @@
+<protocol name="dcpp" longname="Direct Connect Plus Plus Protocol (File Sharing)" showsumtemplate="dcpp"> 
+	<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '^(\$(MyNick|Lock|Key|Direction|GetListLen|ListLen|MaxedOut|Error|Send|Get|FileLength|Canceled|HubName|ValidateNick|ValidateDenide|GetPass|Mypass|BadPass|Version|Hello|Logedin|MyINFO|GetINFO|GetNickList|NickList|OpList|To|ConnectToMe|MultiConnectToMe|RevConnectToMe|Search|MultiSearch|SR|Kick|OpForceMove|ForceMove|Quit))', 0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+		
+		<before when="$protoverify_result == %FOUND">
+<!--
+			<if expr="$packet[$currentoffset : 6] == '$ADCSND'">
+				<if-true>
+-->
+
+					<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$firstip"/>
+						<lookupkey value="$secondip"/>
+						<lookupkey value="$firstport"/>
+						<lookupkey value="$secondport"/>
+						<lookupdata value="#dcpp"/>
+						<lookupdata value="1"/>
+					</update-lookuptable>
+
+<!--
+				</if-true>
+			</if>
+-->
+
+<!--
+			<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+-->
+				<!-- it exists -->
+<!--
+				<if-true>
+					<if expr="$tcpsessiontable.flag != 1">
+						<if-true>
+							<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$firstip"/>
+								<lookupkey value="$secondip"/>
+								<lookupkey value="$firstport"/>
+								<lookupkey value="$secondport"/>
+								<lookupdata value="#dcpp"/>
+								<lookupdata value="0"/>
+							</update-lookuptable>
+						</if-true>
+					</if>
+				</if-true>
+-->
+				
+				<!-- it doesn't exist -->
+<!--
+				<if-false>
+					<assign-variable name="$session_hit" value="1"/>
+					<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$firstip"/>
+						<lookupkey value="$secondip"/>
+						<lookupkey value="$firstport"/>
+						<lookupkey value="$secondport"/>
+						<lookupdata value="#dcpp"/>
+						<lookupdata value="0"/>
+					</update-lookuptable>
+				</if-false>
+			</if>
+
+			<if expr="$packet[$currentoffset : 6] == '$ADCSND'">
+				<if-true>
+					<assign-lookuptable name="$tcpsessiontable.flag" value="1"/>	
+				</if-true>
+			</if>
+-->
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#dcpp"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#dcpp"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+
+
+	<format>
+		<fields>
+			<if expr="hasstring($packet[$currentoffset:0], '^(\$(MyN|ADC|Loc|Key|Dir|Get|Lis|Max|Err|Sen|Fil|Can|Hub|Val|Val|Myp|Bad|Ver|Hel|Log|MyI|Nic|OpL|To|Con|Mul|Rev|Sea|SR|Kic|OpFo|For|Qui))', 0)">
+				<if-true>
+					<!-- packet starts with command -->
+					<loop type="size" expr="$packetlength - $currentoffset">
+						<field type="tokenended" name="command" longname="Command" endtoken="\x7C" showtemplate="FieldAscii"/>
+					</loop>
+				</if-true>
+				
+				<if-false>
+
+					<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+						<if-true>
+						
+							<!--<if expr="$dcppdownload == 0">-->
+							<if expr="$tcpsessiontable.flag == 0">
+								<if-true> 
+
+									<!-- at most take whole packet -->
+									<field type="tokenended" name="DCdata" longname="DC data" endtoken="\x7C" showtemplate="FieldAscii"/>
+									<!-- comandi rimanenti -->
+									<loop type="size" expr="$packetlength - $currentoffset">
+										<field type="tokenended" name="command" longname="Command" endtoken="\x7C" showtemplate="FieldAscii"/>
+									</loop>							
+								</if-true>
+							</if>
+							
+							<if expr="$tcpsessiontable.flag == 1">						
+								<if-true>
+									<field type="variable" name="DCdownload" longname="DC download" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+								</if-true>
+							</if>
+						</if-true>
+
+						<if-false>
+							<field type="variable" name="Data" longname="Unknown data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						</if-false>
+					</if>
+
+				</if-false>
+			</if>	
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="dcpp">
+			<section name="next"/>
+			<text value="DCPP "/>
+									
+			<if expr="ispresent(command)">
+				<if-true>
+				
+					<if expr="command[0:3] == '$Search' ">
+						<if-true>
+							<text value=" search"/>
+						</if-true>
+					</if>
+
+					<if expr="command[0:3] == '$SR' ">
+						<if-true>
+							<text value=" search result"/>
+						</if-true>
+					</if>						
+					
+				</if-true>
+			</if>
+
+			<if expr="ispresent(DCdownload)">
+				<if-true>
+					<text value=" download"/>
+				</if-true>
+			</if>
+
+		</showsumtemplate>
+	</visualization>
+</protocol>

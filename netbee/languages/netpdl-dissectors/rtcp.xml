@@ -1,0 +1,209 @@
+<protocol name="rtcp" longname="RTCP (Real Time Control Protocol)" showsumtemplate="rtcp">
+	<!-- We should check that 'version' is equal to '2' -->
+	<format>
+		<fields>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<switch expr="buf2int($packet[$currentoffset+1:1])">
+					
+					<case value="200">	<includeblk name="sr"/>		</case>
+					<case value="201">	<includeblk name="rr"/>		</case>
+					<case value="202">	<includeblk name="sdes"/>	</case>
+					<case value="203">	<includeblk name="bye"/>	</case>
+					<case value="204">	<includeblk name="app"/>	</case>
+
+					<!-- Unknown option -->
+					<default>
+						<block name="unknown" longname="Unknown Option">
+							<field type="bit" name="ver" longname="Version" mask="0xC0" size="1" showtemplate="FieldDec"/>
+							<field type="bit" name="pad" longname="Padding" description="Set to enable padding" mask="0x20" size="1" showtemplate="FieldBin"/>
+							<field type="bit" name="st" longname="Subtype" mask="0x1F" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="type" longname="Type" size="1" showtemplate="rtcp.type"/>
+							<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+							<field type="variable" name="srinfo" longname="Sender Information" expr="buf2int(length) * 4" showtemplate="Field4BytesHex"/>
+						</block>
+					</default>
+				</switch>
+			</loop>
+		</fields>
+
+		<block name="sr" longname="Sender Report (SR)">
+			<field type="bit" name="ver" longname="Version" description="Always set to 2" mask="0xC0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="pad" longname="Padding" description="Set to enable padding" mask="0x20" size="1" showtemplate="FieldBin"/>
+			<field type="bit" name="rc" longname="Reception Report Count" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="rtcp.type"/>
+			<!-- Warning: 'length" keeps the nuber of words (32bit) - 1 -->
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="ssrc" longname="SSRC" description="Sync Source ID" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="srinfo" longname="Sender Information" expr="(buf2int(length) + 1) * 4" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="rr" longname="Receiver Report (RR)">
+			<field type="bit" name="ver" longname="Version" description="Always set to 2" mask="0xC0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="pad" longname="Padding" description="Set to enable padding" mask="0x20" size="1" showtemplate="FieldBin"/>
+			<field type="bit" name="rc" longname="Reception Report Count" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="rtcp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="ssrc" longname="Packet Sender SSRC" size="4" showtemplate="FieldHex"/>
+
+			<loop type="size" expr="(buf2int(length) - 1) * 4">
+				<loop type="times2repeat" expr="buf2int(rc)">
+					<block name="ritem" longname="Receiver Item">
+						<field type="fixed" name="ssrc" longname="Source SSRC" size="4" showtemplate="FieldHex"/>
+						<field type="fixed" name="flost" longname="Fraction of Lost Packets " size="1" showtemplate="FieldHex"/>
+						<field type="fixed" name="clost" longname="Cumulative Number of Lost Packets" size="3" showtemplate="FieldHex"/>
+						<field type="fixed" name="highseq" longname="Highest Received Sequence Number" size="4" showtemplate="FieldHex"/>
+						<field type="fixed" name="ijitter" longname="Interarrival Jitter" size="4" showtemplate="FieldDec"/>
+						<field type="fixed" name="lastsr" longname="Last Sender Report (LSR)" size="4" showtemplate="FieldHex"/>
+						<field type="fixed" name="delaylastsr" longname="Delat Since Last Sender Report (DLSR)" size="4" showtemplate="FieldDec"/>			
+					</block>		
+				</loop>
+				<field type="variable" name="profile_ext" longname="Profile-specific Extensions" expr="(buf2int(length) - 1) * 4 - (buf2int(rc) * 24)" showtemplate="Field4BytesHex"/>
+			</loop>
+		</block>
+
+		<block name="sdes" longname="Source Description (SDES)">
+			<field type="bit" name="ver" longname="Version" description="Always set to 2" mask="0xC0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="pad" longname="Padding" description="Set to enable padding" mask="0x20" size="1" showtemplate="FieldBin"/>
+			<field type="bit" name="rc" longname="Reception Report Count" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="rtcp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+
+			<loop type="times2repeat" expr="buf2int(rc)">
+
+				<block name="sdesitem" longname="Source Description Item">
+					<field type="fixed" name="ssrc" longname="SSRC" size="4" showtemplate="FieldHex"/>
+					<loop type="while" expr="1">
+
+						<switch expr="buf2int($packet[$currentoffset:1])">
+							<case value="0">
+								<block name="eoitems" longname="End of items">
+									<field type="fixed" name="sdestype" longname="Type" size="1" showtemplate="rtcp.sdestype"/>
+									<field type="padding" name="sdespad" longname="padding" align="4" showtemplate="FieldHex"/>
+									<loopctrl type="break"/>
+								</block>
+							</case>
+							<case value="1">
+								<block name="cname" longname="CNAME">
+									<field type="fixed" name="sdestype" longname="Type" size="1" showtemplate="rtcp.sdestype"/>
+									<field type="fixed" name="sdeslength" longname="Length" size="1" showtemplate="FieldDec"/>
+									<field type="variable" name="sdesuser" longname="User and Domain name" expr="buf2int(sdeslength)" showtemplate="FieldAscii"/>
+								</block>
+							</case>
+							<case value="2">
+								<block name="name" longname="User name">
+									<field type="fixed" name="sdestype" longname="Type" size="1" showtemplate="rtcp.sdestype"/>
+									<field type="fixed" name="sdeslength" longname="Length" size="1" showtemplate="FieldDec"/>
+									<field type="variable" name="sdesname" longname="Common name of source" expr="buf2int(sdeslength)" showtemplate="FieldAscii"/>
+								</block>
+							</case>
+							<case value="3">
+								<block name="email" longname="Email">
+									<field type="fixed" name="sdestype" longname="Type" size="1" showtemplate="rtcp.sdestype"/>
+									<field type="fixed" name="sdeslength" longname="Length" size="1" showtemplate="FieldDec"/>
+									<field type="variable" name="sdesemail" longname="Email address of source" expr="buf2int(sdeslength)" showtemplate="FieldAscii"/>
+								</block>
+							</case>
+							<case value="4">
+								<block name="phone" longname="Phone number">
+									<field type="fixed" name="sdestype" longname="Type" size="1" showtemplate="rtcp.sdestype"/>
+									<field type="fixed" name="sdeslength" longname="Length" size="1" showtemplate="FieldDec"/>
+									<field type="variable" name="sdesphone" longname="Phone Number of source" expr="buf2int(sdeslength)" showtemplate="FieldAscii"/>
+								</block>
+							</case>
+							<case value="5">
+								<block name="location" longname="Geographic user location">
+									<field type="fixed" name="sdestype" longname="Type" size="1" showtemplate="rtcp.sdestype"/>
+									<field type="fixed" name="sdeslength" longname="Length" size="1" showtemplate="FieldDec"/>
+									<field type="variable" name="sdesloc" longname="Geographic location of site" expr="buf2int(sdeslength)" showtemplate="FieldAscii"/>
+								</block>
+							</case>
+							<case value="6">
+								<block name="tool" longname="Application or tool name">
+									<field type="fixed" name="sdestype" longname="Type" size="1" showtemplate="rtcp.sdestype"/>
+									<field type="fixed" name="sdeslength" longname="Length" size="1" showtemplate="FieldDec"/>
+									<field type="variable" name="sdestool" longname="Name/version of source application" expr="buf2int(sdeslength)" showtemplate="FieldAscii"/>
+								</block>
+							</case>
+							<case value="7">
+								<block name="note" longname="Notice or Status">
+									<field type="fixed" name="sdestype" longname="Type" size="1" showtemplate="rtcp.sdestype"/>
+									<field type="fixed" name="sdeslength" longname="Length" size="1" showtemplate="FieldDec"/>
+									<field type="variable" name="sdesnote" longname="Note about the source" expr="buf2int(sdeslength)" showtemplate="FieldAscii"/>
+								</block>
+							</case>
+							<case value="8">
+								<block name="priv" longname="Private extension">
+									<field type="fixed" name="sdestype" longname="Type" size="1" showtemplate="rtcp.sdestype"/>
+									<field type="fixed" name="sdeslength" longname="Length" size="1" showtemplate="FieldDec"/>
+									<field type="fixed" name="sdespreflength" longname="Prefix Length" size="1" showtemplate="FieldDec"/>
+									<field type="variable" name="sdesprefstring" longname="Prefix string" expr="buf2int(sdespreflength)" showtemplate="FieldAscii"/>
+									<field type="variable" name="sdesvaluestring" longname="Value string" expr="buf2int(sdeslength)" showtemplate="FieldAscii"/>
+								</block>
+							</case>
+							<default>
+									<loopctrl type="break"/>
+							</default>
+						</switch>
+					</loop>
+				</block>		
+			</loop>
+		</block>
+
+		<block name="bye" longname="Goodbye (BYE)">
+			<field type="bit" name="ver" longname="Version" description="Always set to 2" mask="0xC0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="pad" longname="Padding" description="Set to enable padding" mask="0x20" size="1" showtemplate="FieldBin"/>
+			<field type="bit" name="rc" longname="Reception Report Count" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="rtcp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="byeinfo" longname="Bye Information" expr="(buf2int(length) + 1) * 4" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="app" longname="Application Defined (APP)">
+			<field type="bit" name="ver" longname="Version" description="Always set to 2" mask="0xC0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="pad" longname="Padding" description="Set to enable padding" mask="0x20" size="1" showtemplate="FieldBin"/>
+			<field type="bit" name="rc" longname="Reception Report Count" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="rtcp.type"/>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="ssrc" longname="SSRC" description="Sync Source ID" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="appinfo" longname="APP Information" expr="(buf2int(length) + 1) * 4" showtemplate="Field4BytesHex"/>
+		</block>
+
+	</format>
+
+	<visualization>
+		<showsumtemplate name="rtcp">
+			<section name="next"/>
+			<text value="RTCP"/>
+		</showsumtemplate>
+
+		<showtemplate name="rtcp.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="200" show="Sender Report">			</case>
+					<case value="201" show="Receiver Report">		</case>
+					<case value="202" show="Sender Description">	</case>
+					<case value="203" show="Bye">					</case>
+					<case value="204" show="Application Defined">	</case>
+					<default show="Error in RTCP.Type: value not recognized">		</default>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="rtcp.sdestype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="END">		</case>
+					<case value="1" show="CNAME">	</case>
+					<case value="2" show="NAME">	</case>
+					<case value="3" show="EMAIL">	</case>
+					<case value="4" show="PHONE">	</case>
+					<case value="5" show="LOC">		</case>
+					<case value="6" show="TOOL">	</case>
+					<case value="7" show="NOTE">	</case>
+					<case value="7" show="PRIV">	</case>
+					<default show="Error in RTCP.SdesType: value not recognized">		</default>
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>

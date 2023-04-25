@@ -1,0 +1,12 @@
+# Package Information for pkg-config
+
+prefix=c:/progra~1/Pcre
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libpcre
+Description: PCRE - Perl compatible regular expressions C library
+Version: 7.0
+Libs: -L${libdir} -lpcre
+Cflags: -I${includedir}

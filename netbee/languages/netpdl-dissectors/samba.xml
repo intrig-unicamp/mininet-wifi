@@ -1,0 +1,239 @@
+<protocol name="samba" longname="SAMBA" showsumtemplate="samba">
+	<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '\xffsmb[\x72\x25]',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#samba"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#samba"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#samba"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>				
+	<format>
+		<fields>
+			<if expr="hasstring($packet[$currentoffset : 0], '....SMB',0)">
+				<if-true>
+					<field type="fixed" name="block_length" longname="Block Length" size="4" showtemplate="FieldDec"/>
+					<block name="header" longname="Header">
+						<field type="fixed" name="protocol" longname="Protocol" size="4" showtemplate="FieldAscii"/>
+						<field type="fixed" name="command" longname="Command" size="1" showtemplate="samba.command"/>
+						<field type="fixed" name="status" longname="Status" size="4" showtemplate="FieldHex">
+							<field type="fixed" name="error_class" longname="Error Class" size="1" showtemplate="FieldHex"/>
+							<field type="fixed" name="reserved" longname="Reserved" size="1" showtemplate="FieldHex"/>
+							<field type="fixed" name="error_code" longname="Error Code" size="2" showtemplate="FieldHex"/>
+						</field>
+						<field type="fixed" name="flag" longname="Flag" size="1" showtemplate="FieldHex">
+							<field type="bit" name="smb_flag_server_to_redir"		longname="SMB_FLAGS_SERVER_TO_REDIR"		size="1" mask="0x80" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag_request_batch_opclock" longname="SMB_FLAGS_REQUEST_BATCH_OPLOCK"	size="1" mask="0x40" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag_request_opclock"		longname="SMB_FLAGS_REQUEST_OPLOCK"			size="1" mask="0x20" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag_canonical_pathnames"	longname="SMB_FLAGS_CANONICAL_PATHNAMES"	size="1" mask="0x10" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag_caseless_pathnames"	longname="SMB_FLAGS_CASELESS_PATHNAMES"		size="1" mask="0x08" showtemplate="FieldBin"/>
+							<field type="bit" name="reserved"						longname="Reserved"							size="1" mask="0x04" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag_client_buf_avail"		longname="SMB_FLAGS_CLIENT_BUF_AVAIL"		size="1" mask="0x02" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag_support_lockread"		longname="SMB_FLAGS_SUPPORT_LOCKREAD"		size="1" mask="0x01" showtemplate="FieldBin"/>
+						</field>
+						<field type="fixed" name="flag2" longname="Flag2" size="2" showtemplate="FieldHex">
+							<field type="bit" name="smb_flag2_unicode_strings"			longname="SMB_FLAGS2_UNICODE_STRINGS"		size="2" mask="0x8000" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag2_32bit_status"				longname="SMB_FLAGS2_32BIT_STATUS"			size="2" mask="0x4000" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag2_read_if_execute"			longname="SMB_FLAGS2_READ_IF_EXECUTE"		size="2" mask="0x2000" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag2_dfs_pathname"				longname="SMB_FLAGS2_DFS_PATHNAME"			size="2" mask="0x1000" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag2_extended_security"		longname="SMB_FLAGS2_EXTENDED_SECURITY"		size="2" mask="0x0800" showtemplate="FieldBin"/>
+							<field type="bit" name="reserved"							longname="Reserved"							size="2" mask="0x0400" showtemplate="FieldBin"/>
+							<field type="bit" name="reserved"							longname="Reserved"							size="2" mask="0x0200" showtemplate="FieldBin"/>
+							<field type="bit" name="reserved"							longname="Reserved"							size="2" mask="0x0100" showtemplate="FieldBin"/>
+							<field type="bit" name="reserved"							longname="Reserved"							size="2" mask="0x0080" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag2_is_long_name"				longname="SMB_FLAGS2_IS_LONG_NAME"			size="2" mask="0x0040" showtemplate="FieldBin"/>
+							<field type="bit" name="reserved"							longname="Reserved"							size="2" mask="0x0020" showtemplate="FieldBin"/>
+							<field type="bit" name="reserved"							longname="Reserved"							size="2" mask="0x0010" showtemplate="FieldBin"/>
+							<field type="bit" name="reserved"							longname="Reserved"							size="2" mask="0x0008" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag2_security_signature"		longname="SMB_FLAGS2_SECURITY_SIGNATURE"	size="2" mask="0x0004" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag2_aes"						longname="SMB_FLAGS2_EAS"				size="2" mask="0x0002" showtemplate="FieldBin"/>
+							<field type="bit" name="smb_flag2_knows_long_names"			longname="SMB_FLAGS2_KNOWS_LONG_NAMES"		size="2" mask="0x0001" showtemplate="FieldBin"/>
+						</field>
+						<field type="fixed" name="extra" longname="Extra" size="12" showtemplate="FieldHex">
+							<field type="fixed" name="pid_high" longname="PID High" size="2" showtemplate="FieldHex"/>
+							<field type="fixed" name="signature" longname="Signature" size="8" showtemplate="FieldHex"/>
+							<field type="fixed" name="unused" longname="Unused" size="2" showtemplate="FieldHex"/>
+						</field>
+						<field type="fixed" name="tid" longname="TID" size="2" showtemplate="FieldHex"/>
+						<field type="fixed" name="pid" longname="PID" size="2" showtemplate="FieldHex"/>
+						<field type="fixed" name="uid" longname="UID" size="2" showtemplate="FieldHex"/>
+						<field type="fixed" name="mid" longname="MID" size="2" showtemplate="FieldHex"/>			
+					</block>
+					<block name="parameter_block" longname="Parameter Block">
+						<field type="fixed" name="word_count" longname="Word Count" size="1" showtemplate="FieldDec"/>
+						<if expr="buf2int(word_count)">
+							<if-true>
+								<field type="variable" name="parameters" longname="Paramenters" expr="2*buf2int(word_count)" showtemplate="FieldHex"/>
+							</if-true>
+						</if>
+					</block>
+
+					<block name="message_block" longname="Message Block">
+						<if expr="buf2int(command) == 0xA2 or buf2int(command) == 0xA4">	<!-- check data format of this command -->
+							<if-true>
+								<field type="variable" name="message" longname="Message" expr="$packetlength - $currentoffset" showtemplate="FieldHex"/>
+							</if-true>
+							<if-false>
+								<field type="fixed" name="byte_count" longname="Byte Count" size="2" showtemplate="FieldDec"/>	<!-- little endian -->
+								<if expr="buf2int(byte_count) gt ($packetlength - $currentoffset)">
+									<if-true>
+										<field type="variable" name="message" longname="Message" expr="$packetlength - $currentoffset" showtemplate="FieldHex"/>
+									</if-true>
+									<if-false>
+										<if expr="buf2int(byte_count)">
+											<if-true>
+												<field type="variable" name="message" longname="Message" expr="buf2int(changebyteorder(byte_count))" showtemplate="FieldHex"/>
+											</if-true>
+										</if>
+									</if-false>
+								</if>
+									
+							</if-false>
+						</if>
+					</block>
+				</if-true>
+				<if-false>
+					<field type="variable" name="data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-false>
+			</if>
+
+			<!--<field type="variable" name="data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>-->
+		</fields>
+	</format>
+
+	<visualization>
+		<showtemplate name="samba.command" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x00"	show="SMB_COM_CREATE_DIRECTORY"/>
+					<case value="0x01"	show="SMB_COM_DELETE_DIRECTORY"/>
+					<case value="0x02"	show="SMB_COM_OPEN"/>
+					<case value="0x03"	show="SMB_COM_CREATE"/>
+					<case value="0x04"	show="SMB_COM_CLOSE"/>
+					<case value="0x05"	show="SMB_COM_FLUSH"/>
+					<case value="0x06"	show="SMB_COM_DELETE"/>
+					<case value="0x07"	show="SMB_COM_RENAME"/>
+					<case value="0x08"	show="SMB_COM_QUERY_INFORMATION"/>
+					<case value="0x09"	show="SMB_COM_SET_INFORMATION"/>
+					<case value="0x0A"	show="SMB_COM_READ"/>
+					<case value="0x0B"	show="SMB_COM_WRITE"/>
+					<case value="0x0C"	show="SMB_COM_LOCK_BYTE_RANGE"/>
+					<case value="0x0D"	show="SMB_COM_UNLOCK_BYTE_RANGE"/>
+					<case value="0x0E"	show="SMB_COM_CREATE_TEMPORARY"/>
+					<case value="0x0F"	show="SMB_COM_CREATE_NEW"/>
+					<case value="0x10"	show="SMB_COM_CHECK_DIRECTORY"/>
+					<case value="0x11"	show="SMB_COM_PROCESS_EXIT"/>
+					<case value="0x12"	show="SMB_COM_SEEK"/>
+					<case value="0x13"	show="SMB_COM_LOCK_AND_READ"/>
+					<case value="0x14"	show="SMB_COM_WRITE_AND_UNLOCK"/>
+					<case value="0x1A"	show="SMB_COM_READ_RAW"/>
+					<case value="0x1B"	show="SMB_COM_READ_MPX"/>
+					<case value="0x1C"	show="SMB_COM_READ_MPX_SECONDARY"/>
+					<case value="0x1D"	show="SMB_COM_WRITE_RAW"/>
+					<case value="0x1E"	show="SMB_COM_WRITE_MPX"/>
+					<case value="0x1F"	show="SMB_COM_WRITE_MPX_SECONDARY"/>
+					<case value="0x20"	show="SMB_COM_WRITE_COMPLETE"/>
+					<case value="0x21"	show="SMB_COM_QUERY_SERVER"/>
+					<case value="0x22"	show="SMB_COM_SET_INFORMATION2"/>
+					<case value="0x23"	show="SMB_COM_QUERY_INFORMATION2"/>
+					<case value="0x24"	show="SMB_COM_LOCKING_ANDX"/>
+					<case value="0x25"	show="SMB_COM_TRANSACTION"/>
+					<case value="0x26"	show="SMB_COM_TRANSACTION_SECONDARY"/>
+					<case value="0x27"	show="SMB_COM_IOCTL"/>
+					<case value="0x28"	show="SMB_COM_IOCTL_SECONDARY"/>
+					<case value="0x29"	show="SMB_COM_COPY"/>
+					<case value="0x2A"	show="SMB_COM_MOVE"/>
+					<case value="0x2B"	show="SMB_COM_ECHO"/>
+					<case value="0x2C"	show="SMB_COM_WRITE_AND_CLOSE"/>
+					<case value="0x2D"	show="SMB_COM_OPEN_ANDX"/>
+					<case value="0x2E"	show="SMB_COM_READ_ANDX"/>
+					<case value="0x2F"	show="SMB_COM_WRITE_ANDX"/>
+					<case value="0x30"	show="SMB_COM_NEW_FILE_SIZE"/>
+					<case value="0x31"	show="SMB_COM_CLOSE_AND_TREE_DISC"/>
+					<case value="0x32"	show="SMB_COM_TRANSACTION2"/>
+					<case value="0x33"	show="SMB_COM_TRANSACTION2_SECONDARY"/>
+					<case value="0x34"	show="SMB_COM_FIND_CLOSE2"/>
+					<case value="0x35"	show="SMB_COM_FIND_NOTIFY_CLOSE"/>
+					<case value="0x70"	show="SMB_COM_TREE_CONNECT"/>
+					<case value="0x71"	show="SMB_COM_TREE_DISCONNECT"/>
+					<case value="0x72"	show="SMB_COM_NEGOTIATE"/>
+					<case value="0x73"	show="SMB_COM_SESSION_SETUP_ANDX"/>
+					<case value="0x74"	show="SMB_COM_LOGOFF_ANDX"/>
+					<case value="0x75"	show="SMB_COM_TREE_CONNECT_ANDX"/>
+					<case value="0x80"	show="SMB_COM_QUERY_INFORMATION_DISK"/>
+					<case value="0x81"	show="SMB_COM_SEARCH"/>
+					<case value="0x82"	show="SMB_COM_FIND"/>
+					<case value="0x83"	show="SMB_COM_FIND_UNIQUE"/>
+					<case value="0x84"	show="SMB_COM_FIND_CLOSE"/>
+					<case value="0xA0"	show="SMB_COM_NT_TRANSACT"/>
+					<case value="0xA1"	show="SMB_COM_NT_TRANSACT_SECONDARY"/>
+					<case value="0xA2"	show="SMB_COM_NT_CREATE_ANDX"/>
+					<case value="0xA4"	show="SMB_COM_NT_CANCEL"/>
+					<case value="0xA5"	show="SMB_COM_NT_RENAME"/>
+					<case value="0xC0"	show="SMB_COM_OPEN_PRINT_FILE"/>
+					<case value="0xC1"	show="SMB_COM_WRITE_PRINT_FILE"/>
+					<case value="0xC2"	show="SMB_COM_CLOSE_PRINT_FILE"/>
+					<case value="0xC3"	show="SMB_COM_GET_PRINT_QUEUE"/>
+					<case value="0xD8"	show="SMB_COM_READ_BULK"/>
+					<case value="0xD9"	show="SMB_COM_WRITE_BULK"/>
+					<case value="0xDA"	show="SMB_COM_WRITE_BULK_DATA"/>
+					
+					<default show="Unknown Command"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="samba">
+			<section name="next"/>
+			<text value="SAMBA "/>
+			<protofield name="command" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

@@ -1,0 +1,38 @@
+segment .ports
+	push_input in1
+	push_output out1
+ends
+
+segment .init
+	ret
+ends
+
+segment .metadata
+	.netpe_name JFLDxx
+	.datamem_size        0
+ends
+
+segment .push
+	.locals 0
+	.maxstacksize 10
+
+
+	push 0  ;offset1
+	push 16 ;offset2
+	push 4 ;length
+
+	jfield.gt send
+
+	ret
+
+send:
+	pkt.send out1
+ends
+
+; ---- Not used - this NetPE works in 'push' mode ----
+segment .pull
+.locals 0
+.maxstacksize 10
+	pop
+	ret
+ends;

@@ -1,0 +1,46 @@
+<protocol name="ntp" longname="Network Time Protocol" showsumtemplate="ntp">
+	<execute-code>
+		<verify>
+			<if expr="($packetlength - $currentoffset) ge 48 and (hasstring($packet[$currentoffset:0],'^([\x13\x1b\x23\xd3\xdb\xe3]|[\x14\x1c$].......?.?.?.?.?.?.?.?.?[\xc6-\xff])',0))">
+																												<!-- Simple NTP -->
+			<!--<if expr="(($packetlength - $currentoffset) == 48) or (($packetlength - $currentoffset) == 60) or (($packetlength - $currentoffset) == 68)">-->
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%CANDIDATE"/>
+				</if-true>	
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %CANDIDATE or $protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#ntp"/>
+			</update-lookuptable>	
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#ntp"/>
+			</update-lookuptable>
+		</before>		
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="variable" name="ntpdata" longname="NTP Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="ntp">
+			<section name="next"/>
+			<text value="(Simple) Network Time Protocol"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

@@ -1,0 +1,70 @@
+segment .ports
+  push_input in
+  push_output out1
+ends
+
+
+segment .init
+  ret
+ends
+
+
+segment .pull
+  ret
+ends
+
+
+; Code for filter: "ip returnpacket on port 1"
+
+segment .push
+.maxstacksize 30
+.locals 21
+  pop  ; discard the "calling" port id
+
+l9:
+  ; PROTOCOL startproto: FORMAT
+  push 0
+  locstore 3  ; $currentoffset_t3
+
+  
+  
+  ; PROTOCOL startproto: ENCAPSULATION
+  ; SWITCH '$linklayer'
+  jump.w case_l11
+case_l11:
+  jump.w jump_true_l12
+jump_true_l12:
+  ; PROTOCOL ethernet: FORMAT
+  push 6
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  push 6
+  add
+  locstore 3  ; $currentoffset_t3
+
+  locload 3  ; $currentoffset_t3
+  upload.16
+  locstore 20  ; type_value_t20
+
+  
+  
+  ; PROTOCOL ethernet: ENCAPSULATION
+  ; SWITCH 'buf2int(type)'
+    locload 20  ; type_value_t20
+switch 1:
+  2048: case_l15
+  default: DISCARD_l6  
+case_l15:
+  jump.w jump_true_l16
+jump_true_l16:
+  jump.w SEND_PACKET_l7
+SEND_PACKET_l7:
+  pkt.send out1
+
+DISCARD_l6:
+  ret
+
+ends
+
+

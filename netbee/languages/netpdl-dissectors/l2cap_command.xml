@@ -1,0 +1,220 @@
+<protocol name="l2cap_command" longname="L2CAP Commands">
+	<format>
+		<fields>
+			<field type="fixed" name="l2cap_length" longname="Length of the Payload" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="l2cap_channel_id" longname="Channel ID" size="2" showtemplate="FieldHex" bigendian="yes"/>
+
+			<switch expr="buf2int(l2cap_channel_id)">
+				<case value="1" comment="Signalling Command Packet">	<includeblk name="blk_l2cap_sig_cmd_pkt"/>	</case>
+				<case value="2" comment="Connectionless Packet">		<!-- ***************** -->					</case>
+
+				<default comment="Unknown Channel ID">
+					<field type="fixed" name="unknown_remove" longname="Error-Channel ID" size="1" showtemplate="FieldDec"/>
+				</default>
+			</switch>
+		</fields>
+
+
+		<block name="blk_l2cap_sig_cmd_pkt" longname="Signalling Command Packet">
+			<field type="fixed" name="l2cap_code" longname="Code" size="1" showtemplate="FieldHex"/>
+
+			<switch expr="buf2int(l2cap_code)">
+				<case value="0" comment="RESERVED">						<includeblk name="blk_l2cap_reserved"/>			</case>
+				<case value="1" comment="Command Reject">				<includeblk name="blk_command_reject"/>			</case>
+				<case value="2" comment="Connection Request">			<includeblk name="blk_connection_request"/>		</case>
+				<case value="3" comment="Connection Response">			<includeblk name="blk_connection_response"/>	</case>
+				<case value="4" comment="Configure Request">			<includeblk name="blk_configure_request"/>		</case>
+				<case value="5" comment="Configure Response">			<includeblk name="blk_configure_response"/>		</case>
+				<case value="6" comment="Disconnection Request">		<includeblk name="blk_disconnection_request"/>	</case>
+				<case value="7" comment="Disconnection Response">		<includeblk name="blk_disconnection_response"/>	</case>
+				<case value="8" comment="Echo Request">					<includeblk name="blk_echo_request"/>			</case>
+				<case value="9" comment="Echo Response">				<includeblk name="blk_echo_response"/>			</case>
+				<case value="10" comment="Information Request">			<includeblk name="blk_information_request"/>	</case>
+				<case value="11" comment="Information Response">		<includeblk name="blk_information_response"/>	</case>
+				<default comment="Invalid Command Code">				<includeblk name="blk_invalid_command_code"/>	</default>
+			</switch>
+		</block>
+
+		<block name="blk_l2cap_reserved" longname="RESERVED">
+			<!-- nothing ... -->
+		</block>
+
+		<block name="blk_command_reject" longname="Command Reject">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="cmd_reject_reason" longname="Command Reject Reason" size="2" showtemplate="hci_event.cmd_reject_reason"/>
+
+			<switch expr="buf2int(cmd_reject_reason)">
+				<case value="0" comment="Command Not Understood">
+					<!-- No data -->
+				</case>
+
+				<case value="256" comment="Signalling MTU Exceeded">
+					<field type="fixed" name="max_acceptable_mtu" longname="Data: Maximum Acceptable Signalling MTU" size="2" showtemplate="FieldHex"/>
+				</case>
+
+				<case value="512" comment="Invalid CID in request">
+					<field type="fixed" name="requested_cid" longname="Local/Remote channel Endpoits" size="4" showtemplate="Field2BytesHexColon"/>
+			 		<field type="variable" name="data" longname="Data:(Invalid)" expr="buf2int(length) - 6" showtemplate="Field2BytesHexDash"/>
+				</case>
+
+				<default>
+			 		<field type="variable" name="data" longname="Data (Invalid Reason)" expr="buf2int(length) - 2" showtemplate="Field2BytesHexDash"/>
+				</default>
+			</switch>
+		</block>
+
+		<block name="blk_connection_request" longname="Connection Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="psm" longname="Protocol/Service Multiplexor" size="2" showtemplate="hci_event.psm"/>
+			<field type="fixed" name="sourec_cid" longname="Source CID" size="2" showtemplate="FieldHex"/>
+		</block>
+
+		<block name="blk_connection_response" longname="Connection Response">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="destination_cid" longname="Destination CID" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="sourec_cid" longname="Source CID" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="con_res_result" longname="Result" size="2" showtemplate="hci_event.con_res_result"/>
+			<field type="fixed" name="con_res_status" longname="Status" size="2" showtemplate="hci_event.con_res_status"/>
+		</block>
+
+		<block name="blk_configure_request" longname="Configure Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="destination_cid" longname="Destination CID" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="flags" longname="Flags" size="2" showtemplate="FieldHex"/>
+			<field type="variable" name="conf_options" longname="Configuration Options" expr="buf2int(length) - 4" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="blk_configure_response" longname="Configure Response">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="destination_cid" longname="Destination CID" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="sourec_cid" longname="Source CID" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="flags" longname="Flags" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="result" longname="Result" size="2" showtemplate="hci_event.result"/>
+			<field type="fixed" name="config" longname="Status" size="2" showtemplate="FieldHex"/>
+		</block>
+
+		<block name="blk_disconnection_request" longname="Disconnection Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="destination_cid" longname="Destination CID" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="sourec_cid" longname="Source CID" size="2" showtemplate="FieldHex"/>
+		</block>
+
+		<block name="blk_disconnection_response" longname="Disconnection Response">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="destination_cid" longname="Destination CID" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="sourec_cid" longname="Source CID" size="2" showtemplate="FieldHex"/>
+		</block>
+
+		<block name="blk_echo_request" longname="Echo Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="variable" name="data" longname="Data" expr="buf2int(length)" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="blk_echo_response" longname="Echo Response">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="variable" name="data" longname="Data" expr="buf2int(length)" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="blk_information_request" longname="Information Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="info_type" longname="Info Type" size="2" showtemplate="hci_event.info_type"/>
+		</block>
+
+		<block name="blk_information_response" longname="Information Response">
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="length" longname="Payload Length" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="info_type" longname="Info Type" size="2" showtemplate="hci_event.info_type"/>
+
+<!-- FULVIO: the next field was pointing to a table called "info_res_result_map" which was not present in this file -->
+<!-- Therefore, I deleted this reference. -->
+			<field type="fixed" name="result" longname="Result" size="2" showtemplate="FieldHex"/>
+			<field type="variable" name="data" longname="Data" expr="buf2int(length) - 4" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="blk_invalid_command_code" longname="Invalid Command Code">
+			<field type="variable" name="invalid_pkt" longname="Invalid L2CAP Packet" expr="buf2int(l2cap_length)" showtemplate="Field1BytesHex"/>
+		</block>
+	</format>
+
+
+
+	<visualization>
+		<showtemplate name="hci_event.cmd_reject_reason" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Command Not Understood"/>
+					<case value="256" show="Signalling MTU Exceeded"/>
+					<case value="512" show="Invalid CID in request"/>
+					<default show="Reserved"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_event.psm" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="256" show="Service Discovery Protocol"/>
+					<case value="768" show="RFCOMM"/>
+					<case value="1280" show="Telephony Control Protocol"/>
+					<default show="Reserved"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_event.con_res_result" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Connection Successful"/>
+					<case value="256" show="Connection Pending"/>
+					<case value="512" show="Connection refused- PSM not supported"/>
+					<case value="768" show="Connection refused- Security block"/>
+					<case value="1024" show="Connection refused- No resources available"/>
+					<default show="Reserved"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_event.con_res_status" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="No further information available"/>
+					<case value="256" show="Authentication pending"/>
+					<case value="512" show="Authorization pending"/>
+					<default show="Reserved"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_event.result" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Success"/>
+					<case value="256" show="Failure- Unacceptable Parameters"/>
+					<case value="512" show="Failure- Rejected(No reason provided)"/>
+					<case value="768" show="Failure- Unknown Options"/>
+					<default show="Reserved"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_event.info_type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="256" show="Connectionless MTU"/>
+					<default show="Reserved"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+
+</protocol>

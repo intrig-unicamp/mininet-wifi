@@ -1,0 +1,25 @@
+<protocol name="fddi" longname="Fiber Distributed Data Interface" showsumtemplate="fddi">
+	<format>
+		<fields>
+			<field type="fixed" name="fc" longname="Frame Control" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="dst" longname="MAC Destination" size="6" showtemplate="MACaddressTR"/>
+			<field type="fixed" name="src" longname="MAC Source" size="6" showtemplate="MACaddressTR"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<nextproto proto="#llc"/>
+	</encapsulation>
+	
+	<visualization>
+		<showsumtemplate name="fddi">
+			<section name="next"/>
+			<text value="FDDI: "/>
+			<protofield name="src" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dst" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>
+

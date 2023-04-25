@@ -1,0 +1,1049 @@
+<protocol name="nfs" longname="NFS" showsumtemplate="nfs">
+	<format>
+		<fields>
+			<if expr="checklookuptable($rpctable, $ipsrc, $ipdst, $portsrc, $portdst) and $rpctable.type==0">	<!-- is a call -->
+				<if-true>
+					<switch expr="$rpctable.proc">
+						<case value="0x11"> <includeblk name="READDIRPLUS3args"/></case>
+						<case value="0x08"> <includeblk name="CREATE3args"/></case>
+						<!-- Casi non testati -->
+						<case value="0x00"> <includeblk name="NULLargs"/></case>
+						<case value="0x01"> <includeblk name="GETATTR3args"/></case>
+						<case value="0x02"> <includeblk name="SETATTR3args"/></case>
+						<case value="0x03"> <includeblk name="LOOKUP3args"/></case>
+						<case value="0x04"> <includeblk name="ACCESS3args"/></case>
+						<case value="0x05"> <includeblk name="READLINK3args"/></case>
+						<case value="0x06"> <includeblk name="READ3args"/></case>
+						<case value="0x07"> <includeblk name="WRITE3args"/></case>
+						<case value="0x09"> <includeblk name="MKDIR3args"/></case>
+						<case value="0x0A"> <includeblk name="SYMLINK3args"/></case>
+						<case value="0x0B"> <includeblk name="MKNOD3args"/></case>
+						<case value="0x0C"> <includeblk name="REMOVE3args"/></case>
+						<case value="0x0D"> <includeblk name="RMDIR3args"/></case>
+						<case value="0x0E"> <includeblk name="RENAME3args"/></case>
+						<case value="0x0F"> <includeblk name="LINK3args"/></case>
+						<case value="0x10"> <includeblk name="READDIR3args"/></case>
+						<case value="0x12"> <includeblk name="FSSTAT3args"/></case>
+						<case value="0x13"> <includeblk name="FSINFO3args"/></case>
+						<case value="0x14"> <includeblk name="PATHCONF3args"/></case>
+						<case value="0x15"> <includeblk name="COMMIT3args"/></case>
+						<default>
+							<field type="variable" name="data" longname="Input" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						</default>
+					</switch>
+					
+				</if-true>
+			</if>
+			<if expr="checklookuptable($rpctable, $ipsrc, $ipdst, $portsrc, $portdst) and $rpctable.type==1">  <!-- is a reply -->
+				<if-true>
+					<switch expr="$rpctable.proc">
+						<case value="0x11"> <includeblk name="READDIRPLUS3res"/></case>
+						<case value="0x08"> <includeblk name="CREATE3res"/></case>
+						<!-- Casi non testati -->
+						<case value="0x00"> <includeblk name="NULLres"/></case>
+						<case value="0x01"> <includeblk name="GETATTR3res"/></case>
+						<case value="0x02"> <includeblk name="SETATTR3res"/></case>
+						<case value="0x03"> <includeblk name="LOOKUP3res"/></case>
+						<case value="0x04"> <includeblk name="ACCESS3res"/></case>
+						<case value="0x05"> <includeblk name="READLINK3res"/></case>
+						<case value="0x06"> <includeblk name="READ3res"/></case>
+						<case value="0x07"> <includeblk name="WRITE3res"/></case>
+						<case value="0x09"> <includeblk name="MKDIR3res"/></case>
+						<case value="0x0A"> <includeblk name="SYMLINK3res"/></case>
+						<case value="0x0B"> <includeblk name="MKNOD3res"/></case>
+						<case value="0x0C"> <includeblk name="REMOVE3res"/></case>
+						<case value="0x0D"> <includeblk name="RMDIR3res"/></case>
+						<case value="0x0E"> <includeblk name="RENAME3res"/></case>
+						<case value="0x0F"> <includeblk name="LINK3res"/></case>
+						<case value="0x10"> <includeblk name="READDIR3res"/></case>
+						<case value="0x12"> <includeblk name="FSSTAT3res"/></case>
+						<case value="0x13"> <includeblk name="FSINFO3res"/></case>
+						<case value="0x14"> <includeblk name="PATHCONF3res"/></case>
+						<case value="0x15"> <includeblk name="COMMIT3res"/></case>
+						<default>
+							<field type="variable" name="data" longname="Output" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						</default>
+					</switch>
+					
+				</if-true>
+			</if>
+			<!--<field type="variable" name="data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>-->
+		</fields>
+		
+		<block name="READDIRPLUS3args" longname="READDIRPLUS3 Argument">
+			<block name="dir" longname="Dir">
+				<includeblk name="opaque"/>
+			</block>
+			<field type="fixed" name="cookie" longname="Cookie" size="8" showtemplate="FieldDec"/>
+			<field type="fixed" name="verf" longname="Verf" size="8" showtemplate="FieldDec"/>
+			<field type="fixed" name="dircount" longname="DirCount" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="maxcount" longname="MaxCount" size="4" showtemplate="FieldDec"/>
+		<!--	<field type="variable" name="data" longname="Iutput" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/> -->
+		</block>
+		
+		<block name="READDIRPLUS3res" longname="READDIRPLUS3 Results">
+			<if expr="buf2int($packet[$currentoffset : 4] ) == 0">
+				<if-true>
+					<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+					<if expr="buf2int(status)==0">
+						<if-true>
+							<block name="dir_attributes" longname="Directory Attributes">
+								<includeblk name="post_op_attr"/>
+							</block>
+							<field type="fixed" name="cookieverf" longname="Cookieverf" size="8" showtemplate="FieldHex"/>
+							<block name="reply" longname="Reply">
+								<loop type="while" expr="buf2int($packet[$currentoffset:4])==1">
+									<field type="fixed" name="follow" longname="Follow" size="4" showtemplate="FieldHex"/>
+									<if expr="buf2int(follow)==1">
+										<if-true>
+											<includeblk name="entryplus"/>
+										</if-true>
+									</if>
+								</loop>
+							</block>
+						</if-true>
+						<if-false>
+							<includeblk name="post_op_attr"/>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+			<field type="variable" name="data" longname="Output" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="CREATE3args" longname="CREATE3 Argument">
+			<block name="where" longname="Where">
+				<includeblk name="diropargs3"/>
+			</block>
+			<block name="how" longname="How">
+				<field type="fixed" name="mode" longname="Create Mode" size="4" showtemplate="cmode"/>
+				<switch expr="buf2int(mode)">
+					<case value="0x0000">
+						<block name="obj_attributes" longname="Object Attributes">
+							<includeblk name="sattr3"/>
+						</block>
+					</case>
+					<case value="0x0001">
+						<block name="obj_attributes" longname="Object Attributes">
+							<includeblk name="sattr3"/>
+						</block>
+					</case>
+					<case value="0x0002">
+						<field type="fixed" name="createverf" longname="Create Verifier" size="8" showtemplate="FieldDec"/>
+					</case>
+					<default>
+					</default>
+				</switch>
+			</block>
+		</block>
+		
+		<block name="CREATE3res" longname="CREATE3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="object" longname="Object">
+						<includeblk name="post_op_fh3"/>
+					</block>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="entryplus" longname="EntryPlus">
+			<field type="fixed" name="fileid" longname="Fileid" size="8" showtemplate="FieldHex"/>
+			<field type="fixed" name="filenamelen" longname="Filename Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="filename" longname="filename" expr="buf2int(filenamelen)" showtemplate="FieldAscii"/>
+			<if expr="(buf2int(filenamelen) mod 4)!=0">
+				<if-true>
+					<field type="variable" name="fill" longname="Fill" expr="4-(buf2int(filenamelen) mod 4)" showtemplate="FieldHex"/>
+				</if-true>
+			</if>
+			<field type="fixed" name="cookie" longname="Cookie" size="8" showtemplate="FieldHex"/>
+			<block name="name_attributes" longname="Name Attributes">
+				<includeblk name="post_op_attr"/>
+			</block>
+			<block name="name_handle" longname="Name Handle">
+				<includeblk name="post_op_fh3"/>
+			</block>
+		</block>
+		
+		<block name="entry" longname="Entry">
+			<field type="fixed" name="fileid" longname="Fileid" size="8" showtemplate="FieldHex"/>
+			<field type="fixed" name="filenamelen" longname="Filename Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="filename" longname="filename" expr="buf2int(filenamelen)" showtemplate="FieldAscii"/>
+			<if expr="(buf2int(filenamelen) mod 4)!=0">
+				<if-true>
+					<field type="variable" name="fill" longname="Fill" expr="4-(buf2int(filenamelen) mod 4)" showtemplate="FieldHex"/>
+				</if-true>
+			</if>
+			<field type="fixed" name="cookie" longname="Cookie" size="8" showtemplate="FieldHex"/>
+		</block>
+
+		<block name="post_op_attr" longname="Post Op Attr">
+			<field type="fixed" name="attributes_follow" longname="Attributes Follow" size="4" showtemplate="FieldHex"/>
+			<if expr="buf2int(attributes_follow)==1">
+				<if-true>
+					<block name="attributes" longname="Attributes">
+						<includeblk name="fattr3"/>
+					</block>
+				</if-true>
+			</if>
+		</block>
+		
+		<block name="fattr3" longname="Fattr3">
+			<field type="fixed" name="type" longname="Type" size="4" showtemplate="ftype"/>
+			<field type="fixed" name="mode" longname="Mode" size="4" showtemplate="mode"/>
+			<field type="fixed" name="nlink" longname="Nlink" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="uid" longname="Uid" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="gid" longname="Gid" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="size" longname="Size" size="8" showtemplate="FieldHex"/>
+			<field type="fixed" name="used" longname="Used" size="8" showtemplate="FieldHex"/>
+			<field type="fixed" name="rdev" longname="Rdev" size="8" showtemplate="FieldHex">
+				<field type="fixed" name="specdata1" longname="specdata1" size="4" showtemplate="FieldHex"/>
+				<field type="fixed" name="specdata2" longname="specdata2" size="4" showtemplate="FieldHex"/>
+			</field>
+			<field type="fixed" name="fsid" longname="Fsid" size="8" showtemplate="FieldHex"/>
+			<field type="fixed" name="fileid" longname="Fileid" size="8" showtemplate="FieldHex"/>
+			<field type="fixed" name="atime" longname="aTime" size="8" showtemplate="FieldHex">
+				<field type="fixed" name="second" longname="Second" size="4" showtemplate="FieldHex"/>
+				<field type="fixed" name="usecond" longname="Usecond" size="4" showtemplate="FieldHex"/>
+			</field>
+			<field type="fixed" name="mtime" longname="mTime" size="8" showtemplate="FieldHex">
+				<field type="fixed" name="second" longname="Second" size="4" showtemplate="FieldHex"/>
+				<field type="fixed" name="usecond" longname="Usecond" size="4" showtemplate="FieldHex"/>
+			</field>
+			<field type="fixed" name="ctime" longname="cTime" size="8" showtemplate="FieldHex">
+				<field type="fixed" name="second" longname="Second" size="4" showtemplate="FieldHex"/>
+				<field type="fixed" name="usecond" longname="Usecond" size="4" showtemplate="FieldHex"/>
+			</field>
+		</block>
+		
+		<block name="diropargs3" longname="Diropargs3">
+			<block name="dir" longname="Dir">
+				<includeblk name="opaque"/>
+			</block>
+			
+			<block name="name" longname="Name">
+				<field type="fixed" name="filenamelen" longname="Filename Length" size="4" showtemplate="FieldDec"/>
+				<field type="variable" name="filename" longname="filename" expr="buf2int(filenamelen)" showtemplate="FieldAscii"/>
+				<if expr="(buf2int(filenamelen) mod 4)!=0">
+					<if-true>
+						<field type="variable" name="fill" longname="Fill" expr="4-(buf2int(filenamelen) mod 4)" showtemplate="FieldHex"/>
+					</if-true>
+				</if>
+			</block>
+		</block>
+		
+		<block name="post_op_fh3" longname="Post Op Fh3">
+			<field type="fixed" name="handle_follows" longname="Handle Follows" size="4" showtemplate="FieldHex"/>
+			<if expr="buf2int(handle_follows)==1">
+				<if-true>
+					<field type="fixed" name="namelen" longname="Name Length" size="4" showtemplate="FieldHex"/>
+					<field type="variable" name="namehandle" longname="Name Handle" expr="buf2int(namelen)" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>
+		</block>
+		
+		<block name="sattr3" longname="Sattr3">
+			<field type="fixed" name="smode" longname="Set Mode" size="4" showtemplate="FieldHex"/>
+			<if expr="buf2int(smode)==1">
+				<if-true>
+					<field type="fixed" name="mode" longname="Mode" size="4" showtemplate="FieldHex"/>
+				</if-true>
+			</if>
+			<field type="fixed" name="suid" longname="Set Uid" size="4" showtemplate="FieldHex"/>
+			<if expr="buf2int(suid)==1">
+				<if-true>
+					<field type="fixed" name="uid" longname="Uid" size="4" showtemplate="FieldHex"/>
+				</if-true>
+			</if>
+			<field type="fixed" name="sgid" longname="Set Gid" size="4" showtemplate="FieldHex"/>
+			<if expr="buf2int(sgid)==1">
+				<if-true>
+					<field type="fixed" name="gid" longname="Gid" size="4" showtemplate="FieldHex"/>
+				</if-true>
+			</if>					
+			<field type="fixed" name="ssize" longname="Set Size" size="8" showtemplate="FieldHex"/>
+			<if expr="buf2int(ssize)==1">
+				<if-true>
+					<field type="fixed" name="size" longname="Size" size="8" showtemplate="FieldHex"/>
+				</if-true>
+			</if>
+			<field type="fixed" name="satime" longname="Set ATime" size="8" showtemplate="time"/>
+			<if expr="buf2int(satime)==2">
+				<if-true>
+					<field type="fixed" name="seconds" longname="Seconds" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="nseconds" longname="NSeconds" size="4" showtemplate="FieldHex"/>
+				</if-true>
+			</if>
+			<field type="fixed" name="smtime" longname="Set MTime" size="8" showtemplate="time"/>
+			<if expr="buf2int(smtime)==2">
+				<if-true>
+					<field type="fixed" name="seconds" longname="Seconds" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="nseconds" longname="NSeconds" size="4" showtemplate="FieldHex"/>
+				</if-true>
+			</if>
+		</block>
+		
+		<block name="wcc_data" longname="Wcc data">
+			<block name="before" longname="Before">
+				<field type="fixed" name="attributes_follow" longname="Attributes Follow" size="4" showtemplate="FieldHex"/>
+				<if expr="buf2int(attributes_follow)==1">
+					<if-true>
+						<field type="fixed" name="size" longname="Size" size="8" showtemplate="FieldHex"/>
+						<field type="fixed" name="mtime" longname="mTime" size="8" showtemplate="FieldHex">
+							<field type="fixed" name="second" longname="Second" size="4" showtemplate="FieldHex"/>
+							<field type="fixed" name="usecond" longname="Usecond" size="4" showtemplate="FieldHex"/>
+						</field>
+						<field type="fixed" name="ctime" longname="cTime" size="8" showtemplate="FieldHex">
+							<field type="fixed" name="second" longname="Second" size="4" showtemplate="FieldHex"/>
+							<field type="fixed" name="usecond" longname="Usecond" size="4" showtemplate="FieldHex"/>
+						</field>
+					</if-true>
+				</if>
+			</block>
+			
+			<block name="after" longname="After">
+				<includeblk name="post_op_attr"/>
+			</block>
+		</block>
+		
+		<block name="opaque" longname="Opaque">
+			<field type="fixed" name="len" longname="Length" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="filehandle" longname="File Handle" expr="buf2int(len)" showtemplate="FieldHex"/>
+		</block>
+		
+		<block name="NULLargs" longname="NULL Argument">
+		</block>
+		
+		<block name="NULLres" longname="NULL Results">
+		</block>
+		
+		<block name="GETATTR3args" longname="GETATTR3 Argument">
+		<block name="object" longname="Object">
+			<includeblk name="opaque"/>
+		</block>
+		</block>
+		
+		<block name="GETATTR3res" longname="GETATTR3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="fattr3"/>
+					</block>
+				</if-true>
+			</if>
+		</block>
+		
+		<block name="SETATTR3args" longname="SETATTR3 Argument">
+			<block name="object" longname="Object">
+				<includeblk name="opaque"/>
+			</block>
+			<block name="new_attributes" longname="New Attributes">
+				<includeblk name="sattr3"/>
+			</block>
+			<block name="guard" longname="Guard">
+				<field type="fixed" name="check" longname="Check" size="4" showtemplate="FieldHex"/>
+				<if expr="buf2int(check)==1">
+					<if-true>
+						<field type="fixed" name="ctime" longname="cTime" size="8" showtemplate="FieldHex">
+							<field type="fixed" name="second" longname="Second" size="4" showtemplate="FieldHex"/>
+							<field type="fixed" name="usecond" longname="Usecond" size="4" showtemplate="FieldHex"/>
+						</field>
+					</if-true>
+				</if>
+			</block>
+		</block>
+		
+		<block name="SETATTR3res" longname="SETATTR3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="obj_wcc" longname="Object Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="obj_wcc" longname="Object Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="LOOKUP3args" longname="LOOKUP3 Argument">
+			<block name="what" longname="What">
+				<includeblk name="diropargs3"/>
+			</block>
+		</block>
+		
+		<block name="LOOKUP3res" longname="LOOKUP3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="object" longname="Object">
+						<includeblk name="opaque"/>
+					</block>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<block name="dir_attributes" longname="Directory Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="dir_attributes" longname="Directory Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="ACCESS3args" longname="ACCESS3 Argument">
+			<block name="object" longname="Object">
+				<includeblk name="opaque"/>
+			</block>
+			<field type="fixed" name="access" longname="Access" size="2" showtemplate="access"/>
+		</block>
+		
+		<block name="ACCESS3res" longname="ACCESS3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<field type="fixed" name="access" longname="Access" size="2" showtemplate="access"/>
+				</if-true>
+				<if-false>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="READLINK3args" longname="READLINK3 Argument">
+			<block name="symlink" longname="Symbolic Link">
+				<includeblk name="opaque"/>
+			</block>
+		</block>
+		
+		<block name="READLINK3res" longname="READLINK3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="symlink_attributes" longname="Symbolic Link Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<block name="data" longname="Data">
+						<field type="fixed" name="datalen" longname="Data Length" size="4" showtemplate="FieldDec"/>
+						<field type="variable" name="data" longname="Data" expr="buf2int(datalen)" showtemplate="FieldAscii"/>
+						<if expr="(buf2int(datalen) mod 4)!=0">
+							<if-true>
+								<field type="variable" name="fill" longname="Fill" expr="4-(buf2int(datalen) mod 4)" showtemplate="FieldHex"/>
+							</if-true>
+						</if>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="symlink_attributes" longname="Symbolic Link Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="READ3args" longname="READ3 Argument">
+			<block name="file" longname="File">
+				<includeblk name="opaque"/>
+			</block>
+			<field type="fixed" name="offset" longname="Offset" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="count" longname="Count" size="2" showtemplate="FieldHex"/>
+		</block>
+		
+		<block name="READ3res" longname="READ3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="file_attributes" longname="File Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<field type="fixed" name="count" longname="Count" size="2" showtemplate="FieldHex"/>
+					<field type="fixed" name="eof" longname="Eof" size="2" showtemplate="FieldHex"/>
+					<field type="variable" name="data" longname="Opaque Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-true>
+				<if-false>
+					<block name="file_attributes" longname="File Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="WRITE3args" longname="WRITE3 Argument">
+			<block name="file" longname="File">
+				<includeblk name="opaque"/>
+			</block>
+			<field type="fixed" name="offset" longname="Offset" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="count" longname="Count" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="stable" longname="Stable" size="2" showtemplate="stable"/>
+			<field type="variable" name="data" longname="Opaque Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="WRITE3res" longname="WRITE3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="file_wcc" longname="File Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+					<field type="fixed" name="count" longname="Count" size="2" showtemplate="FieldHex"/>
+					<field type="fixed" name="committed" longname="Committed" size="2" showtemplate="stable"/>
+					<field type="fixed" name="writeverf" longname="Write Verifier" size="8" showtemplate="FieldDec"/>
+				</if-true>
+				<if-false>
+					<block name="file_wcc" longname="File Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="MKDIR3args" longname="MKDIR3 Argument">
+			<block name="where" longname="Where">
+				<includeblk name="diropargs3"/>
+			</block>
+			<block name="attributes" longname="Initial Attributes">
+				<includeblk name="sattr3"/>
+			</block>
+		</block>
+		
+		<block name="MKDIR3res" longname="MKDIR3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="object" longname="Object">
+						<includeblk name="post_op_fh3"/>
+					</block>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="SYMLINK3args" longname="SYMLINK3 Argument">
+			<block name="_attributes" longname=" Attributes">
+				<includeblk name="diropargs3"/>
+			</block>
+			<block name="symlink" longname="Symbolic Link">
+				<block name="symlink_attributes" longname="Symbolic Link Attributes">
+					<includeblk name="sattr3"/>
+				</block>
+				<block name="symlink_data" longname="Symbolic Link Data">
+					<includeblk name="opaque"/>
+				</block>
+			</block>
+		</block>
+		
+		<block name="SYMLINK3res" longname="SYMLINK3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="object" longname="Object">
+						<includeblk name="post_op_fh3"/>
+					</block>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="MKNOD3args" longname="MKNOD3 Argument">
+			<block name="where" longname="Where">
+				<includeblk name="diropargs3"/>
+			</block>
+			<block name="what" longname="What">
+				<field type="fixed" name="ftype3" longname="ftype3" size="4" showtemplate="ftype"/>
+				<switch expr="buf2int(mode)">
+					<case value="0x0003">
+						<includeblk name="sattr3"/>
+						<field type="fixed" name="spec" longname="Spec" size="8" showtemplate="FieldHex">
+							<field type="fixed" name="specdata1" longname="specdata1" size="4" showtemplate="FieldHex"/>
+							<field type="fixed" name="specdata2" longname="specdata2" size="4" showtemplate="FieldHex"/>
+						</field>
+					</case>
+					<case value="0x0004">
+						<includeblk name="sattr3"/>
+						<field type="fixed" name="specdata" longname="Specdata1" size="8" showtemplate="FieldHex">
+							<field type="fixed" name="specdata1" longname="specdata1" size="4" showtemplate="FieldHex"/>
+							<field type="fixed" name="specdata2" longname="specdata2" size="4" showtemplate="FieldHex"/>
+						</field>
+					</case>
+					<case value="0x0006">
+						<includeblk name="sattr3"/>
+					</case>
+					<case value="0x0007">
+						<includeblk name="sattr3"/>
+					</case>
+					<default>
+					</default>
+				</switch>
+			</block>
+		</block>
+		
+		<block name="MKNOD3res" longname="MKNOD3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="object" longname="Object">
+						<includeblk name="post_op_fh3"/>
+					</block>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="REMOVE3args" longname="REMOVE3 Argument">
+			<block name="object" longname="Object">
+				<includeblk name="diropargs3"/>
+			</block>
+		</block>
+		
+		<block name="REMOVE3res" longname="REMOVE3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="RMDIR3args" longname="RMDIR3 Argument">
+			<block name="object" longname="Object">
+				<includeblk name="diropargs3"/>
+			</block>
+		</block>
+		
+		<block name="RMDIR3res" longname="RMDIR3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="dir_wcc" longname="Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="RENAME3args" longname="RENAME3 Argument">
+			<block name="from" longname="From">
+				<includeblk name="diropargs3"/>
+			</block>
+			<block name="to" longname="To">
+				<includeblk name="diropargs3"/>
+			</block>
+		</block>
+		
+		<block name="RENAME3res" longname="RENAME3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="fromdir_wcc" longname="From Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+					<block name="todir_wcc" longname="To Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="fromdir_wcc" longname="From Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+					<block name="todir_wcc" longname="To Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="LINK3args" longname="LINK3 Argument">
+			<block name="file" longname="File">
+				<includeblk name="opaque"/>
+			</block>
+			<block name="link" longname="Link">
+				<includeblk name="diropargs3"/>
+			</block>
+		</block>
+		
+		<block name="LINK3res" longname="LINK3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="file_attributes" longname="File Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<block name="linkdir_wcc" longname="Link Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-true>
+				<if-false>
+					<block name="file_attributes" longname="File Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<block name="linkdir_wcc" longname="Link Directory Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="READDIR3args" longname="READDIR3 Argument">
+			<block name="dir" longname="Dir">
+				<includeblk name="opaque"/>
+			</block>
+			<field type="fixed" name="cookie" longname="Cookie" size="8" showtemplate="FieldDec"/>
+			<field type="fixed" name="verf" longname="Verf" size="8" showtemplate="FieldDec"/>
+			<field type="fixed" name="count" longname="Count" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="READDIR3res" longname="READDIR3 Results">
+			<if expr="buf2int($packet[$currentoffset : 4] ) == 0">
+				<if-true>
+					<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+					<if expr="buf2int(status)==0">
+						<if-true>
+							<block name="dir_attributes" longname="Directory Attributes">
+								<includeblk name="post_op_attr"/>
+							</block>
+							<field type="fixed" name="cookieverf" longname="Cookieverf" size="8" showtemplate="FieldHex"/>
+							<block name="reply" longname="Reply">
+								<loop type="while" expr="buf2int($packet[$currentoffset:4])==1">
+									<field type="fixed" name="follow" longname="Follow" size="4" showtemplate="FieldHex"/>
+									<if expr="buf2int(follow)==1">
+										<if-true>
+											<includeblk name="entry"/>
+										</if-true>
+									</if>
+								</loop>
+							</block>
+						</if-true>
+						<if-false>
+							<block name="dir_attributes" longname="Directory Attributes">
+								<includeblk name="post_op_attr"/>
+							</block>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+			<field type="variable" name="data" longname="Output" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="FSSTAT3args" longname="FSSTAT3 Argument">
+			<block name="fsroot" longname="FSroot">
+				<includeblk name="opaque"/>
+			</block>
+		</block>
+		
+		<block name="FSSTAT3res" longname="FSSTAT3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<field type="fixed" name="tbytes1" longname="Tbytes1" size="8" showtemplate="FieldHex"/>
+					<field type="fixed" name="fbytes1" longname="Fbytes1" size="8" showtemplate="FieldHex"/>
+					<field type="fixed" name="abytes1" longname="Abytes1" size="8" showtemplate="FieldHex"/>
+					<field type="fixed" name="tbytes2" longname="Tbytes2" size="8" showtemplate="FieldHex"/>
+					<field type="fixed" name="fbytes2" longname="Fbytes2" size="8" showtemplate="FieldHex"/>
+					<field type="fixed" name="abytes2" longname="Abytes2" size="8" showtemplate="FieldHex"/>
+					<field type="fixed" name="invarsec" longname="Invarsec" size="4" showtemplate="FieldHex"/>
+				</if-true>
+				<if-false>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="FSINFO3args" longname="FSINFO3 Argument">
+			<block name="fsroot" longname="FSroot">
+				<includeblk name="opaque"/>
+			</block>
+		</block>
+		
+		<block name="FSINFO3res" longname="FSINFO3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<field type="fixed" name="rtmax" longname="RTmax" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="rtpref" longname="RTpref" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="rtmult" longname="RTmult" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="wtmax" longname="WTmax" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="wtpref" longname="WTpref" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="wtmult" longname="WTmult" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="dtpref" longname="DTpref" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="maxfilesize" longname="Maxfilesize" size="8" showtemplate="FieldHex"/>
+					<field type="fixed" name="time_delta" longname="Time delta" size="8" showtemplate="FieldHex">
+						<field type="fixed" name="second" longname="Second" size="4" showtemplate="FieldHex"/>
+						<field type="fixed" name="usecond" longname="Usecond" size="4" showtemplate="FieldHex"/>
+					</field>
+					<field type="fixed" name="properties" longname="Properties" size="4" showtemplate="fsf3"/>
+				</if-true>
+				<if-false>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="PATHCONF3args" longname="PATHCONF3 Argument">
+			<block name="object" longname="Object">
+				<includeblk name="opaque"/>
+			</block>
+		</block>
+		
+		<block name="PATHCONF3res" longname="PATHCONF3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+					<field type="fixed" name="linkmax" longname="Link Max" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="name_max" longname="Name Max" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="no_trunc" longname="No Trunc" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="chown_restricted" longname="Chown Restricted" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="case_insensitive" longname="Case Insensitive" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="case_preserving" longname="Case Preserving" size="4" showtemplate="FieldHex"/>
+				</if-true>
+				<if-false>
+					<block name="obj_attributes" longname="Object Attributes">
+						<includeblk name="post_op_attr"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+		<block name="COMMIT3args" longname="COMMIT3 Argument">
+			<block name="file" longname="File">
+				<includeblk name="opaque"/>
+			</block>
+			<field type="fixed" name="offset" longname="Offset" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="count" longname="Count" size="2" showtemplate="FieldHex"/>
+		</block>
+		
+		<block name="COMMIT3res" longname="COMMIT3 Results">
+			<field type="fixed" name="status" longname="Status" size="4" showtemplate="nfsstat3"/>
+			<if expr="buf2int(status)==0">
+				<if-true>
+					<block name="file_wcc" longname="File Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+					<field type="fixed" name="writeverf" longname="Write Verifier" size="8" showtemplate="FieldDec"/>
+				</if-true>
+				<if-false>
+					<block name="file_wcc" longname="File Wcc">
+						<includeblk name="wcc_data"/>
+					</block>
+				</if-false>
+			</if>
+		</block>
+		
+	</format>	
+	<visualization>
+		<showtemplate name="nfsstat3" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0000" show="NFS3_OK"/>
+					<case value="0x0001" show="NFS3ERR_PERM"/>
+					<case value="0x0002" show="NFS3ERR_NOENT"/>
+					<case value="0x0005" show="NFS3ERR_IO"/>
+					<case value="0x0006" show="NFS3ERR_NXIO"/>
+					<case value="0x000D" show="NFS3ERR_ACCES"/>
+					<case value="0x0011" show="NFS3ERR_EXIST"/>
+					<case value="0x0012" show="NFS3ERR_XDEV"/>
+					<case value="0x0013" show="NFS3ERR_NODEV"/>
+					<case value="0x0014" show="NFS3ERR_NOTDIR"/>
+					<case value="0x0015" show="NFS3ERR_ISDIR"/>
+					<case value="0x0016" show="NFS3ERR_INVAL"/>
+					<case value="0x001B" show="NFS3ERR_FBIG"/>
+					<case value="0x001C" show="NFS3ERR_NOSPC"/>
+					<case value="0x001E" show="NFS3ERR_ROFS"/>
+					<case value="0x001F" show="NFS3ERR_MLINK"/>
+					<case value="0x003F" show="NFS3ERR_NAMETOOLONG"/>
+					<case value="0x0042" show="NFS3ERR_NOTEMPTY"/>
+					<case value="0x0045" show="NFS3ERR_DQUOT"/>
+					<case value="0x0046" show="NFS3ERR_STALE"/>
+					<case value="0x0047" show="NFS3ERR_REMOTE"/>
+					<case value="0x2711" show="NFS3ERR_BADHANDLE"/>
+					<case value="0x2712" show="NFS3ERR_NOT_SYNC"/>
+					<case value="0x2713" show="NFS3ERR_BAD_COOKIE"/>
+					<case value="0x2714" show="NFS3ERR_NOTSUPP"/>
+					<case value="0x2715" show="NFS3ERR_TOOSMALL"/>
+					<case value="0x2716" show="NFS3ERR_SERVERFAULT"/>
+					<case value="0x2717" show="NFS3ERR_BADTYPE"/>
+					<case value="0x2718" show="NFS3ERR_JUKEBOX"/>
+					<default show="unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="time" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00" show="DONT_CHANGE"/>
+					<case value="0x01" show="SET_TO_SERVER_TIME"/>
+					<case value="0x02" show="SET_TO_CLIENT_TIME"/>
+					<default show="unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="cmode" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00" show="UNCHECKED"/>
+					<case value="0x01" show="GUARDED"/>
+					<case value="0x02" show="EXCLUSIVE"/>
+					<default show="unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="access" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0001" show="ACCESS3_READ"/>
+					<case value="0x0002" show="ACCESS3_LOOKUP"/>
+					<case value="0x0004" show="ACCESS3_MODIFY"/>
+					<case value="0x0008" show="ACCESS3_EXTEND"/>
+					<case value="0x0010" show="ACCESS3_DELETE"/>
+					<case value="0x0020" show="ACCESS3_EXECUTE"/>
+					<default show="unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="stable" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00" show="UNSTABLE"/>
+					<case value="0x01" show="DATA_SYNC"/>
+					<case value="0x02" show="FILE_SYNC"/>
+					<default show="unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="ftype" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0001" show="NF3REG"/>
+					<case value="0x0002" show="NF3DIR"/>
+					<case value="0x0003" show="NF3BLK"/>
+					<case value="0x0004" show="NF3CHR"/>
+					<case value="0x0005" show="NF3LNK"/>
+					<case value="0x0006" show="NF3SOCK"/>
+					<case value="0x0007" show="NF3FIFO"/>
+					<default show="unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="mode" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00001000" show="Execute permission for others on a file"/>
+					<case value="0x00002000" show="Write permission for others"/>
+					<case value="0x00004000" show="Read permission for others"/>
+					<case value="0x00008000" show="Execute permission for group on a file"/>
+					<case value="0x00010000" show="Write permission for group"/>
+					<case value="0x00020000" show="Read permission for group"/>
+					<case value="0x00040000" show="Execute permission for owner on a file"/>
+					<case value="0x00080000" show="Write permission for owner"/>
+					<case value="0x00100000" show="Read permission for owner"/>
+					<case value="0x00200000" show="Save swapped text (not defined in POSIX)"/>
+					<case value="0x00400000" show="Set group ID on execution"/>
+					<case value="0x00800000" show="Set user ID on execution"/>
+					<default show="unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="fsf3" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0001" show="FSF3_LINK"/>
+					<case value="0x0002" show="FSF3_SYMLINK"/>
+					<case value="0x0008" show="FSF3_HOMOGENEOUS"/>
+					<case value="0x0010" show="FSF3_CANSETTIME"/>
+					<default show="unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="nfs">
+			<section name="next"/>
+			<text value=" NFS"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

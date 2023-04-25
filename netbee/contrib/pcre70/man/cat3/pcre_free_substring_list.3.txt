@@ -1,0 +1,27 @@
+PCRE_FREE_SUBSTRING_LIST(3)                        PCRE_FREE_SUBSTRING_LIST(3)
+
+
+
+NAME
+       PCRE - Perl-compatible regular expressions
+
+SYNOPSIS
+
+       #include <pcre.h>
+
+       void pcre_free_substring_list(const char **stringptr);
+
+DESCRIPTION
+
+       This  is  a  convenience  function for freeing the store
+       obtained   by   a   previous   call   to   pcre_get_sub-
+       string_list().  Its  only  argument  is a pointer to the
+       list of string pointers.
+
+       There is a complete description of the PCRE  native  API
+       in  the  pcreapi page and a description of the POSIX API
+       in the pcreposix page.
+
+
+
+                                                   PCRE_FREE_SUBSTRING_LIST(3)

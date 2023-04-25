@@ -1,0 +1,214 @@
+<protocol name="bittorrent" longname="BitTorrent Protocol (File Sharing)" showsumtemplate="bittorrent"> 
+	<execute-code>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '^(\x13bittorrent protocol|azver\x01$|get /scrape\?info_hash=)|d1:ad2:id20:|\x08\x277P\)[RP]', 0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+
+			<!-- Old pattern.. seems very wrong....
+			<if expr="hasstring($packet[$currentoffset:0],'(\x13bittorrent|torrentportal)|(BT-SEARCH|find_node|:ping1:|:id:|get_peers|info_hash|announce_peer|token|values|e1:t4)',0)">
+			-->
+		</verify>
+
+	
+		<before when="$protoverify_result == %FOUND">
+		
+			<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<!-- elemento presente -->
+				<if-true>
+					<if expr="(buf2int($packet[$currentoffset + 4 : 1]) == 0x07) and  (buf2int($packet[$currentoffset  : 4]) gt 0x09)">
+						<if-true>
+							<assign-lookuptable name="$tcpsessiontable.flag" value="1"/>
+						</if-true>
+					</if>
+					
+					<if expr="(((buf2int($packet[$currentoffset + 4 : 1]) == 0x00) or (buf2int($packet[$currentoffset + 4 : 1]) == 0x01) or (buf2int($packet[$currentoffset + 4 : 1]) == 0x02) or (buf2int($packet[$currentoffset + 4 : 1]) == 0x03)) and buf2int($packet[$currentoffset  : 4]) == 0x01 ) or ( buf2int($packet[$currentoffset + 4 : 1]) == 0x04 and buf2int($packet[$currentoffset  : 4]) == 0x05 ) or ( buf2int($packet[$currentoffset + 4 : 1]) == 0x05 and buf2int($packet[$currentoffset  : 4]) gt 0x01 ) or ( buf2int($packet[$currentoffset + 4 : 1]) == 0x06 and buf2int($packet[$currentoffset  : 4]) == 0x0D ) ">
+						<if-true>
+							<assign-lookuptable name="$tcpsessiontable.flag" value="0"/>
+							<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+								<if-true>
+									<assign-lookuptable name="$tcpsessiontable.flag" value="0"/>
+								</if-true>
+							</if>
+						</if-true>
+					</if>
+					
+				</if-true>
+				
+				<!-- the element is not present -->
+				<if-false>
+					<assign-variable name="$session_hit" value="1"/>
+					<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$firstip"/>
+						<lookupkey value="$secondip"/>
+						<lookupkey value="$firstport"/>
+						<lookupkey value="$secondport"/>
+						<lookupdata value="#bittorrent"/>
+						<lookupdata value="0"/>
+					</update-lookuptable>
+				</if-false>
+			</if>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#bittorrent"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#bittorrent"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+
+	<format>
+		<fields>
+			<if expr="hasstring($packet[$currentoffset:0], '\x13bittorrent', 0)">
+				<if-true>
+					<!-- handshake -->
+					<field type="fixed" name="pstrlen" longname="Protocol string lentgh" size="1" showtemplate="FieldAscii"/>
+					<field type="variable" name="pstr" longname="Protocol" expr="buf2int(pstrlen)" showtemplate="FieldAscii"/>
+					<field type="fixed" name="reserved" longname="Reserved" size="8" showtemplate="FieldAscii"/>
+					<field type="fixed" name="infohash" longname="Hash" size="20" showtemplate="FieldAscii"/>
+					<field type="fixed" name="peerid" longname="Peer ID" size="20" showtemplate="FieldAscii"/>
+				</if-true>				
+			</if>
+			
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<block name="message" longname="Message">
+					<switch expr="buf2int($packet[$currentoffset+4:1])">					
+						<case value="0x00">
+						<!-- we need this check, because a sequence such as 0x0000000000 is seen as a message  
+						whe the 5th byte is 0x00, then the message length must be equal to 1 -->
+							<if expr="buf2int($packet[$currentoffset:4])==1">
+								<if-true>
+									<field type="fixed" name="len" longname="Len" size="4" showtemplate="FieldAscii"/>
+									<field type="fixed" name="id" longname="ID" size="1" showtemplate="FieldAscii"/> 
+								</if-true>
+								<if-false>
+									<field type="variable" name="bittorrentdata" longname="bitTorrent Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+									<!--<field type="variable" name="bittorrentDownload" longname="bitTorrent Download" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>-->
+								</if-false>
+							</if>		
+						</case>
+			
+						<case value="0x01">
+							<field type="fixed" name="len" longname="Len" size="4" showtemplate="FieldAscii"/>
+							<field type="fixed" name="id" longname="ID" size="1" showtemplate="bittorrent.id"/> 
+						</case>
+						
+						<case value="0x02">
+							<field type="fixed" name="len" longname="Len" size="4" showtemplate="FieldAscii"/>
+							<field type="fixed" name="id" longname="ID" size="1" showtemplate="bittorrent.id"/> 
+						</case>
+						
+						<case value="0x03">
+							<field type="fixed" name="len" longname="Len" size="4" showtemplate="FieldAscii"/>
+							<field type="fixed" name="id" longname="ID" size="1" showtemplate="bittorrent.id"/> 
+						</case>
+						
+						<case value="0x04">
+							<field type="fixed" name="len" longname="Len" size="4" showtemplate="FieldAscii"/> 
+							<field type="fixed" name="id" longname="ID" size="1" showtemplate="bittorrent.id"/> 
+							<field type="fixed" name="pieceindex" longname="Piece index" size="4" showtemplate="FieldAscii"/>
+						</case>
+
+						<case value="0x05">
+							<field type="fixed" name="len" longname="Len" size="4" showtemplate="FieldAscii"/>
+							<field type="fixed" name="id" longname="ID" size="1" showtemplate="bittorrent.id"/> 
+							<field type="variable" name="bitfield" longname="Bitfield" expr="buf2int(len)-1" showtemplate="FieldAscii"/> 
+						</case>
+
+						<case value="0x06">
+							<field type="fixed" name="len" longname="Len" size="4" showtemplate="FieldAscii"/>
+							<field type="fixed" name="id" longname="ID" size="1" showtemplate="bittorrent.id"/> 
+							<field type="fixed" name="index" longname="Index" size="4" showtemplate="FieldAscii"/> 
+							<field type="fixed" name="begin" longname="Begin" size="4" showtemplate="FieldAscii"/> 
+							<field type="fixed" name="length" longname="Length" size="4" showtemplate="FieldAscii"/> 
+						</case>
+
+						<case value="0x07">
+							<field type="fixed" name="len" longname="Len" size="4" showtemplate="FieldAscii"/>
+							<field type="fixed" name="id" longname="ID" size="1" showtemplate="bittorrent.id"/> 
+							<field type="fixed" name="index" longname="Index" size="4" showtemplate="FieldAscii"/> 
+							<field type="fixed" name="begin" longname="Begin" size="4" showtemplate="FieldAscii"/> 
+							<field type="variable" name="block" longname="Block" expr="buf2int(len)-9" showtemplate="FieldAscii"/> 
+						</case>
+
+						<default>
+							<field type="variable" name="bittorrentdata" longname="bitTorrent Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/> -->
+						</default>	
+					</switch> 
+				</block>	
+			</loop>
+			
+			<field type="variable" name="bittorrentdata" longname="bitTorrent Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/> -->
+<!--			<field type="variable" name="bittorrentDownload" longname="bitTorrent Download" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>-->
+
+		</fields>
+	</format>
+
+	<visualization>
+		<showtemplate name="bittorrent.id" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x00" show="Choke"></case>
+					<case value="0x01" show="Unchoke"></case>
+					<case value="0x02" show="Interested"></case>
+					<case value="0x03" show="Not Interested"></case>
+					<case value="0x04" show="Have"></case>
+					<case value="0x05" show="Bitfield"></case>
+					<case value="0x06" show="Request"></case>
+					<case value="0x07" show="Piece"></case>	
+					<default show="Unkown messagge"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="bittorrent">
+			<section name="next"/>
+			<text value="bitTorrent"/>
+<!--			<if expr="ispresent(id) and buf2int(id)==0x07">
+				<if-true>
+					<text value=" download"/>
+				</if-true>
+			</if>	
+-->
+		<if expr ="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+			<if-true>
+				<if expr="$tcpsessiontable.flag == 1">
+					<if-true>
+						<text value=" download"/>
+					</if-true>
+				</if>
+			</if-true>
+		</if>
+		</showsumtemplate>
+	</visualization>
+</protocol>

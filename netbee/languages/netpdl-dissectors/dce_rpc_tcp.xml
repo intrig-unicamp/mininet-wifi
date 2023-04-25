@@ -1,0 +1,330 @@
+<protocol name="dce_rpc_tcp" longname="Remote Call Procedure" showsumtemplate="rpc">
+	<execute-code>
+		<init>
+			<variable name="$len" type="number" validity="thispacket"/>			
+			<variable name="$len_auth" type="number" validity="thispacket"/>			
+		</init>
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0],'^\x05[\0\x01][\0-\x13]',0) and (($packetlength - $currentoffset ) le buf2int(changebyteorder($packet[$currentoffset+8:2])))">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+		
+			<!-- little endian -->
+<!--		<before when="(buf2int($packet[$currentoffset + 4 : 1]) bitwand 0xf0) == 0x10" > -->
+<!--			<assign-variable name="$len" value="buf2int(changebyteorder($packet[$currentoffset + 8 : 2]))"/> -->
+<!--			<assign-variable name="$len_auth" value="buf2int(changebyteorder($packet[$currentoffset + 10 : 2]))"/> -->
+<!--		</before> -->
+
+		<before>
+			<if expr="(buf2int($packet[$currentoffset + 4 : 1]) bitwand 0xf0) == 0x10">
+				<if-true>
+					<!-- little endian -->
+					<assign-variable name="$len" value="buf2int(changebyteorder($packet[$currentoffset + 8 : 2]))"/>
+					<assign-variable name="$len_auth" value="buf2int(changebyteorder($packet[$currentoffset + 10 : 2]))"/>
+
+				</if-true>
+			</if>
+		</before>
+
+		
+		<!-- fix me --> <!-- change byte order -->
+<!--		<before when="(buf2int($packet[$currentoffset + 4 : 1]) bitwand 0xf0) == 0x00" > -->
+<!--			<assign-variable name="$len" value="buf2int(($packet[$currentoffset + 8 : 2]))"/> -->
+<!--			<assign-variable name="$len_auth" value="buf2int(($packet[$currentoffset + 10 : 2]))"/>-->
+<!--		</before> -->
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#dce_rpc_tcp"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#dce_rpc_tcp"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#dce_rpc_tcp"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>		
+	</execute-code>
+
+
+	<format>
+		<fields>
+			<if expr="(buf2int($packet[$currentoffset + 2: 1]) != 0x00) and (buf2int($packet[$currentoffset + 2: 1]) != 0x02) and (buf2int($packet[$currentoffset + 2: 1]) != 0x03) and (buf2int($packet[$currentoffset + 2: 1]) != 0x0b) and(buf2int($packet[$currentoffset + 2: 1]) != 0x0c) and (buf2int($packet[$currentoffset + 2: 1]) != 0x0d) and (buf2int($packet[$currentoffset + 2: 1]) != 0x0e) and (buf2int($packet[$currentoffset + 2: 1]) != 0x11) and (buf2int($packet[$currentoffset + 2: 1]) != 0x12) and (buf2int($packet[$currentoffset + 2: 1]) != 0x12) and (buf2int($packet[$currentoffset + 2: 1]) != 0x13)">
+				<if-true>
+					<field type="variable" name="rpcdata" longname="RPC Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>
+			<field type="fixed" name="ver" longname="Version" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="ptype" longname="PType" size="1" showtemplate="rpc.type"/>
+			<field type="fixed" name="pfc_flags" longname="PFC Flags" size="1" showtemplate="FieldAscii">
+				<field type="bit" name="object_uuid"		longname="PFC_OBJECT_UUID"		mask="0x80" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="maybe"				longname="PFC_MAYBE"			mask="0x40" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="did_not_execute"	longname="PFC_DID_NOT_EXECUTE"	mask="0x20" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="conc_mpx"			longname="PFC_CONC_MPX"			mask="0x10" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="reserved1"			longname="PFC_RESERVED1"		mask="0x08" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="pending_cancel"		longname="PFC_PENDING_CANCEL"	mask="0x04" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="last_frag"			longname="PFC_LAST_FRAG"		mask="0x02" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="first_frag"			longname="PFC_FIRST_FRAG"		mask="0x01" size="1" showtemplate="FieldBin"/>
+			</field>				
+			<field type="fixed" name="packed_drep" longname="Packed Drep" size="4" showtemplate="FieldAscii"/>
+			<field type="fixed" name="frag_length" longname="Fragment Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="auth_length" longname="Auth Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="call_id" longname="Call ID" size="4" showtemplate="FieldDec"/>
+			
+			<switch expr="buf2int(ptype)">
+				<case value="0x00"> <includeblk name="request"/></case>
+				<case value="0x02"> <includeblk name="response"/></case>
+				<case value="0x03"> <includeblk name="fault"/></case>
+				<case value="0x0b"> <includeblk name="bind"/></case>
+				<case value="0x0c"> <includeblk name="bind_ack"/></case>
+				<case value="0x0d"> <includeblk name="bind_nack"/></case>
+				<case value="0x0e"> <includeblk name="alter_context"/></case>
+				<case value="0x0f"> <includeblk name="alter_context_resp"/></case>
+				<case value="0x12"> <includeblk name="cancel"/></case>
+				<case value="0x13"> <includeblk name="orphaned"/></case>
+			</switch>
+			<field type="variable" name="rpcdata" longname="RPC Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+		
+		<block name="alter_context" longname="Alter Context">
+			<field type="fixed" name="max_ximt_frag" longname="Max Ximt Frag" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="max_recv_frag" longname="Max Recv Frag" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="assoc_group_id" longname="Assoc Group ID" size="4" showtemplate="FieldAscii"/>
+			
+			<block name="context_list" longname="Context List">
+				<field type="fixed" name="n_context_elem" longname="Number of Item" size="1" showtemplate="FieldDec"/>
+				<field type="fixed" name="reserved1" longname="Reserved1" size="1" showtemplate="FieldHex"/>
+				<field type="fixed" name="reserved2" longname="Reserved2" size="1" showtemplate="FieldHex"/>
+				<field type="variable" name="p_cont_elem" longname="Content Element" expr="buf2int(n_context_elem)" showtemplate="FieldHex"/>			
+			</block>
+			
+			<if expr="buf2int(auth_length)">
+				<if-true>
+					<field type="variable" name="auth_verifier" longname="Authentication Verifier" expr="$len_auth" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>
+		</block>
+		
+		<block name="alter_context_resp" longname="Alter Context Response">
+			<field type="fixed" name="max_ximt_frag" longname="Max Ximt Frag" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="max_recv_frag" longname="Max Recv Frag" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="assoc_group_id" longname="Assoc Group ID" size="4" showtemplate="FieldAscii"/>
+			
+			<block name="sec_addr" longname="Secondary Address">
+				<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+				<field type="variable" name="port" longname="Port" expr="buf2int(length)" showtemplate="FieldAscii"/>				
+			</block>
+			
+			<block name="result_list" longname="Result List">
+				<field type="fixed" name="n_result" longname="Number of Result" size="1" showtemplate="FieldDec"/>
+				<field type="fixed" name="reserved1" longname="Reserved1" size="1" showtemplate="FieldHex"/>
+				<field type="fixed" name="reserved2" longname="Reserved2" size="2" showtemplate="FieldHex"/>
+				<field type="variable" name="p_result" longname="Result List" expr="buf2int(n_result)" showtemplate="FieldHex"/>			
+			</block>
+			
+			<if expr="buf2int(auth_length)">
+				<if-true>
+					<field type="variable" name="auth_verifier" longname="Authentication Verifier" expr="$len_auth" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>		
+		</block>
+		
+		<block name="bind" longname="Bind">
+			<field type="fixed" name="max_ximt_frag" longname="Max Ximt Frag" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="max_recv_frag" longname="Max Recv Frag" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="assoc_group_id" longname="Assoc Group ID" size="4" showtemplate="FieldAscii"/>
+			
+			<block name="context_list" longname="Context List">
+				<field type="fixed" name="n_context_elem" longname="Number of Item" size="1" showtemplate="FieldDec"/>
+				<field type="fixed" name="reserved1" longname="Reserved1" size="1" showtemplate="FieldHex"/>
+				<field type="fixed" name="reserved2" longname="Reserved2" size="1" showtemplate="FieldHex"/>
+				<field type="variable" name="p_cont_elem" longname="Content Element" expr="buf2int(n_context_elem)" showtemplate="FieldHex"/>			
+			</block>
+			
+			<if expr="buf2int(auth_length)">
+				<if-true>
+					<field type="variable" name="auth_verifier" longname="Authentication Verifier" expr="$len_auth" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>		
+		</block>
+		
+		<block name="bind_ack" longname="Bind ACK">
+			<field type="fixed" name="max_ximt_frag" longname="Max Ximt Frag" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="max_recv_frag" longname="Max Recv Frag" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="assoc_group_id" longname="Assoc Group ID" size="4" showtemplate="FieldAscii"/>
+			
+			<block name="sec_addr" longname="Secondary Address">
+				<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldDec"/>
+				<field type="variable" name="port" longname="Port" expr="buf2int(length)" showtemplate="FieldAscii"/>				
+			</block>
+			
+			<block name="result_list" longname="Result List">
+				<field type="fixed" name="n_result" longname="Number of Result" size="1" showtemplate="FieldDec"/>
+				<field type="fixed" name="reserved1" longname="Reserved1" size="1" showtemplate="FieldHex"/>
+				<field type="fixed" name="reserved2" longname="Reserved2" size="2" showtemplate="FieldHex"/>
+				<field type="variable" name="p_result" longname="Result List" expr="buf2int(n_result)" showtemplate="FieldHex"/>			
+			</block>
+			
+			<if expr="buf2int(auth_length)">
+				<if-true>
+					<field type="variable" name="auth_verifier" longname="Authentication Verifier" expr="$len_auth" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>	
+		</block>
+		
+		<block name="bind_nack" longname="Bind NACK">
+			<field type="fixed" name="reject_reasone" longname="Reject Reasone" size="2" showtemplate="FieldAscii"/>
+			<block name="versions" longname="Versions">
+				<field type="fixed" name="n_protocols" longname="# Protocols" size="1" showtemplate="FieldDec"/>
+				<field type="variable" name="protocols" longname="Protocols" expr="buf2int(n_protocols)" showtemplate="FieldAscii"/>
+			</block>
+		</block>
+		
+		<block name="cancel" longname="Cancel">
+			<if expr="buf2int(auth_length)">
+				<if-true>
+					<field type="variable" name="auth_verifier" longname="Authentication Verifier" expr="$len_auth" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>
+		</block>
+		
+		<block name="fault" longname="Fault">
+			<field type="fixed" name="alloc_hint" longname="Allocation Hint" size="4" showtemplate="FieldAscii"/>
+			<field type="fixed" name="pres_context" longname="Pres Context" size="2" showtemplate="FieldAscii"/>
+			
+			<field type="fixed" name="cancel_count" longname="Cancel Count" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="reserved" longname="Reserved" size="1" showtemplate="FieldAscii"/>
+			
+			<field type="fixed" name="fault_code" longname="Fault Code" size="4" showtemplate="FieldAscii"/>
+			<field type="fixed" name="reserved2" longname="Reserved2" size="4" showtemplate="FieldAscii"/>
+			
+			<if expr="buf2int(auth_length)">
+				<if-true>
+					<field type="variable" name="auth_verifier" longname="Authentication Verifier" expr="$len_auth" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>
+		</block>
+		
+		<block name="orphaned" longname="Orphaned">
+			<if expr="buf2int(auth_length)">
+				<if-true>
+					<field type="variable" name="auth_verifier" longname="Authentication Verifier" expr="$len_auth" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>
+		</block>
+		
+		<block name="request" longname="Request">
+			<field type="fixed" name="alloc_hint" longname="Allocation Hint" size="4" showtemplate="FieldAscii"/>
+			<field type="fixed" name="pres_context" longname="Pres Context" size="2" showtemplate="FieldAscii"/>
+			<field type="fixed" name="opnum" longname="Operation Number" size="2" showtemplate="FieldAscii"/>
+			
+			<if expr="buf2int(object_uuid)">
+				<if-true>
+					<field type="fixed" name="object" longname="Object" size="16" showtemplate="FieldAscii"/>
+					<field type="variable" name="stub_data" longname="Stub Data" expr="buf2int(changebyteorder(frag_length)) - 16 - 8 - $len_auth -16" showtemplate="FieldAscii"/>
+				</if-true>
+				<if-false>
+					<field type="variable" name="stub_data" longname="Stub Data" expr="buf2int(changebyteorder(frag_length)) - 16 - 8 - $len_auth" showtemplate="FieldAscii"/>
+				</if-false>
+			</if>
+			
+			
+			<if expr="buf2int(auth_length)">
+				<if-true>
+					<field type="variable" name="auth_verifier" longname="Authentication Verifier" expr="$len_auth" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>			
+		</block>
+		
+		<block name="response" longname="Response">
+			<field type="fixed" name="alloc_hint" longname="Allocation Hint" size="4" showtemplate="FieldAscii"/>
+			<field type="fixed" name="pres_context" longname="Pres Context" size="2" showtemplate="FieldAscii"/>
+			
+			<field type="fixed" name="cancel_count" longname="Cancel Count" size="1" showtemplate="FieldAscii"/>
+			<field type="fixed" name="reserved" longname="Reserved" size="1" showtemplate="FieldAscii"/>
+					
+			<field type="variable" name="stub_data" longname="Stub Data" expr="buf2int(changebyteorder(frag_length))- 16 - 8 - $len_auth" showtemplate="FieldAscii"/>	
+			
+			<if expr="buf2int(auth_length)">
+				<if-true>
+					<field type="variable" name="auth_verifier" longname="Authentication Verifier" expr="$len_auth" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>	
+		</block>
+		
+	</format>
+	
+	<visualization>
+		<showtemplate name="rpc.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x00" show="Request"></case>
+					<case value="0x01" show="Ping"></case>
+					<case value="0x02" show="Response"></case>
+					<case value="0x03" show="Fault"></case>
+					<case value="0x04" show="Working"></case>
+					<case value="0x05" show="No call"></case>
+					<case value="0x06" show="Reject"></case>
+					<case value="0x07" show="Ack"></case>
+					<case value="0x08" show="Cl_Cancel"></case>
+					<case value="0x09" show="Fack"></case>
+					<case value="0x0a" show="Cancel_ack"></case>
+					<case value="0x0b" show="Bind"></case>
+					<case value="0x0c" show="Bind_ack"></case>
+					<case value="0x0d" show="Bind_nack"></case>
+					<case value="0x0e" show="Alter_context"></case>
+					<case value="0x0f" show="Alter_context_resp"></case>
+					<case value="0x11" show="Shoutdown"></case>
+					<case value="0x12" show="Co_Cancel"></case>
+					<case value="0x13" show="Orphaned"></case>
+					<default show="Unkown messagge"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+			
+		
+		<showsumtemplate name="rpc">
+			<section name="next"/>
+			<text value="DCE RPC "/>
+			<protofield name="ptype" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

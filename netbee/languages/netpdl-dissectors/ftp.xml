@@ -1,0 +1,179 @@
+<protocol name="ftp" longname="FTP (File Transfer Protocol) - Control connection" showsumtemplate="ftpcontrol">
+	<execute-code>
+		<init>
+			<variable name="$ftpdataport" type="buffer" validity="static" size="2"/>
+		</init>
+
+		<verify>
+			<if expr="hasstring($packet[$currentoffset:0], '^220.*ftp|^220.*(\x0d\x0a)$',0)"> 
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+<!--
+			<if expr="hasstring($packet[$currentoffset : 0], '^(USER|PASS|ACCT|CWD|CDUP|SMNT|REIN|QUIT|PORT|PASV|PASS|TYPE|STRU|MODE|RETR|STOR|STOU|APPE|ALLO|REST|RNFR|RNTO|ABOR|DELE|RMD|MKD|PWD|LIST|NLST|SITE|SYST|STAT|HELP|NOOP)',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+-->
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#ftp"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#ftp"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#ftp"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+		
+
+		<after when="ispresent(port)">
+			<!-- Add a session entry related to the FTP data connection -->
+			<assign-variable name="$ftpdataport[0:1]" value="int2buf( ascii2int(port1), 1)" />
+			<assign-variable name="$ftpdataport[1:1]" value="int2buf( ascii2int(port2), 1)" />
+			<if expr="(ispresent(command) and command == 'PORT') or (ispresent(code) and code == '227')">
+				<if-true>
+					<!-- Active mode: client always uses port specified in the message; server uses port 20 -->
+					<!-- Passive mode: server always uses port specified in the message; client port is unknown -->
+					<if expr="$ipsrc lt $ipdst">
+						<if-true>
+							<update-lookuptable name="$tcpsessiontable" action="add" validity="replaceonhit" keeptime="300" newhittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$ipdst"/>
+								<lookupkey value="$ftpdataport"/>
+								<lookupkey value="'\x00\x00'" mask="0x0000"/>
+								<lookupdata value="#ftpdata"/>
+								<lookupdata value="0"/>
+							</update-lookuptable>
+						</if-true>
+
+						<if-false>
+							<update-lookuptable name="$tcpsessiontable" action="add" validity="replaceonhit" keeptime="300" newhittime="300">
+								<lookupkey value="$ipdst"/>
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="'\x00\x00'" mask="0x0000"/>
+								<lookupkey value="$ftpdataport"/>
+								<lookupdata value="#ftpdata"/>
+								<lookupdata value="0"/>
+							</update-lookuptable>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</after>
+	</execute-code>
+
+	<format>
+		<fields>
+			<loop type="size" expr="$packetlength - $currentoffset">
+			
+				<!--<if expr= "hasstring($packet[$currentoffset : 0], '^[^0-9].{3,4}',0)">-->
+				<if expr="hasstring($packet[$currentoffset : 0], '^(USER|PASS|ACCT|CWD|CDUP|SMNT|REIN|QUIT|PORT|PASV|PASS|TYPE|STRU|MODE|RETR|STOR|STOU|APPE|ALLO|REST|RNFR|RNTO|ABOR|DELE|RMD|MKD|PWD|LIST|NLST|SITE|SYST|STAT|HELP|NOOP)',0)">
+					<if-true>
+						<if expr="$packet[$currentoffset:4] == 'PORT'">
+							<if-true>
+								<field type="line" name="port" longname="Data connection port" showtemplate="FieldAscii">
+									<field type="tokenended" name="command" longname="Command" endtoken=" " endoffset="$token_fieldlen" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="host1" longname="Host (1st part)" endtoken="," endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="host2" longname="Host (2nd part)" endtoken="," endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="host3" longname="Host (3rd part)" endtoken="," endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="host4" longname="Host (4th part)" endtoken="," endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="port1" longname="Port (1st part)" endtoken="," endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="port2" longname="Port (2nd part)" endtoken="\x0D" endoffset="$token_fieldlen" showtemplate="FieldAscii"/>		
+								</field>
+							</if-true>
+							
+							<if-false>
+								<field type="line" name="commandftp" longname="Command FTP" showtemplate="FieldAscii">
+									<field type="tokenended" name="command" longname="Command" endtoken=" " showtemplate="FieldAscii"/>
+									<field type="tokenended" name="argument" longname="Argument" endtoken="x0Dx0A" showtemplate="FieldAscii"/>
+								</field>
+							</if-false>
+						</if>
+					</if-true>
+					
+					<if-false>	
+						<if expr="$packet[$currentoffset:3] == '227'">
+							<if-true>
+								<field type="line" name="port" longname="Data connection port" showtemplate="FieldAscii">
+									<field type="fixed" name="code" longname="Code" size="3" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="string" longname="String" endtoken="(" endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="host1" longname="Host (1st part)" endtoken="," endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="host2" longname="Host (2nd part)" endtoken="," endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="host3" longname="Host (3rd part)" endtoken="," endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="host4" longname="Host (4th part)" endtoken="," endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="port1" longname="Port (1st part)" endtoken="," endoffset="$token_fieldlen" enddiscard="1" showtemplate="FieldAscii"/>
+									<field type="tokenended" name="port2" longname="Port (2nd part)" endtoken=")" endoffset="$token_fieldlen" showtemplate="FieldAscii"/>
+								</field>
+							</if-true>
+							<if-false>
+								<field type="fixed" name="code" longname="Code" size="3" showtemplate="FieldAscii"/>
+								<field type="tokenended" name="string" longname="String" endtoken="\x0D\x0A" showtemplate="FieldAscii"/>
+							</if-false>
+							<missing-packetdata>
+								<field type="variable" name="truncdata" longname="Truncated Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+							</missing-packetdata>
+						</if>
+					</if-false>
+				</if>
+			</loop>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="ftpcontrol">
+			<section name="next"/>
+			<text value="FTP Control"/>
+			<if expr="ispresent(code)">
+				<if-true>
+					<text value=" reply"/>
+				</if-true>
+			</if>
+			<if expr="ispresent(command)">
+				<if-true>
+					<text value=" command"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

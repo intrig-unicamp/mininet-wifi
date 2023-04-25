@@ -1,0 +1,48 @@
+<protocol name="ms_sql_monitor" longname="MS SQL Monitor" showsumtemplate="ms_sql_monitor">
+	<!-- this protocol uses TDS / UDP as transport protocol -->
+	<!-- TDS header is made of 8 byte : first byte is type packet, second byte is last indicator packet, third and fourth bytes indicates packet length -->
+	<!-- the meaning of last four byte is unknown -->
+	<execute-code>
+		<verify>
+			<!-- check this signature -->
+			<if expr="(hasstring($packet[$currentoffset:0],'^\x03',0)  and ($packetlength - $currentoffset) ==1 ) or (hasstring($packet[$currentoffset:0],'^\x05',0)  and (($packetlength - $currentoffset - 3)== buf2int(changebyteorder($packet[$currentoffset +1 : 2]))))">
+			 
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>	
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#ms_sql_monitor"/>
+			</update-lookuptable>	
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#ms_sql_monitor"/>
+			</update-lookuptable>
+		</before>		
+	</execute-code>
+	<format>
+		<fields>
+			<field type="variable" name="data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="ms_sql_monitor">
+			<section name="next"/>
+			<text value="MS SQL Monitor"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

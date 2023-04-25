@@ -1,0 +1,136 @@
+<protocol name="msnmsg" longname="Microsoft MSN Messenger (Instant Messaging Chat)" showsumtemplate="msnmsg"> 
+	<execute-code>
+		<verify>
+			<!--<if expr="hasstring($packet[$currentoffset:0], '(^[2-9][0-9][0-9]\x20[0-9]{1,3}|^MSG [0-9][0-9]* (U|N) [0-9][0-9]*|^(VER|XFR|CVR|USR|CAL|JOI|ILN|NLN|CHG|QRY|PRO|QNG) [0-9]*|LST (11 0|3 0|11 3|3 3)$|^OUT)', 0)">-->
+			<if expr="hasstring($packet[$currentoffset:0], 'ver [0-9]+ msnp[1-9][0-9]? [\x09-\x0d -~]*cvr0\x0d\x0a$|usr [0-9]+ .*\x0d\x0a$|ans [0-9]+ .*\x0d\x0a$', 0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		<if expr="hasstring($packet[$currentoffset:0], '^CONNECT.*(passport|live)',0) or hasstring($packet[$currentoffset:0], 'MSMSGS',0) or hasstring($packet[$currentoffset:0], 'messenger.msn.com',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+
+		</verify>
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#msnmsg"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#msnmsg"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#msnmsg"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+
+	<format>
+		<fields>
+<!--			<if expr="hasstring($packet[$currentoffset:0],'^[2-9][0-9][0-9]',0)">
+				<if-true>
+					<field type="variable" name="error" longname="Error" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-true>		
+
+				<if-false>
+					<field type="tokenended" name="command" longname="Command" endtoken="\x20" showtemplate="msn.command"/>
+					<if expr="hasstring(command,'VER',0) or hasstring(command,'CVR',0) or hasstring(command,'USR',0) or hasstring(command,'XFR',0) or hasstring(command,'CHG',0)" >
+						<if-true>
+							<field type="tokenended" name="trID" longname="Transaction ID" endtoken="\x20" showtemplate="FieldAscii"/>
+						</if-true>
+					</if>
+					
+					<field type="tokenended" name="parameter" longname="Parameter" endtoken="\x0D\x0A" showtemplate="FieldAscii"/>
+					<field type="variable" name="MsnMsgData" longname="MSN Messenger Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-false>
+			</if>
+-->
+			<field type="variable" name="MsnMsgData" longname="MSN Messenger Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showtemplate name="msn.command" showtype="ascii" showgrp="1">
+			<showmap>
+				<switch expr="buf2int(this[0:3])">
+					<case value="0x564552" show="Authentication"></case>
+					<case value="0x435652" show="Authentication"></case>
+					<case value="0x555352" show="Authentication"></case>
+					<case value="0x584652" show="Authentication"></case>
+					
+					<case value="0x555352" show="Synchronization"></case>
+					<case value="0x475443" show="Synchronization"></case>
+					<case value="0x424C50" show="Synchronization"></case>
+					<case value="0x505250" show="Synchronization"></case>
+					<case value="0x4C5347" show="Synchronization"></case>
+					<case value="0x53594E" show="Synchronization"></case>
+
+					<case value="0x4C5354" show="List"></case>					
+					
+					<case value="0x425945" show="Logout"></case>
+					<case value="0x4F5554" show="Logout"></case>
+					
+					<default show="Unkown command"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="msnmsg">
+			<section name="next"/>
+			<text value="MSN Messenger "/>
+			
+<!--			<if expr="ispresent(error)">
+				<if-true>
+					<text value=" Error"/>
+				</if-true>
+			</if>
+			<if expr="hasstring(command,'MSG',0) or hasstring(command,'CAL',0) or hasstring(command,'JOI',0)">
+				<if-true>
+					<text value=" Chat"/>
+				</if-true>
+				
+				<if-false>
+					<protofield name="command" showdata="showmap"/>
+				</if-false>
+			</if>
+-->
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

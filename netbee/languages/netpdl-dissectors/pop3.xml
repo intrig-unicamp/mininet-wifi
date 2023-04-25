@@ -1,0 +1,149 @@
+<protocol name="pop3" longname="POP3 (Post Office Protocol - Version 3)" showsumtemplate="pop3">
+	<execute-code>
+		<verify>
+			<!--<if expr="hasstring($packet[$currentoffset:0], '^(.?.?\x16\x03.*\x16\x03|.?.?\x01\x03\x01?.*\x0b)',0)"> -->
+			<if expr="hasstring($packet[$currentoffset:0], '(\+ok |-err )',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#pop3"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#pop3"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#pop3"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+		
+		
+		<before when="hasstring($packet[$currentoffset:0],'^(USER|PASS|STAT|LIST|UIDL|QUIT|CAPA|STLS|RETR|DELE|NOOP|RSET|APOP|TOP)',0)">
+			<if expr="checklookuptable ($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<assign-lookuptable name="$tcpsessiontable.flag" value="0"/>
+				</if-true>
+			</if>
+		</before>
+		
+		<after when="ispresent (command) and hasstring(command,'STLS',0) ">
+			<if expr="checklookuptable ($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<assign-lookuptable name="$tcpsessiontable.flag" value="1"/>
+				</if-true>
+			</if>
+		</after>
+		
+		<after when="ispresent (command) and hasstring(command,'RETR',0) ">
+			<if expr="checklookuptable ($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<assign-lookuptable name="$tcpsessiontable.flag" value="2"/>
+				</if-true>
+			</if>
+		</after>
+		
+	</execute-code>
+	
+	<format>
+		<fields>
+			<if expr="checklookuptable ($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<if expr="$tcpsessiontable.flag == 1">
+						<if-true>
+							<field type="variable" name="encrypted" longname="POP3 overTLS" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						</if-true>
+					</if>
+				</if-true>
+			</if>
+			
+			<if expr="checklookuptable ($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<if expr="$tcpsessiontable.flag == 2">
+						<if-true>
+							<field type="variable" name="message" longname="Message" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						</if-true>
+					</if>
+				</if-true>
+			</if>
+			
+			
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<if expr="hasstring($packet[$currentoffset : 0], '\+ok|-err',0)">
+					<if-true>
+						<field type="tokenended" name="response" longname="Response" endtoken="(\x0d\x0a)" showtemplate="FieldAscii"/>
+					</if-true>
+					
+					<if-false>
+						<if expr="hasstring($packet[$currentoffset:0],'^(USER|PASS|STAT|LIST|UIDL|QUIT|CAPA|STLS|RETR|DELE|NOOP|RSET|APOP|TOP)',0)">
+							<if-true>
+								<field type="tokenended" name="command" longname="Command" endtoken="\x0d\x0d" showtemplate="FieldAscii"/>
+							</if-true>
+							<if-false>
+								<field type="variable" name="unknow_commnad" longname="Unknown Command" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+							</if-false>
+						</if>
+					</if-false>
+				</if>
+			</loop>
+			
+		</fields>
+	</format>
+
+	<visualization>	
+		<showsumtemplate name="pop3">
+			<section name="next"/>
+			<text value="POP3 "/>
+			
+			<if expr="ispresent(encrypted)">
+				<if-true>
+					<text value=" over TLS"/>
+				</if-true>
+			</if>
+
+			<if expr="ispresent(message)">
+				<if-true>
+					<text value=" Message"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

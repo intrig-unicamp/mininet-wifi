@@ -1,0 +1,35 @@
+<protocol name="chap" longname="CHAP (Challenge Handshake Authentication Protocol)" showsumtemplate="chap">
+	<format>
+		<fields>
+			<field type="fixed" name="code" longname="Code" size="1" showtemplate="chap.code"/>
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="len" longname="Length" size="2" showtemplate="FieldDec"/>
+			<if expr="buf2int(code)==1 or buf2int(code)==2">
+			<if-true>
+				<field type="fixed" name="val_size" longname="Value size" size="1" showtemplate="FieldDec"/>
+				<field type="variable" name="value" longname="Value" expr="buf2int(val_size)" showtemplate="FieldHex"/>
+				<field type="variable" name="name" longname="Name" expr="buf2int(len) -buf2int(val_size) -5" showtemplate="FieldAscii"/>
+			</if-true>
+			<if-false>
+				<field type="variable" name="msg" longname="Message" expr="buf2int(len) -4" showtemplate="FieldAscii"/>
+			</if-false>			
+			</if>			
+		</fields>
+	</format>
+	<visualization>
+		<showsumtemplate name="chap">
+			<text value=" - CHAP"/>
+		</showsumtemplate>
+		<showtemplate name="chap.code" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Challenge"/> 
+					<case value="2" show="Response"/> 
+					<case value="3" show="Success"/> 
+					<case value="4" show="Failure"/> 
+					<default show="Error in code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>

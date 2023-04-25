@@ -1,0 +1,423 @@
+<protocol name="openflow" longname="OpenFlow version 1.0" showsumtemplate="of">
+	<format>
+		<fields>
+			<field type="fixed" name="ver" longname="Version" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="of.type"/>
+			<field type="fixed" name="len" longname="Message length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="id" longname="Transaction ID" size="4" showtemplate="FieldDec"/>-
+			<switch expr="buf2int(type)">
+				<case value="1"> <includeblk name="ERROR"/> </case>	
+				<case value="10"> <includeblk name="PKTIN"/> </case>
+				<case value="13"> <includeblk name="PKTOUT"/> </case>
+				<case value="14"> <includeblk name="FLOW_MOD"/> </case>	
+			</switch>
+		</fields>
+		<!-- OF payloads -->
+		<block name="ERROR" longname="Error message">
+			<field type="fixed" name="errType" longname="Error Type" size="2" showtemplate="of.error.type"/>
+			<switch expr="buf2int(errType)">
+				<case value="0">
+					<field type="fixed" name="errCode" longname="Error Code" size="2" showtemplate="of.error.code0"/>
+				</case>
+				<case value="1">
+					<field type="fixed" name="errCode" longname="Error Code" size="2" showtemplate="of.error.code1"/>
+				</case>
+				<case value="2">
+					<field type="fixed" name="errCode" longname="Error Code" size="2" showtemplate="of.error.code2"/>
+				</case>
+				<case value="3">	
+					<field type="fixed" name="errCode" longname="Error Code" size="2" showtemplate="of.error.code3"/>
+				</case>
+				<case value="4">
+					<field type="fixed" name="errCode" longname="Error Code" size="2" showtemplate="of.error.code4"/>
+				</case>
+				<case value="5">
+					<field type="fixed" name="errCode" longname="Error Code" size="2" showtemplate="of.error.code5"/>
+				</case>
+			</switch>
+		</block>
+		<block name="FLOW_MOD" longname="Flow Modification message">
+			<includeblk name="MATCH"/>
+			<field type="fixed" name="cookie" longname="Opaque controller-issued identifier" size="8" showtemplate="FieldHex"/>
+			<field type="fixed" name="command" longname="Command" size="2" showtemplate="of.flowmod.command"/>
+			<field type="fixed" name="idle_timeout" longname="Idle time before discarding (seconds)" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="hard_timeout" longname="Max time before discarding (seconds)" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="priority" longname="Priority level of flow entry" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="buf_id" longname="Buffered packet to apply to (or -1)" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="out_port" longname="output switch port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="flags" longname="Flags" size="2" showtemplate="FieldHex">
+				<field type="bit" name="sfr" longname="Send flow removed message when flow expires or is deleted" mask="0x1" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="co" longname="Check for overlapping entries first" mask="0x2" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="em" longname="Remark this is for emergency" mask="0x4" size="2" showtemplate="FieldBin"/>
+			</field>
+			<loop type="while" expr="buf2int(len) - $currentoffset">
+				<includeblk name="ACTION"/>
+			</loop>
+		</block>
+		<block name="MATCH" longname="Match struct">
+			<field type="fixed" name="wildcards" longname="Wildcard fields" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="in_port" longname="input switch port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="mac_src" longname="Ethernet source address" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="mac_dst" longname="Ethernet destination address" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="vlan_id" longname="Input VLAN ID"  size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="vlan_priority" longname="Input VLAN priority"  size="1" showtemplate="FieldDec"/>
+			<field type="padding" name="pad1" longname="padding" align="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="eth_type" longname="Ethertype" size="2" showtemplate="FieldHex"/>
+			<field type="bit" name="dscp" longname="IP ToS - DSCP" mask="0x4F" size="1" showtemplate="FieldDec"/> 
+			<field type="fixed" name="protocol" longname="IP protocol or lower 8 bits of ARP opcode" size="1" showtemplate="FieldHex"/>
+			<field type="padding" name="pad2" longname="padding" align="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="ip_src" longname="Source address" size="4" showtemplate="ip4addr"/>
+			<field type="fixed" name="ip_dst" longname="Destination address" size="4" showtemplate="ip4addr"/>
+			<field type="fixed" name="tcp_sport" longname="Source port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="tcp_dport" longname="Destination port" size="2" showtemplate="FieldDec"/>
+		</block>
+		<block name="ACTION" longname="OpenFlow Action Header">
+			<field type="fixed" name="action_type" longname="Type of the action" size="2" showtemplate="of.action.type"/>
+			<field type="fixed" name="action_len" longname="Length of action, including this header. This is the length of action, including any padding to make it64-bit aligned" size="2" showtemplate="FieldDec"/>
+			<field type="padding" name="pad3" longname="padding" align="4" showtemplate="FieldHex"/>
+		</block>
+		<block name="PKTIN" longname="Packet In message">
+			<field type="fixed" name="buf_id" longname="ID assigned by datapath" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="total_len" longname="Full length of frame" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="in_port" longname="Port on which frame was received" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="reason" longname="Reason packet is being sent" size="1" showtemplate="of.pktin.reason"/>
+			<field type="padding" name="pad4" longname="padding" align="2" showtemplate="FieldHex"/>
+		</block>
+		<block name="PKTOUT" longname="Packet Out message">
+			<field type="fixed" name="buf_id" longname="ID assigned by datapath" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="in_port" longname="Packet's input port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="action_len" longname="Size of action array in bytes" size="2" showtemplate="FieldDec"/>
+			<loop type="size" expr="buf2int(action_len)">
+				<includeblk name="ACTION"/>
+			</loop>
+		</block>
+	</format>
+	
+	<encapsulation>
+		<if expr="buf2int(type)==1"> <!-- Error message -->
+			<!-- The error messages, except those with errType==0, encapsulates a piece of the messages which caused the error -->
+			<if-true>
+				<if expr="buf2int(errType)!=0"> 
+					<if-true>
+						<nextproto proto="#openflow"/>
+					</if-true>
+				</if>
+			</if-true>
+			<if-false>
+				<if expr="buf2int(type)==10 or buf2int(type)==13"> <!-- Packet In message -->
+					<if-true>
+						<nextproto proto="#ethernet"/>
+					</if-true>
+				</if>
+			</if-false>
+		</if>
+	</encapsulation>
+	
+	<visualization>
+		<showsumtemplate name="of">
+			<section name="next"/>
+			<text value="OpenFlow: version "/>
+			<protofield name="ver" showdata="showvalue"/>
+			<text value=", type "/>
+			<protofield name="type" showdata="showmap"/>
+			<text value=" ("/>
+			<protofield name="type" showdata="showvalue"/>
+			<text value=")"/>
+			<text value=", length "/>
+			<protofield name="len" showdata="showvalue"/>
+			<text value=", Transaction ID "/>
+			<protofield name="id" showdata="showvalue"/>	
+			<if expr="buf2int(type)==1"> <!-- Error message -->
+				<if-true>
+					<text value=", Error Type "/>
+					<protofield name="errType" showdata="showmap"/>
+					<text value=" ("/>
+					<protofield name="errType" showdata="showvalue"/>
+					<text value=")"/>
+					<text value=", Error Code "/>
+					<protofield name="errCode" showdata="showmap"/>
+					<text value=" ("/>
+					<protofield name="errCode" showdata="showvalue"/>
+					<text value=")"/>
+				</if-true>
+				<if-false>
+					<if expr="buf2int(type)==14"> <!-- Flow Modification message -->
+						<if-true>
+							<text value=", wildcards "/>
+							<protofield name="wildcards" showdata="showvalue"/>
+							<text value=", input port "/>
+							<protofield name="in_port" showdata="showvalue"/>
+							<text value=", MAC src "/>
+							<protofield name="mac_src" showdata="showvalue"/>
+							<text value=", MAC dst "/>
+							<protofield name="mac_dst" showdata="showvalue"/>
+							<text value=", vlan ID "/>
+							<protofield name="vlan_id" showdata="showvalue"/>
+							<text value=", vlan priority "/>
+							<protofield name="vlan_priority" showdata="showvalue"/>
+							<text value=", ether type "/>
+							<protofield name="eth_type" showdata="showvalue"/>
+							<text value=", IPv4 DSCP "/>
+							<protofield name="dscp" showdata="showvalue"/>
+							<text value=", Protocol "/>
+							<protofield name="protocol" showdata="showvalue"/>
+							<text value=", IPv4 source "/>
+							<protofield name="ip_src" showdata="showvalue"/>
+							<text value=", IPv4 dst "/>
+							<protofield name="ip_dst" showdata="showvalue"/>
+							<text value=", TCP source "/>
+							<protofield name="tcp_sport" showdata="showvalue"/>
+							<text value=", TCP dst "/>
+							<protofield name="tcp_dport" showdata="showvalue"/>
+							<text value=", cookie "/>
+							<protofield name="cookie" showdata="showvalue"/>
+							<text value=", Command "/>
+							<protofield name="command" showdata="showmap"/>
+							<text value=" ("/>
+							<protofield name="command" showdata="showvalue"/>
+							<text value=")"/>
+							<text value=", idle timeout "/>
+							<protofield name="idle_timeout" showdata="showvalue"/>
+							<text value=", hard timeout "/>
+							<protofield name="hard_timeout" showdata="showvalue"/>
+							<text value=", priority "/>
+							<protofield name="priority" showdata="showvalue"/>
+							<text value=", buffer ID "/>
+							<protofield name="buf_id" showdata="showvalue"/>
+							<text value=", output port "/>
+							<protofield name="out_port" showdata="showvalue"/>
+							<text value=", flags "/>
+							<protofield name="flags" showdata="showvalue"/>
+							<text value=" SEND_FLOW_REMOVED="/>
+							<if expr="buf2int(sfr)==1">
+								<if-true>
+									<text value="true"/>
+								</if-true>
+								<if-false>
+									<text value="false"/>
+								</if-false>
+							</if>
+							<text value=" CHECK_OVERLAPPING="/>
+							<if expr="buf2int(co)==1">
+								<if-true>
+									<text value="true"/>
+								</if-true>
+								<if-false>
+									<text value="false"/>
+								</if-false>
+							</if>
+							<text value=" REMARK_EMERGENCY="/>
+							<if expr="buf2int(em)==1">
+								<if-true>
+									<text value="true"/>
+								</if-true>
+								<if-false>
+									<text value="false"/>
+								</if-false>
+							</if>
+						</if-true>
+						<if-false>
+							<if expr="buf2int(type)==10"> <!-- Packet In message -->
+								<if-true>
+									<text value=", buffer ID "/>
+									<protofield name="buf_id" showdata="showvalue"/>
+									<text value=", total length "/>
+									<protofield name="total_len" showdata="showvalue"/>
+									<text value=", input port "/>
+									<protofield name="in_port" showdata="showvalue"/>
+									<text value=", reason "/>
+									<protofield name="reason" showdata="showmap"/>
+									<text value=" ("/>
+									<protofield name="reason" showdata="showvalue"/>
+									<text value=")"/>
+								</if-true>							
+								<if-false>
+									<if expr="buf2int(type)==13"> <!-- Packet Out message -->
+										<if-true>
+											<text value=", buffer ID "/>
+											<if expr="buf2int(buf_id)==18446744073709551615">
+												<if-true>
+													<text value="none"/>
+												</if-true>
+												<if-false>
+													<protofield name="buf_id" showdata="showvalue"/>
+												</if-false>									
+											</if>
+											<text value=", input port "/>
+											<protofield name="in_port" showdata="showvalue"/>
+											<text value=", action_length (B) "/>
+											<protofield name="action_len" showdata="showvalue"/>
+										</if-true>
+									</if>
+								</if-false>
+							</if>
+						</if-false>
+					</if>
+				</if-false>
+			</if>	
+		</showsumtemplate>
+
+		<showtemplate name="of.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Hello"/>								<!-- implemented -->
+					<case value="1" show="Error"/>								<!-- implemented -->
+					<case value="2" show="Echo Request"/>						<!-- implemented -->
+					<case value="3" show="Echo Reply"/>							<!-- implemented -->
+					<case value="4" show="Vendor"/>
+					<case value="5" show="Features Request"/>
+					<case value="6" show="Features Reply"/>
+					<case value="7" show="Get Config Request"/>
+					<case value="8" show="Get Config Reply"/>
+					<case value="9" show="Set Config"/>
+					<case value="10" show="Packet Input Notification"/>			<!-- implemented -->
+					<case value="11" show="Flow Removed Notification"/>
+					<case value="12" show="Port Status Notification"/>
+					<case value="13" show="Packet Output"/>						<!-- implemented -->
+					<case value="14" show="Flow Modification"/>					<!-- implemented -->
+					<case value="15" show="Port Modification"/>
+					<case value="16" show="Stats Request"/>
+					<case value="17" show="Stats Reply"/>
+					<case value="18" show="Barrier Request"/>
+					<case value="19" show="Barrier Reply"/>
+					<case value="20" show="Queue Get Config Request"/>
+					<case value="21" show="Queue Get Config Reply"/>
+					<default show="Error: unknown OpenFlow Type"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="of.error.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Hello protocol failed"/>
+					<case value="1" show="Request was not understood"/>
+					<case value="2" show="Error in action description"/>
+					<case value="3" show="Problem modifying flow entry"/>
+					<case value="4" show="Port mod request failed"/>
+					<case value="5" show="Queue operation failed"/>
+					<default show="Unknown error type"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="of.error.code0" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+						<case value="0" show="No compatible version"/>
+						<case value="1" show="Permissions error"/>
+						<default show="Unknown error code"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		<showtemplate name="of.error.code1" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="ofp_header.version not supported"/>
+					<case value="1" show="ofp_header.type not supported"/>
+					<case value="2" show="ofp_stats_request.type not supported"/>
+					<case value="3" show="Vendor not supported (in ofp_vendor_header or ofp_stats_request or ofp_stats_reply)"/>
+					<case value="4" show="Vendor subtype not supported"/>
+					<case value="5" show="Permissions error"/>
+					<case value="6" show="Wrong request length for type"/>
+					<case value="7" show="Specified buffer has already been used"/>
+					<case value="8" show="Specified buffer does not exist"/>
+					<default show="Unknown error code"/>
+				</switch>	
+			</showmap>	
+		</showtemplate>		
+		<showtemplate name="of.error.code2" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Unknown action type"/>
+					<case value="1" show="Length problem in actions"/>
+					<case value="2" show="Unknown vendor id specified."/>
+					<case value="3" show="Unknown action type for vendor id"/>
+					<case value="4" show="Problem validating output port"/>
+					<case value="5" show="Bad action argument"/>
+					<case value="6" show="Permissions error"/>
+					<case value="7" show="Can't handle this many actions"/>
+					<case value="8" show="Problem validating output queue"/>
+					<default show="Unknown error code"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		<showtemplate name="of.error.code3" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Flow not added because of full tables"/>
+					<case value="1" show="Attempted to add overlapping flow with CHECK_OVERLAP flag set"/>
+					<case value="2" show="Permissions error"/>
+					<case value="3" show="Flow not added because of non-zero idle/hard timeout"/>
+					<case value="4" show="Unknown commandh"/>
+					<case value="5" show="Unsupported action list - cannot process in
+* the order specified"/>
+					<default show="Unknown error code"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		<showtemplate name="of.error.code4" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Specified port does not exist"/>
+					<case value="1" show="Specified hardware address is wrong"/>
+					<default show="Unknown error code"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		<showtemplate name="of.error.code5" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Invalid port (or port does not exist)"/>
+					<case value="1" show="Queue does not exist"/>
+					<case value="2" show="Permissions error"/>
+					<default show="Unknown error code"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="of.flowmod.command" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="New flow"/>
+					<case value="1" show="Modify all matching flows"/>
+					<case value="2" show="Modify entry strictly matching wildcards"/>
+					<case value="3" show="Delete all matching flows"/>
+					<case value="4" show="Strictly match wildcards and priority"/>
+					<default show="Unknown command"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="of.action.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Output to switch port"/>
+					<case value="2" show="Set the 802.1q VLAN id"/>
+					<case value="3" show="Set the 802.1q priority"/>
+					<case value="4" show="Strip the 802.1q header"/>
+					<case value="5" show="Ethernet destination address"/>
+					<case value="6" show="IP source address"/>
+					<case value="7" show="IP destination address"/>
+					<case value="8" show="IPv4 DSCP"/>
+					<case value="9" show="TCP/UDP source port"/>
+					<case value="10" show="TCP/UDP destination port"/>
+					<case value="65535" show="Vendor"/>
+					<default show="Unknown command"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="of.pktin.reason" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="No matching flow"/>
+					<case value="1" show="Action explicitly output to controller"/>
+					<default show="Unknown reason"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+	</visualization>
+</protocol>
+

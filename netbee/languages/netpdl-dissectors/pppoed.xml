@@ -1,0 +1,44 @@
+<protocol name="pppoed" longname="PPPoE Discovery Stage" description="PPP over Ethernet Discovery stage" showsumtemplate="pppoe">
+	<format>
+		<fields>
+			<field type="bit" name="ver" longname="Version" mask="0xF0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="type" longname="Type" mask="0x0F" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="code" longname="Code" size="1" showtemplate="pppoe.code"/>
+			<field type="fixed" name="session_ID" longname="Session ID" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="hlen" longname="Length" size="2" showtemplate="FieldDec"/>
+
+			<loop type="while" expr="1">
+				<!-- Loop until the packet ends -->
+				<field type="fixed" name="TAGtype" longname="Tag type" size="2" showtemplate="pppoe.tagtype"/>
+				<field type="fixed" name="TAGlen" longname="Tag length" size="2" showtemplate="FieldDec"/>
+				<field type="variable" name="TAGvalue" longname="Tag value" expr="buf2int(TAGlen)" showtemplate="Field4BytesHex"/>
+			</loop>
+		</fields>
+	</format>
+
+	<visualization>
+		<showtemplate name="pppoe.tagtype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="End of List"/> 
+					<case value="257" show="Service Name"/> 
+					<case value="258" show="AC Name"/> 
+					<case value="259" show="Host Uniq"/> 
+					<case value="260" show="AC Cookie"/> 
+					<case value="261" show="Vendor Specific"/> 
+					<case value="272" show="Relay Session Id"/> 
+					<case value="513" show="Service Name Error"/> 
+					<case value="514" show="AC System Error"/> 
+					<case value="515" show="Generic Error"/> 
+					<default show="Error in PPPoe Tag Type lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="pppoe">
+			<section name="next"/>
+			<text value="PPPOE: "/>
+			<protofield name="code" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

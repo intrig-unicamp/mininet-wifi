@@ -1,0 +1,367 @@
+<protocol name="onc_rpc_udp" longname="ONC RPC" showsumtemplate="oncrpc">
+	<execute-code>
+		<verify>
+			<!-- (header)      xid     type_call    version -->
+			<if expr="hasstring($packet[$currentoffset:0], '^(....)?....\0\0\0\0\0\0\0\x02', 0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+		
+		<before when="($protoverify_result == %FOUND) and ($L4proto == #udp)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#onc_rpc_udp"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#onc_rpc_udp"/>
+			</update-lookuptable>
+		</before>
+		
+		<before when="($protoverify_result == %FOUND) and ($L4proto == #tcp)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#onc_rpc_udp"/>
+				<lookupdata value="buf2int($packet[$currentoffset + 4 :4])"/>	<!-- xid -->
+			</update-lookuptable>
+		</before>
+		
+		<after>		
+			<if expr="not checklookuptable($rpctable, $ipsrc, $ipdst, $portsrc, $portdst)">
+				<if-true>
+					<update-lookuptable name="$rpctable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$ipsrc"/>
+						<lookupkey value="$ipdst"/>
+						<lookupkey value="$portsrc"/>
+						<lookupkey value="$portdst"/>
+						<lookupdata value="buf2int(prog)"/>
+						<lookupdata value="buf2int(proc)"/>
+						<lookupdata value="buf2int(mtype)"/>
+					</update-lookuptable>					
+				</if-true>
+				
+				<if-false>
+					<if expr="ispresent(mtype)">
+						<if-true>
+							<assign-lookuptable name="$rpctable.type" value="buf2int(mtype)"/>
+						</if-true>
+					</if>
+					<if expr="ispresent(proc)">
+						<if-true>
+							<assign-lookuptable name="$rpctable.proc" value="buf2int(proc)"/>
+						</if-true>
+					</if>
+				</if-false> 
+			</if>
+
+			<if expr="not checklookuptable($rpctable, $ipdst, $ipsrc, $portdst, $portsrc)">
+				<if-true>
+					<update-lookuptable name="$rpctable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$ipdst"/>
+						<lookupkey value="$ipsrc"/>
+						<lookupkey value="$portdst"/>
+						<lookupkey value="$portsrc"/>
+						<lookupdata value="buf2int(prog)"/>
+						<lookupdata value="buf2int(proc)"/>
+						<lookupdata value="buf2int(mtype)"/>
+					</update-lookuptable>					
+				</if-true>
+				
+				<if-false>
+					<if expr="ispresent(mtype)">
+						<if-true>
+							<assign-lookuptable name="$rpctable.type" value="buf2int(mtype)"/>
+						</if-true>
+					</if>
+					<if expr="ispresent(proc)">
+						<if-true>
+							<assign-lookuptable name="$rpctable.type" value="buf2int(proc)"/>
+						</if-true>
+					</if>
+				</if-false>
+			</if>
+		</after> 
+	</execute-code>	
+
+	<format>
+		<fields>
+			<!-- if packet start with a rpc header then bytes from 4 to 8 is equal to value store into flag of tcpsessiontable -->
+			<!-- else is a generic data of rpc protocol -->
+			<if expr="$L4proto == #udp or ($L4proto == #tcp and checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport) and (buf2int($packet[$currentoffset + 4 :4]) == $tcpsessiontable.flag ))">
+				<if-true>
+					<if expr="$L4proto == #tcp">
+						<if-true>
+							<field type="fixed" name="fragment_header" longname="Fragment Header" size="4" showtemplate="FieldHex">
+								<field type="bit" name="last_fragment" longname="Last Fragment" mask="0x80000000" size="4" showtemplate="FieldBin"/>
+								<field type="bit" name="fragment_length" longname="Fragment Length" mask="0x7FFFFFFF" size="4" showtemplate="FieldDec"/>
+							</field>
+						</if-true>
+					</if>
+
+					<field type="fixed" name="xid" longname="Transaction Identifier" size="4" showtemplate="FieldHex"/>
+					<field type="fixed" name="mtype" longname="Message Type" size="4" showtemplate="oncrpc.type"/>
+					<switch expr="buf2int(mtype)">
+						<case value="0x00000000">
+							<includeblk name="call_body"/>
+						</case>
+						<default>
+							<includeblk name="replay_body"/>
+						</default>
+					</switch>				
+				</if-true>
+				
+				<if-false>
+					<field type="variable" name="data" longname="RPC Generic Data " expr="$packetlength - $currentoffset" showtemplate="FieldHex"/>
+				</if-false>
+			</if>
+
+		</fields>
+		
+		<block name="call_body" longname="Call Body">
+			<field type="fixed" name="rpc_ver" longname="RPC Version" size="4" showtemplate="FieldDec"/>
+			<block name="remote_program" longname="Remote Program">
+				<field type="fixed" name="prog" longname="Program" size="4" showtemplate="oncrpc.prog"/>
+				<field type="fixed" name="ver" longname="Version" size="4" showtemplate="FieldDec"/>
+				<!-- procedure depending on program -->
+				<switch expr="buf2int (prog)">
+					<case value="100000">
+						<field type="fixed" name="proc" longname="Procedure" size="4" showtemplate="oncrpc.proc.rpcbind"/>
+					</case>
+					<case value="100003">
+						<field type="fixed" name="proc" longname="Procedure" size="4" showtemplate="oncrpc.proc.nfs"/>
+					</case>
+					<case value="100005">
+						<field type="fixed" name="proc" longname="Procedure" size="4" showtemplate="oncrpc.proc.mnt"/>
+					</case>
+					<default>
+						<field type="fixed" name="proc" longname="Procedure" size="4" showtemplate="FieldDec"/>
+					</default>
+				</switch>
+
+			</block>		
+			<includeblk name="credential"/>
+			<includeblk name="verifier"/>			
+		</block>
+
+		<block name="credential" longname="Credential">
+			<field type="fixed" name="flavor" longname="Flavor" size="4" showtemplate="FieldAscii"/>
+			<field type="fixed" name="length_body" longname="Length_body" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="body" longname="Body" expr="buf2int(length_body)" showtemplate="FieldAscii"/>
+		</block>
+				
+		<block name="verifier" longname="Verifier">
+			<field type="fixed" name="flavor" longname="Flavor" size="4" showtemplate="FieldAscii"/>
+			<field type="fixed" name="length_body" longname="Length_body" size="4" showtemplate="FieldDec"/>
+			<field type="variable" name="body" longname="Body" expr="buf2int(length_body)" showtemplate="FieldAscii"/>
+		</block>
+		
+		<block name="replay_body" longname="Replay Body">
+			<field type="fixed" name="replay_stat" longname="Replay Status" size="4" showtemplate="oncrpc.replay_stat"/>
+			<switch expr="buf2int(replay_stat)">
+				<case value="0x00000000">	<!-- msg accepted -->
+					<includeblk name="verifier"/>				
+					<field type="fixed" name="accept_stat" longname="Accept Status" size="4" showtemplate="oncrpc.accept_stat"/>
+					<switch expr="buf2int(accept_stat)">
+						<!--<case value="0x00000000">
+							<field type="variable" name="procedure_results" longname="Procedure Results" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						</case>-->
+						<case value="x00000002">
+							<field type="fixed" name="low" longname="Low" size="4" showtemplate="FieldDec"/>
+							<field type="fixed" name="high" longname="High" size="4" showtemplate="FieldDec"/>
+						</case>
+						<default>
+							<!-- void data 0 byte -->
+						</default>
+					</switch>
+				</case>
+				<case value="0x00000001">  <!-- msg denied-->
+					<field type="fixed" name="reject_stat" longname="Reject Status" size="4" showtemplate="oncrpc.reject_stat"/>
+					<switch expr="buf2int(reject_stat)">
+						<case value="0x00000000">		<!-- rpc mismatch"-->
+							<field type="fixed" name="low" longname="Low" size="4" showtemplate="FieldDec"/>
+							<field type="fixed" name="high" longname="High" size="4" showtemplate="FieldDec"/>
+						</case>
+						<case value="0x00000001">  <!-- authehtication error -->
+							<field type="fixed" name="auth_stat" longname="Authentication Status" size="4" showtemplate="oncrpc.auth_stat"/>
+						</case>
+					</switch>
+				</case>
+			</switch>
+		</block>
+	</format>
+
+	<encapsulation>
+		<if expr="checklookuptable($rpctable, $ipsrc, $ipdst, $portsrc, $portdst)">
+			<if-true>
+				<switch expr="$rpctable.prog">
+					<case value="100000"><nextproto proto="#rpcbind"/></case>
+					<case value="100003"><nextproto proto="#nfs"/></case>
+					<case value="100005"><nextproto proto="#mnt"/></case>
+				</switch>
+			</if-true>
+		</if>
+	</encapsulation>
+	
+	<visualization>
+	
+		<showtemplate name="oncrpc.replay_stat" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00000000" show="MSG_ACCEPTED"/>
+					<case value="0x00000001" show="MSG_DENIED"/>
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="oncrpc.prog" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="100000" show="RPCBIND"/>
+					<case value="100003" show="NFS"/>
+					<case value="100005" show="MNT"/>
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="oncrpc.proc.nfs" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="NFSPROC3_NULL"/>
+					<case value="1" show="NFSPROC3_GETATTR"/>
+					<case value="2" show="NFSPROC3_SETATTR"/>
+					<case value="3" show="NFSPROC3_LOOKUP"/>
+					<case value="4" show="NFSPROC3_ACCESS"/>
+					<case value="5" show="NFSPROC3_READLINK"/>
+					<case value="6" show="NFSPROC3_READ"/>
+					<case value="7" show="NFSPROC3_WRITE"/>
+					<case value="8" show="NFSPROC3_CREATE"/>
+					<case value="9" show="NFSPROC3_MKDIR"/>
+					<case value="10" show="NFSPROC3_SYMLINK"/>
+					<case value="11" show="NFSPROC3_MKNOD"/>
+					<case value="12" show="NFSPROC3_REMOVE"/>
+					<case value="13" show="NFSPROC3_RMDIR"/>
+					<case value="14" show="NFSPROC3_RENAME"/>
+					<case value="15" show="NFSPROC3_LINK"/>
+					<case value="16" show="NFSPROC3_READDIR"/>
+					<case value="17" show="NFSPROC3_READDIRPLUS"/>
+					<case value="18" show="NFSPROC3_FSSTAT"/>
+					<case value="19" show="NFSPROC3_FSINFO"/>
+					<case value="20" show="NFSPROC3_PATHCONF"/>
+					<case value="21" show="NFSPROC3_COMMIT"/>				
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="oncrpc.proc.mnt" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="MOUNTPROC_NULL"/>
+					<case value="1" show="MOUNTPROC_MNT"/>
+					<case value="2" show="MOUNTPROC_DUMP"/>
+					<case value="3" show="MOUNTPROC_UMNT"/>
+					<case value="4" show="MOUNTPROC_UMNTALL"/>
+					<case value="5" show="MOUNTPROC_EXPORT"/>				
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+	
+		<showtemplate name="oncrpc.proc.rpcbind" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="RPCBPROC_SET"/>
+					<case value="2" show="RPCBPROC_UNSET"/>
+					<case value="3" show="RPCBPROC_GETADDR"/>
+					<case value="4" show="RPCBPROC_DUMP"/>
+					<case value="5" show="RPCBPROC_CALLIT"/>				
+					<case value="6" show="RPCBPROC_GETTIME"/>				
+					<case value="7" show="RPCBPROC_UADDR2TADDR"/>			
+					<case value="8" show="RPCBPROC_TADDR2UADDR"/>					
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="oncrpc.accept_stat" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00000000" show="SUCCESS"/>
+					<case value="0x00000001" show="PROG_UNVAIL"/>
+					<case value="0x00000002" show="PROG_MISMATCH"/>
+					<case value="0x00000003" show="PROC_UNVAIL"/>
+					<case value="0x00000004" show="GARBAGE_ARGS"/>
+					<case value="0x00000005" show="SYSTEM_ERR"/>
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="oncrpc.reject_stat" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00000000" show="RPC_MISMATCH"/>
+					<case value="0x00000001" show="AUTH_ERROR"/>
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>	
+		
+		
+		<showtemplate name="oncrpc.auth_stat" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00000000" show="AUTH_OK"/>
+					<case value="0x00000001" show="AUTH_BADCRED"/>
+					<case value="0x00000002" show="AUTH_REJECTEDCRED"/>
+					<case value="0x00000003" show="AUTH_BADVERF"/>
+					<case value="0x00000004" show="AUTH_REJECTEDVERF"/>
+					<case value="0x00000005" show="AUTH_TOOWEAK"/>
+					<case value="0x00000006" show="AUTH_INVALIDRESP"/>
+					<case value="0x00000007" show="AUTH_FAILED"/>
+					<default show="Unknown"/>		
+				</switch>
+			</showmap>
+		</showtemplate>	
+		
+		<showtemplate name="oncrpc.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00" show="Call"></case>
+					<case value="0x01" show="Replay"></case>
+					<default show="Unkown messagge"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="oncrpc">
+			<section name="next"/>
+			<text value="ONC RPC "/>
+			<if expr="not ispresent(data)">
+				<if-true>
+					<protofield name="mtype" showdata="showmap"/>
+					<text value=", Transaction ID:" />
+					<protofield name="xid" showdata="showvalue"/>
+					<text value=" "/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

@@ -1,0 +1,841 @@
+/*****************************************************************************/
+/*                                                                           */
+/* Copyright notice: please read file license.txt in the NetBee root folder. */
+/*                                                                           */
+/*****************************************************************************/
+
+
+
+#pragma once
+
+
+#include "defs.h"
+#include "bitmatrix.h"
+#include "bitvectorset.h"
+
+#include <list>
+#include <vector>
+#include <set>
+#include <iostream>
+using namespace std;
+
+
+
+/*!
+	\brief This template class implements a generic directed graph, which nodes are objects of type T
+	
+*/
+
+template<class T>
+class DiGraph
+{
+
+public:
+
+	//forward declarations for friend clauses
+	class GraphNode;
+	class GraphEdge;
+	class IGraphVisitor;
+	class SubGraph;
+
+	friend class GraphNode;
+	friend class GraphEdge;
+	friend class IGraphVisitor;
+	friend class SubGraph;
+
+	/*!
+		\brief This nested class defines a graph node	
+	*/
+	class GraphNode
+	{
+		friend class DiGraph;
+		friend class SubGraph;
+	private:
+		list<GraphNode*>	Predecessors;	//!<List of predecessor nodes
+		list<GraphNode*>	Successors;		//!<List of successor nodes
+		bool				Valid;			//!<if false the node has been removed
+	public:
+		bool				Visited;		//!<Flag used by the Depth First Search methods
+		uint32				Id;				//!<Id of the node
+		T					NodeInfo;		//!<Object of class T wrapped by the graph node
+
+		/*!
+			\brief Constructor
+			\param nodeInfo		reference to the object that must be associated to this node
+			\param id			id of the node (internally managed by the DiGraph class)
+		*/
+		GraphNode(T	&nodeInfo, uint32 id)
+			:Id(id), Visited(0), NodeInfo(nodeInfo){}
+
+		string ToString()
+		{
+			return NodeInfo.ToString();
+		}
+
+		list<GraphNode*> &GetPredecessors(void)
+		{
+			return Predecessors;
+		}
+
+		list<GraphNode*> &GetSuccessors(void)
+		{
+			return Successors;
+		}
+
+
+	};
+
+	/*!
+		\brief This nested class defines a directed graph edge	
+	*/
+	class GraphEdge
+	{
+		friend class DiGraph;
+		friend class SubGraph;
+	public:
+		GraphNode	&From;	//!<Graph node the edge comes from
+		GraphNode	&To;	//!<Graph node the edge points to
+
+		/*!
+			\brief Constructor
+			\param from		reference to the graph node the edge comes from
+			\param to		reference to the graph node the edge points to
+		*/
+		GraphEdge(GraphNode &from, GraphNode &to)
+			:From(from), To(to){}
+	};
+
+	struct EdgeComp
+	{
+		bool operator()(const GraphEdge &x, const GraphEdge &y)
+		{
+			if (x.From.Id >= y.From.Id)
+				return false;
+			if (x.To.Id >= y.To.Id)
+				return false;
+			return true;
+		}
+	};
+
+	class SubGraph
+	{
+		friend class DiGraph;
+	private:
+		DiGraph			*m_Graph;
+		nbBitMatrix		m_AdjMatrix;
+		nbBitVector		m_Nodes;
+		uint32			m_NumNodes;
+
+	public:
+		SubGraph(DiGraph &graph)
+			:m_Graph(&graph), m_AdjMatrix(m_Graph->m_NodeCount, m_Graph->m_NodeCount),
+			m_Nodes(m_Graph->m_NodeCount), m_NumNodes(m_Graph->m_NodeCount){}
+
+
+		uint32 CountSuccessors(const GraphNode &node)
+		{
+			nbASSERT(OwnsNode(node), "The node does not belong to the subgraph!");
+			uint32 n = 0;
+			for (uint32 i = 0; i < m_AdjMatrix.GetNCols(); i++)
+			{
+				if (m_AdjMatrix(node.Id, i))
+					n++;
+			}
+			return n;
+		}
+
+		uint32 CountPredecessors(const GraphNode &node)
+		{
+			nbASSERT(OwnsNode(node), "The node does not belong to the subgraph!");
+			uint32 n = 0;
+			for (uint32 i = 0; i < m_AdjMatrix.GetNCols(); i++)
+			{
+				if (m_AdjMatrix(i, node.Id))
+					n++;
+			}
+			return n;
+		}
+
+
+		void AddNode(const GraphNode &node)
+		{
+			m_Nodes[node.Id] = true;
+		}
+
+		void DeleteNode(const GraphNode &node)
+		{
+			m_Nodes[node.Id] = false;
+			for (uint32 i = 0; i < m_NumNodes; i++)
+				m_AdjMatrix(i, node.Id).Clear();
+			for (uint32 j = 0; j < m_NumNodes; j++)
+				m_AdjMatrix(node.Id, j).Clear();
+		}
+
+		void AddEdge(const GraphNode &from, const GraphNode &to)
+		{
+			AddNode(from);
+			AddNode(to);
+			m_AdjMatrix(from.Id, to.Id).Set();
+		}
+
+		void DeleteEdge(const GraphNode &from, const GraphNode &to)
+		{
+			m_AdjMatrix(from.Id, to.Id).Clear();
+		}
+
+		bool HasNode(const GraphNode &node)
+		{
+			return m_Nodes[node.Id];
+		}
+
+
+		bool HasEdge(const GraphNode &from, const GraphNode &to)
+		{
+			return m_AdjMatrix(from.Id, to.Id);
+		}
+
+		string ToString(void)
+		{
+			return m_AdjMatrix.ToString();
+		}
+
+	};
+
+
+	/*!
+		\brief This abstract class defines the interface for a generic graph visitor.
+		Its member function ExecuteOnEdge is called by the DFS (depth first search) methods when an
+		edge of the graph is traversed forward or backward.
+	*/
+
+	class IGraphVisitor
+	{
+		friend class DiGraph;
+	public:
+
+
+		/*!
+			\brief this function is called by the DFS (depth first search) methods when an
+			edge of the graph is traversed forward or backward.
+			
+			\param	visitedNode	reference to the currently visited graph node
+			\param	edge			reference to the graph edge being traversed
+			\return nothing
+		*/
+
+		virtual int32 ExecuteOnEdge(const GraphNode &visitedNode, const GraphEdge &edge, bool lastEdge) = 0;
+
+		/*!
+			\brief this function is called by the DFS (depth first search) methods when an
+			edge of the graph is traversed forward or backward.
+			
+			\param	visitedNode	reference to the currently visited graph node
+			\return nothing
+		*/
+
+		//virtual int32 ExecuteOnNodeFrom(const GraphNode &visitedNode) = 0;
+
+
+		/*!
+			\brief this function is called by the DFS (depth first search) methods when an
+			edge of the graph is traversed forward or backward.
+			
+			\param	visitedNode	reference to the currently visited graph node
+
+			\param	comingFrom reference to the node visited just before the current one
+			
+			\return nothing
+		*/
+
+		virtual int32 ExecuteOnNodeFrom(const GraphNode &visitedNode, const GraphNode *comingFrom) = 0;
+
+
+	};	
+	
+	
+	class NodeIterator;
+	friend class NodeIterator;
+	class SortedIterator;
+	friend class SortedIterator;
+
+	class NodeIterator 
+	{
+		DiGraph<T>& _dg;
+		uint32		_i;
+	public:
+		NodeIterator(DiGraph<T> &graph) 
+			:_dg(graph), _i(0) {}
+
+		NodeIterator(const NodeIterator &i) 
+			:_dg(i._dg), _i(i._i) {}
+
+    // To create the "end sentinel" NodeIterator:
+		NodeIterator(DiGraph<T>& graph, bool) 
+			:_dg(graph), _i(_dg.m_NodeList.size()) {}
+
+
+		GraphNode*&current() const 
+		{
+			return _dg.m_NodeList[_i]; 
+		}
+
+		GraphNode*& operator*() const 
+		{
+			return _dg.m_NodeList[_i]; 
+		}
+
+		GraphNode*&operator++() 
+		{ // Prefix
+			nbASSERT(_i < _dg.m_NodeList.size(), "NodeIterator moved out of range");
+			return _dg.m_NodeList[++_i]; 
+		}
+
+		GraphNode *&operator++(int) 
+		{ // Postfix
+			nbASSERT(_i < _dg.m_NodeList.size(), "NodeIterator moved out of range");
+			return _dg.m_NodeList[_i++]; 
+		}
+
+		NodeIterator& operator+=(uint32 amount) 
+		{
+			nbASSERT((_i + amount) < _dg.m_NodeList.size(), "NodeIterator moved out of range");
+			_i += amount;
+			return *this;
+		}
+    
+		// To see if you're at the end:
+		bool operator==(const NodeIterator& rv) const 
+		{
+			return _i == rv._i;
+		}
+
+		bool operator!=(const NodeIterator& rv) const 
+		{
+			return _i != rv._i;
+		}
+
+	};
+
+
+	class SortedIterator 
+	{
+		DiGraph<T>& _dg;
+		uint32		_i;
+	public:
+		SortedIterator(DiGraph<T> &graph) 
+			:_dg(graph), _i(0) {}
+
+		SortedIterator(const SortedIterator &i) 
+			:_dg(i._dg), _i(i._i) {}
+
+    // To create the "end sentinel" NodeIterator:
+		SortedIterator(DiGraph<T>& graph, bool) 
+			:_dg(graph), _i(_dg.m_SortedNodes.size()) {}
+
+
+		GraphNode*& operator*() const 
+		{
+			return _dg.m_SortedNodes[_i]; 
+		}
+
+		GraphNode*&operator++() 
+		{ // Prefix
+			nbASSERT(_i < _dg.m_SortedNodes.size(), "SortedIterator moved out of range");
+			return _dg.m_SortedNodes[++_i]; 
+		}
+
+		GraphNode *&operator++(int) 
+		{ // Postfix
+			nbASSERT(_i < _dg.m_SortedNodes.size(), "SortedIterator moved out of range");
+			return _dg.m_SortedNodes[_i++]; 
+		}
+
+		SortedIterator& operator+=(uint32 amount) 
+		{
+			nbASSERT((_i + amount) < _dg.m_SortedNodes.size(), "SortedIterator moved out of range");
+			_i += amount;
+			return *this;
+		}
+    
+		// To see if you're at the end:
+		bool operator==(const SortedIterator& rv) const 
+		{
+			return _i == rv._i;
+		}
+
+		bool operator!=(const SortedIterator& rv) const 
+		{
+			return _i != rv._i;
+		}
+
+	};
+
+
+protected:
+	uint32				m_NodeCount;	//!<Number of nodes in the graph
+	vector<GraphNode*>	m_NodeList;		//!<List of all the nodes in the graph
+	vector<GraphNode*>	m_SortedNodes;
+	set<GraphEdge, EdgeComp>		m_BackEdges;
+	bool				m_Sorted;
+	//SubGraph			*m_SubGraph;
+
+	/*!
+			\brief	this function resets the visited flag for all the nodes in the graph
+			
+			\return nothing
+	*/
+
+	
+
+
+	void ForwardDFSPre(GraphNode &node, GraphNode *comingFrom, IGraphVisitor &visitor);
+	void ForwardDFSPost(GraphNode &node, GraphNode *comingFrom, IGraphVisitor &visitor);
+	void BackwardDFSPre(GraphNode &node, GraphNode *comingFrom, IGraphVisitor &visitor);
+	void BackwardDFSPost(GraphNode &node, GraphNode *comingFrom, IGraphVisitor &visitor);
+	void ForwardDepthWalk(GraphNode &node, GraphNode *comingFrom, IGraphVisitor &visitor);
+	
+	void DFSPreorder(GraphNode &node);
+	void DFSPostorder(GraphNode &node);
+	void DFSReversePreorder(GraphNode &node);
+	void DFSReversePostorder(GraphNode &node);
+
+public:
+	
+	DiGraph()
+		:m_NodeCount(0), m_Sorted(0){}
+	
+	~DiGraph()
+	{
+		uint32 size = m_NodeList.size();
+		for (uint32 i = 0; i < size; i++)
+			delete m_NodeList[i];
+	}
+
+
+	void ResetVisited(void)
+	{
+		uint32 size = m_NodeList.size();
+
+		for (uint32 i = 0; i < size; i++)
+			m_NodeList[i]->Visited = false;
+	}
+
+	void Clear(void)
+	{
+		uint32 size = m_NodeList.size();
+		for (uint32 i = 0; i < size; i++)
+			delete m_NodeList[i];
+		m_NodeCount = 0;
+		m_BackEdges.clear();
+		m_NodeList.clear();
+		m_SortedNodes.clear();
+
+	}
+
+	GraphNode &AddNode(T &nodeInfo)
+	{
+
+		typedef typename DiGraph<T>::GraphNode node_t;
+		node_t* newNode = new node_t(nodeInfo, m_NodeCount);
+		m_NodeList.push_back(newNode);
+		m_NodeList[m_NodeCount]->Valid = true;
+		return *m_NodeList[m_NodeCount++];
+	}
+
+	void AddEdge(GraphNode &from, GraphNode &to)
+	{
+		from.Successors.push_back(&to);
+		from.Successors.sort();
+		from.Successors.unique();
+		to.Predecessors.push_back(&from);
+		to.Successors.sort();
+		to.Predecessors.unique();
+	}
+
+	void DeleteNode(GraphNode &node)
+	{
+		typename list<GraphNode*>::iterator p = node.Predecessors.begin();
+		for (p; p != node.Predecessors.end(); p++)
+			(*p)->Successors.remove(&node);
+		typename list<GraphNode*>::iterator s = node.Successors.begin();
+		for (s; s != node.Successors.end(); s++)
+			(*s)->Predecessors.remove(&node);
+		m_NodeList[node.Id]->Valid = false;
+	}
+
+	void DeleteEdge(GraphNode &from, GraphNode &to)
+	{
+		from.Successors.remove(&to);
+		to.Predecessors.remove(&from);
+	}
+
+	void PreOrder(GraphNode &node, IGraphVisitor &visitor)
+	{
+		ResetVisited();
+		ForwardDFSPre(node, NULL, visitor);
+	}
+
+	void PostOrder(GraphNode &node, IGraphVisitor &visitor)
+	{
+		ResetVisited();
+		ForwardDFSPost(node, NULL, visitor);
+	}
+	
+	void BackPreOrder(GraphNode &node, IGraphVisitor &visitor)
+	{
+		ResetVisited();
+		BackwardDFSPre(node, NULL, visitor);
+	}
+
+	void BackPostOrder(GraphNode &node, IGraphVisitor &visitor)
+	{
+		ResetVisited();
+		BackwardDFSPost(node, NULL, visitor);
+	}
+
+	void ForwDepthWalk(GraphNode &node, IGraphVisitor &visitor)
+	{
+		ResetVisited();
+		ForwardDepthWalk(node, NULL, visitor);
+	}
+
+	NodeIterator FirstNode() 
+	{ 
+		return NodeIterator(*this); 
+	}
+
+	
+	NodeIterator LastNode() 
+	{ 
+		return NodeIterator(*this, true);
+	}
+
+
+	SortedIterator FirstNodeSorted() 
+	{ 
+		return SortedIterator(*this); 
+	}
+
+	
+	SortedIterator LastNodeSorted() 
+	{ 
+		return SortedIterator(*this, true);
+	}
+
+
+	uint32 GetNodeCount()
+	{
+		return m_NodeCount;
+	}
+
+	void SortPreorder(GraphNode &startnode)
+	{
+		ResetVisited();
+		m_SortedNodes.clear();
+		m_BackEdges.clear();
+		DFSPreorder(startnode);
+		m_Sorted = true;
+	}
+
+	void SortPostorder(GraphNode &startnode)
+	{
+		ResetVisited();
+		m_SortedNodes.clear();
+		m_BackEdges.clear();
+		DFSPostorder(startnode);
+		m_Sorted = true;
+	}
+
+	void SortRevPreorder(GraphNode &startnode)
+	{
+		ResetVisited();
+		m_SortedNodes.clear();
+		m_BackEdges.clear();
+		DFSReversePreorder(startnode);
+		m_Sorted = true;
+	}
+
+	void SortRevPostorder(GraphNode &startnode)
+	{
+		ResetVisited();
+		m_SortedNodes.clear();
+		m_BackEdges.clear();
+		DFSReversePostorder(startnode);
+		m_Sorted = true;
+	}	
+
+	void SortRevPostorder_alternate(GraphNode &startnode)
+	{
+		ResetVisited();
+		m_SortedNodes.clear();
+		m_BackEdges.clear();
+		DFSPostorder(startnode);	
+		std::reverse(m_SortedNodes.begin(), m_SortedNodes.end());
+		m_Sorted = true;
+	}
+
+	bool IsBackEdge(GraphEdge &edge)
+	{
+		typename set<GraphEdge, EdgeComp>::iterator i = m_BackEdges.find(edge);
+		if (i == m_BackEdges.end())
+			return false;
+		return true;
+	}
+};
+
+
+
+
+
+
+
+
+template<class T>
+void DiGraph<T>::ForwardDFSPre(GraphNode &node, GraphNode *comingFrom, IGraphVisitor &visitor)
+{
+	
+	if (node.Visited)
+		return;
+
+	visitor.ExecuteOnNodeFrom(node, comingFrom);
+
+	node.Visited = true;
+
+	typename list<GraphNode*>::iterator p = node.Successors.begin();	
+
+	while (p != node.Successors.end())
+	{	
+		GraphNode &successor(**p);
+		GraphEdge edge(node, successor);
+		p++;
+		bool last = (p == node.Successors.end());
+		visitor.ExecuteOnEdge(node, edge, last);
+
+		ForwardDFSPre(successor, &node, visitor);
+	}
+}
+
+
+
+template<class T>
+void DiGraph<T>::ForwardDFSPost(GraphNode &node, GraphNode *comingFrom, IGraphVisitor &visitor)
+{
+	
+	if (node.Visited)
+		return;
+
+	node.Visited = true;
+
+	typename list<GraphNode*>::iterator p = node.Successors.begin();
+
+	while (p != node.Successors.end())
+	{	
+		GraphNode &successor(**p);
+		GraphEdge edge(node, successor);
+		p++;
+		bool last = (p == node.Successors.end());
+
+		ForwardDFSPost(successor, &node, visitor);
+
+		visitor.ExecuteOnEdge(node, edge, last);
+
+		
+	}
+
+	visitor.ExecuteOnNodeFrom(node, comingFrom);
+}
+
+
+template<class T>
+void DiGraph<T>::BackwardDFSPre(GraphNode &node, GraphNode *comingFrom, IGraphVisitor &visitor)
+{
+	
+	if (node.Visited)
+		return;
+
+	node.Visited = true;
+	visitor.ExecuteOnNodeFrom(node, comingFrom);
+	typename list<GraphNode*>::iterator p = node.Predecessors.begin();
+
+	while (p != node.Predecessors.end())
+	{	
+		GraphNode &predecessor(**p);
+		GraphEdge edge(predecessor, node);
+		p++;
+		bool last = (p == node.Predecessors.end());
+		visitor.ExecuteOnEdge(node, edge, last);
+
+		BackwardDFSPre(predecessor, &node, visitor);
+	}
+}
+
+
+template<class T>
+void DiGraph<T>::BackwardDFSPost(GraphNode &node, GraphNode *comingFrom, IGraphVisitor &visitor)
+{
+	
+	if (node.Visited)
+		return;
+
+	node.Visited = true;
+
+	
+	typename list<GraphNode*>::iterator p = node.Predecessors.begin();
+
+	while (p != node.Predecessors.end())
+	{	
+		GraphNode &predecessor(**p);
+		GraphEdge edge(predecessor, node);
+		p++;
+		bool last = (p == node.Predecessors.end());
+		BackwardDFSPost(predecessor, &node, visitor);
+
+		visitor.ExecuteOnEdge(node, edge, last);		
+	}
+
+	visitor.ExecuteOnNodeFrom(node, comingFrom);
+}
+
+
+template<class T>
+void DiGraph<T>::ForwardDepthWalk(GraphNode &node, GraphNode *comingFrom, IGraphVisitor &visitor)
+{
+	if (node.Visited)
+		return;
+
+	node.Visited = true;
+
+	typename list<GraphNode*>::iterator p = node.Successors.begin();
+
+	while (p != node.Successors.end())
+	{	
+		visitor.ExecuteOnNodeFrom(**p, comingFrom);
+		GraphEdge edge(node, **p);
+		visitor.ExecuteOnEdge(node, edge, false);
+		p++;
+	}
+	
+	typename list<GraphNode*>::iterator s = node.Successors.begin();
+
+	while (s != node.Successors.end())
+	{	
+		ForwardDepthWalk(**s, &node, visitor);
+		s++;
+	}
+}
+
+
+
+template<class T>
+void DiGraph<T>::DFSPreorder(GraphNode &node)
+{
+	if (node.Visited)
+		return;
+
+	m_SortedNodes.push_back(&node);
+	
+	node.Visited = true;
+
+	typename list<GraphNode*>::iterator p = node.Successors.begin();	
+
+	for(p; p != node.Successors.end(); p++)
+	{	
+		GraphNode &successor(**p);
+		if (successor.Visited)
+		{
+			GraphEdge edge(node, successor);
+			m_BackEdges.insert(edge);
+		}
+		else
+		{
+			DFSPreorder(successor);
+		}
+	}
+}
+
+
+
+template<class T>
+void DiGraph<T>::DFSPostorder(GraphNode &node)
+{
+	if (node.Visited)
+		return;
+
+	node.Visited = true;
+
+	typename list<GraphNode*>::iterator p = node.Successors.begin();	
+
+	for(p; p != node.Successors.end(); p++)
+	{	
+		GraphNode &successor(**p);
+		if (successor.Visited)
+		{
+			GraphEdge edge(node, successor);
+			m_BackEdges.insert(edge);
+		}
+		else
+		{
+			DFSPostorder(successor);
+		}
+	}
+
+	m_SortedNodes.push_back(&node);
+}
+
+
+template<class T>
+void DiGraph<T>::DFSReversePreorder(GraphNode &node)
+{
+	
+	if (node.Visited)
+		return;
+
+	m_SortedNodes.push_back(&node);
+	
+	node.Visited = true;
+
+	typename list<GraphNode*>::iterator p = node.Predecessors.begin();	
+
+	for(p; p != node.Predecessors.end(); p++)
+	{	
+		GraphNode &predecessor(**p);
+		if (predecessor.Visited)
+		{
+			GraphEdge edge(predecessor, node);
+			m_BackEdges.insert(edge);
+		}
+		else
+		{
+			DFSReversePreorder(predecessor);
+		}
+	}
+}
+
+
+template<class T>
+void DiGraph<T>::DFSReversePostorder(GraphNode &node)
+{
+	//cout << "Entering node " << node.NodeInfo->ToString() << endl;
+	if (node.Visited)
+		return;
+
+	node.Visited = true;
+
+	typename list<GraphNode*>::iterator p = node.Predecessors.begin();	
+
+	for(p; p != node.Predecessors.end(); p++)
+	{	
+		GraphNode &predecessor(**p);
+		if (predecessor.Visited)
+		{
+			GraphEdge edge(predecessor, node);
+			//cout << "Back edge: " << predecessor.NodeInfo->ToString() << " -> " << node.NodeInfo->ToString() << endl;
+			m_BackEdges.insert(edge);
+		}
+
+		DFSReversePostorder(predecessor);
+	}
+
+	//cout << "Visiting node " << node.NodeInfo->ToString() << endl;
+	m_SortedNodes.push_back(&node);
+}

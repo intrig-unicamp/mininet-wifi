@@ -1,0 +1,313 @@
+<protocol name="hci_event" longname="HCI Event" showsumtemplate="hci_event">
+	<format>
+		<fields>
+			<field type="fixed" name="hci_event_code" longname="Event Code" size="1" showtemplate="hci_event.hci_event_code"/>
+			<field type="fixed" name="event_data_length" longname="Length of Data" size="1" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(hci_event_code)">
+
+<!-- FULVIO: in order to increase readability, I suggest to keep the comment to the minimum, e.g. "0x01" instead of "0x01-Inquiry Complete Event" -->
+<!-- In any case, the meaning of that code is very well clear thanks to the very long name you have in the includeblock -->
+<!-- This is a general comment related to all the switch-case elements you've implemented in this file. -->
+
+				<case value="1" comment="0x01-Inquiry Complete Event">							<includeblk name="blk_inquiry_complete_event"/>								</case>
+				<case value="2" comment="0x02-Inquiry Result Event">							<includeblk name="blk_inquiry_result_event"/>								</case>
+				<case value="3" comment="0x03-Connection Complete Event">						<includeblk name="blk_connection_complete_event"/>							</case>
+				<case value="4" comment="0x04-Connection Request Event">						<includeblk name="blk_connection_request_event"/>							</case>
+				<case value="5" comment="0x05-Disconnection Complete Event">					<includeblk name="blk_disconnection_complete_event"/>						</case>
+				<case value="6" comment="0x06-Authentication Complete Event">					<includeblk name="blk_authentication_complete_event"/>						</case>
+				<case value="7" comment="0x07-Remote Name Request Complete Event">				<includeblk name="blk_remote_name_request_complete_event"/>					</case>
+				<case value="8" comment="0x08-Encryption Change Event">							<includeblk name="blk_encryption_change_event"/>							</case>
+				<case value="9" comment="0x09-Change Connection Link Key Complete Event">		<includeblk name="blk_change_connection_link_key_complete_event"/>			</case>
+				<case value="10" comment="0x0A-Master Link Key Complete Event">					<includeblk name="blk_master_link_key_complete_event"/>						</case>
+	 			<case value="11" comment="0x0B-Read Remote Supported Features Complete Event">	<includeblk name="blk_read_remote_supported_features_complete_event"/>		</case>
+				<case value="12" comment="0x0C-Read Remote Version Information Complete Event">		<includeblk name="blk_read_remote_version_information_complete_event"/>	</case>
+				<case value="13" comment="0x0D-QoS Setup Complete Event">						<includeblk name="blk_qos_setup_complete_event"/>							</case>
+				<case value="14" comment="0x0E-Command Complete Event">							<includeblk name="blk_command_complete_event"/>								</case>
+				<case value="15" comment="0x0F-Command Status Event">							<includeblk name="blk_command_status_event"/>								</case>
+				<case value="16" comment="0x10-Hardware Error Event">							<includeblk name="blk_hardware_error_event"/>								</case>
+				<case value="17" comment="0x11-Flush Occurred Event">							<includeblk name="blk_flush_occured_event"/>								</case>
+				<case value="18" comment="0x12-Role Change Event">								<includeblk name="blk_role_change_event"/>									</case>
+				<case value="19" comment="0x13-Number of Completed Packets Event">				<includeblk name="blk_number_of_completed_packets_event"/>					</case>
+				<case value="20" comment="0x14-Mode Change Event">								<includeblk name="blk_mode_change_event"/>									</case>
+	 			<case value="21" comment="0x15-Return Link Keys Event">							<includeblk name="blk_return_link_keys_event"/>								</case>
+				<case value="22" comment="0x16-PIN Code Request Event">							<includeblk name="blk_pin_code_request_event"/>								</case>
+				<case value="23" comment="0x17-Link Key Request Event">							<includeblk name="blk_link_key_request_event"/>								</case>
+				<case value="24" comment="0x18-Link Key Notification Event">					<includeblk name="blk_link_key_notification_event"/>						</case>
+				<case value="25" comment="0x19-Loopback Command Event">							<includeblk name="blk_loopback_command_event"/>								</case>
+				<case value="26" comment="0x1A-Data Buffer Overflow Event">						<includeblk name="blk_databuffer_overflow_event"/>							</case>
+				<case value="27" comment="0x1B-Max Slots Change Event">							<includeblk name="blk_max_slots_change_event"/>								</case>
+				<case value="28" comment="0x1C-Read Clock Offset Complete Event">				<includeblk name="blk_read_clock_offset_complete_event"/>					</case>
+				<case value="29" comment="0x1D-Connection Packet Type Changed Event">			<includeblk name="blk_connection_packet_type_changed_event"/>				</case>
+				<case value="30" comment="0x1E-QoS Violation Event">							<includeblk name="blk_qos_violation_event"/>								</case>
+				<case value="31" comment="0x1F-Page Scan Mode Change Event">					<includeblk name="blk_page_scan_mode_change_event"/>						</case>
+				<case value="32" comment="0x20-Page Scan Repetition Mode Change Event">			<includeblk name="blk_page_scan_repetition_mode_change_event"/>				</case>
+
+				<default>
+ 					<field type="variable" name="event_parameters" longname="(Default) Event Parameters" expr="buf2int(event_data_length)" showtemplate="Field2BytesHexDash"/>
+ 				</default>
+ 			</switch>
+		</fields>
+
+
+		<block name="blk_inquiry_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+		</block>
+
+		<block name="blk_inquiry_result_event" longname="Event Parameters">
+			<field type="fixed" name="num_response" longname="Number of Responses from the Inquiry" size="1" showtemplate="FieldDec"/>
+
+			<block name="result_list" longname="Inquiry Responses">
+				<loop type="times2repeat" expr="buf2int(num_response)">
+					<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+					<field type="fixed" name="page_scan_repetition_mode" longname="Page Scan Repetition Mode" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="page_scan_period_mode" longname="Page Scan Perod Mode" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="page_scan_mode" longname="Page Scan Mode" size="1" showtemplate="bluetooth.page_scan_mode"/>
+					<field type="fixed" name="class_of_device" longname="Class of Device" size="3" showtemplate="FieldDec"/>
+					<field type="fixed" name="clock_offset" longname="Clock Offset" size="2" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="blk_connection_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="link_type" longname="Link Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="encryption_mode" longname="Encryption Mode" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_connection_request_event" longname="Event Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="class_of_device" longname="Class of Device" size="3" showtemplate="FieldDec"/>
+			<field type="fixed" name="link_type" longname="Link Type" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_disconnection_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="reason" longname="Reason" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_authentication_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_remote_name_request_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="remote_name" longname="Remote Name" size="248" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="blk_encryption_change_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="encryption_enable" longname="Encryption Enable" size="1" showtemplate="bluetooth.encryption_enable"/>
+		</block>
+
+		<block name="blk_change_connection_link_key_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_master_link_key_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="key_flag" longname="Key Flag" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_remote_supported_features_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="lmp_features" longname="LMP Features" size="8" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="blk_read_remote_version_information_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="lmp_version" longname="LMP Version" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="manufacturer_name" longname="Manufacturer Name" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="lmp_subversion" longname="LMP Subversion" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_qos_setup_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="flag" longname="Flag" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="service_type" longname="Service Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="token_rate" longname="Token rate" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="peak_bandwidth" longname="Peak Bandwidth" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="latency" longname="Latency" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="delay_variation" longname="Delay Variation" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_command_complete_event" longname="Event Parameters">
+			<field type="fixed" name="num_hci_command_packets" longname="Number of HCI Command Packets" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="command_opcode" longname="Command Opcode" size="2" showtemplate="FieldDec"/>
+			<!-- Return Parameters -->
+			<field type="variable" name="event_parameters" longname="Event Parameters" expr="buf2int(event_data_length) - 3" showtemplate="Field2BytesHexDash"/>
+		</block>
+
+		<block name="blk_command_status_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="num_hci_command_packets" longname="Number of HCI Command Packets" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="command_opcode" longname="Command Opcode" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_hardware_error_event" longname="Event Parameters">
+			<field type="fixed" name="hardware_code" longname="Hardware Code" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_flush_occured_event" longname="Event Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_role_change_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="new_role" longname="New Role" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_number_of_completed_packets_event" longname="Event Parameters">
+			<field type="fixed" name="number_of_handles" longname="Number of Handles" size="1" showtemplate="FieldDec"/>
+
+			<block name="completed_packets_list" longname="Completed Packets List">
+				<loop type="times2repeat" expr="buf2int(number_of_handles)">
+					<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="hc_num_of_completed_packets" longname="HC Number of Complted Packets" size="2" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="blk_mode_change_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="current_mode" longname="Current Mode" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="interval" longname="Interval" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_return_link_keys_event" longname="Event Parameters">
+			<field type="fixed" name="num_key" longname="Number of Keys" size="1" showtemplate="FieldDec"/>
+
+			<block name="key_list" longname="Completed Packets List">
+				<loop type="times2repeat" expr="buf2int(num_key)">
+					<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+					<field type="fixed" name="link_key" longname="Link Key" size="16" showtemplate="Field1BytesHex"/>
+				</loop>
+			</block>
+		</block>
+
+		<!-- ************************************************************ -->
+		<block name="blk_pin_code_request_event" longname="Event Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="blk_link_key_request_event" longname="Event Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="blk_link_key_notification_event" longname="Event Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="link_key" longname="Link Key" size="16" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="key_type" longname="Key Type" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_loopback_command_event" longname="Event Parameters">
+	 		<field type="variable" name="hci_command_packet" longname="HCI Command Packet" expr="buf2int(event_data_length)" showtemplate="Field2BytesHexDash"/>
+		</block>
+
+		<block name="blk_databuffer_overflow_event" longname="Event Parameters">
+			<field type="fixed" name="link_type" longname="Link Type" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_max_slots_change_event" longname="Event Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="lmp_max_slots" longname="LMP Max Slots" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_clock_offset_complete_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="clock_offset" longname="Clock Offset" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_connection_packet_type_changed_event" longname="Event Parameters">
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="hci_event.status"/>
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="packet_type" longname="Packet Type" size="2" showtemplate="hci_command.packet_type"/>
+		</block>
+
+		<block name="blk_qos_violation_event" longname="Event Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_page_scan_mode_change_event" longname="Event Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="page_scan_mode" longname="Page Scan Mode" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_page_scan_repetition_mode_change_event" longname="Event Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="page_scan_repetition_mode" longname="Page Scan Repetition Mode" size="1" showtemplate="FieldDec"/>
+		</block>
+	</format>
+
+
+	<visualization>
+		<showtemplate name="hci_event.status" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Succeeded"/>
+					<default show="Failed"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_event.hci_event_code" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" comment="0x01" show="Inquiry Complete Event"/>
+					<case value="2" comment="0x02" show="Inquiry Result Event"/>
+					<case value="3" comment="0x03" show="Connection Complete Event"/>
+					<case value="4" comment="0x04" show="Connection Request Event"/>
+					<case value="5" comment="0x05" show="Disconnection Complete Event"/>
+					<case value="6" comment="0x06" show="Authentication Complete Event"/>
+					<case value="7" comment="0x07" show="Remote Name Request Complete Event"/>
+					<case value="8" comment="0x08" show="Encryption Change Event"/>
+					<case value="9" comment="0x09" show="Change Connection Link Key Complete Event"/>
+					<case value="10" comment="0x0A" show="Master Link Key Complete Event"/>
+					<case value="11" comment="0x0B" show="Read Remote Supported Features Complete Event"/>
+					<case value="12" comment="0x0C" show="Read Remote Version Information Complete Event"/>
+					<case value="13" comment="0x0D" show="QoS Setup Complete Event"/>
+					<case value="14" comment="0x0E" show="Command Complete Event"/>
+					<case value="15" comment="0x0F" show="Command Status Event"/>
+					<case value="16" comment="0x10" show="Hardware Error Event"/>
+					<case value="17" comment="0x11" show="Flush Occurred Event"/>
+					<case value="18" comment="0x12" show="Role Change Event"/>
+					<case value="19" comment="0x13" show="Number of Completed Packets Event"/>
+					<case value="20" comment="0x14" show="Mode Change Event"/>
+					<case value="21" comment="0x15" show="Return Link Keys Event"/>
+					<case value="22" comment="0x16" show="PIN Code Request Event"/>
+					<case value="23" comment="0x17" show="Link Key Request Event"/>
+					<case value="24" comment="0x18" show="Link Key Notification Event"/>
+					<case value="25" comment="0x19" show="Loopback Command Event"/>
+					<case value="26" comment="0x1A" show="Data Buffer Overflow Event"/>
+					<case value="27" comment="0x1B" show="Max Slots Change Event"/>
+					<case value="28" comment="0x1C" show="Read Clock Offset Complete Event"/>
+					<case value="29" comment="0x1D" show="Connection Packet Type Changed Event"/>
+					<case value="30" comment="0x1E" show="QoS Violation Event"/>
+					<case value="31" comment="0x1F" show="Page Scan Mode Change Event"/>
+					<case value="32" comment="0x20" show="Page Scan Repetition Mode Change Event"/>
+					<default comment="Default" show="Unknown Event Type"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="hci_event">
+				<section name="next"/>
+				<text value="Packet Name:"/>
+				<protofield name="hci_event_code" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

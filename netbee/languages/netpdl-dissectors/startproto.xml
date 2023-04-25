@@ -1,0 +1,153 @@
+<protocol name="startproto" longname="Starting Protocol (used for beginning the parsing)" showsumtemplate="startproto">
+		<execute-code>
+		<init>
+			<!-- Alias list -->
+			<!-- Please do not change these values, since these are used inside the NetBee code -->
+			<alias name="%NOTFOUND" replacewith="0"/>
+			<alias name="%FOUND" replacewith="1"/>
+			<alias name="%CANDIDATE" replacewith="2"/>
+			<alias name="%DEFERRED" replacewith="3"/>
+
+			<!-- NetPDL default variables -->
+			<variable name="$linklayer" type="number" validity="static"/>
+			<variable name="$framelength" type="number" validity="thispacket"/>
+			<variable name="$packetlength" type="number" validity="thispacket"/>
+			<variable name="$currentoffset" type="number" validity="thispacket"/>
+			<variable name="$currentprotooffset" type="number" validity="thispacket"/>
+			<variable name="$timestamp_sec" type="number" validity="thispacket"/>
+			<variable name="$timestamp_usec" type="number" validity="thispacket"/>
+			<variable name="$packet" type="refbuffer" validity="thispacket"/>
+			<variable name="$prevproto" type="protocol" validity="thispacket"/>
+			<variable name="$nextproto" type="protocol" validity="thispacket"/>
+			<variable name="$protoverify_result" type="number" validity="thispacket"/>
+
+			<!-- Variables for tokenXXX fields; these are updated after each field (of the proper type), so we do not have to reset them at each packet -->
+			<variable name="$token_begintlen" type="number" validity="static"/>
+			<variable name="$token_fieldlen" type="number" validity="static"/>
+			<variable name="$token_endtlen" type="number" validity="static"/>
+
+			<!-- Required configuration variables (usually used for selecting some optional functions in the code) -->
+			<variable name="$show_networknames" type="number" validity="static"/>
+			<variable name="$enable_servertable" type="number" validity="static" value="0"/>
+
+			<!-- Variables required for L4-L7 processing -->
+			<variable name="$ipsrc" type="refbuffer" validity="thispacket"/>
+			<variable name="$ipdst" type="refbuffer" validity="thispacket"/>
+			<variable name="$L4proto" type="protocol" validity="thispacket"/>
+			<variable name="$portsrc" type="refbuffer" validity="thispacket"/>
+			<variable name="$portdst" type="refbuffer" validity="thispacket"/>
+
+			<variable name="$firstip" type="refbuffer" validity="thispacket"/>
+			<variable name="$secondip" type="refbuffer" validity="thispacket"/>
+			<variable name="$firstport" type="refbuffer" validity="thispacket"/>
+			<variable name="$secondport" type="refbuffer" validity="thispacket"/>
+
+			<variable name="$type" type="number" validity="thispacket"/>
+			<variable name="$proc" type="number" validity="thispacket"/>
+			<variable name="$payloadlength" type="number" validity="thispacket" value="0"/>
+			
+			<variable name="$sess_table_hit" type="number" validity="thispacket" value="0"/>
+			<variable name="$ks_table_hit" type="number" validity="thispacket" value="0"/>
+			<variable name="$session_hit" type="number" validity="thispacket" value="0"/>
+
+			<!-- Lookup tables for L7 processing -->
+			<lookuptable name="$tcpsessiontable" exactentries="50000" maskentries="1000"  validity="dynamic">
+				<key name="ipsource" type="buffer" size="16"/>
+				<key name="ipdest" type="buffer" size="16"/>
+				<key name="tcpsrcport" type="buffer" size="2"/>
+				<key name="tcpdstport" type="buffer" size="2"/>
+				<data name="nextproto" type="protocol"/>
+				<data name="flag" type="number"/>
+			</lookuptable>
+			<lookuptable name="$udpsessiontable" exactentries="10000" maskentries="1000" validity="dynamic">
+				<key name="ipsource" type="buffer" size="16"/>
+				<key name="ipdest" type="buffer" size="16"/>
+				<key name="tcpsrcport" type="buffer" size="2"/>
+				<key name="tcpdstport" type="buffer" size="2"/>
+				<data name="nextproto" type="protocol"/>
+			</lookuptable>
+			<lookuptable name="$rtptable" exactentries="1000" maskentries="0" validity="dynamic">
+				<key name="ipsource" type="buffer" size="16"/>
+				<key name="ipdest" type="buffer" size="16"/>
+				<key name="srcport" type="buffer" size="2"/>
+				<key name="dstport" type="buffer" size="2"/>
+				<data name="ssrc" type="buffer" size="4"/>
+			</lookuptable>
+			<lookuptable name="$KnownServerTable" exactentries="10000" maskentries="0" validity="dynamic">
+				<key name="ipaddr" type="buffer" size="16"/>
+				<key name="port" type="buffer" size="2"/>
+				<data name="nextproto" type="protocol"/>				
+			</lookuptable>
+
+			<lookuptable name="$CandidateServersTable" exactentries="10000" maskentries="0" validity="dynamic">
+				<key name="ipaddr" type="buffer" size="16"/>
+				<key name="port" type="buffer" size="2"/>
+			</lookuptable>
+				
+			<lookuptable name="$KnownUDPServerTable" exactentries="10000" maskentries="0" validity="dynamic">
+				<key name="ipaddr" type="buffer" size="16"/>
+				<key name="port" type="buffer" size="2"/>
+				<data name="nextproto" type="protocol"/>				
+			</lookuptable>
+
+			<lookuptable name="$skypetempsessiontable" exactentries="10000" maskentries="0" validity="dynamic">
+				<key name="ipaddr" type="buffer" size="16"/>
+				<key name="port" type="buffer" size="2"/>
+				<data name="cnt" type="number" value="0"/>		
+				<data name="id" type="buffer" size="2"/>	
+			</lookuptable>
+			
+			<lookuptable name="$SkypeClientTable" exactentries="10000" maskentries="0" validity="dynamic">
+				<key name="ipaddr" type="buffer" size="16"/>
+				<key name="port" type="buffer" size="2"/>
+				<data name="nextproto" type="protocol"/>				
+			</lookuptable>
+
+			<lookuptable name="$unknownprotosessiontable" exactentries="50000" maskentries="0" validity="dynamic">
+				<key name="ipsource" type="buffer" size="16"/>
+				<key name="ipdest" type="buffer" size="16"/>
+				<key name="tcpsrcport" type="buffer" size="2"/>
+				<key name="tcpdstport" type="buffer" size="2"/>
+			</lookuptable>
+
+			<!-- this table contains information about rpc session -->
+			<lookuptable name="$rpctable" exactentries="1000" maskentries="0" validity="dynamic">
+				<key name="ipsource" type="buffer" size="16"/>
+				<key name="ipdest" type="buffer" size="16"/>
+				<key name="tcpsrcport" type="buffer" size="2"/>
+				<key name="tcpdstport" type="buffer" size="2"/>
+				<data name="prog" type="number"/>
+				<data name="proc" type="number"/>
+				<data name="type" type="number"/>
+			</lookuptable>
+		</init>
+	</execute-code>
+
+	<encapsulation>
+			<switch expr="$linklayer">
+<!-- Bluetooth -->
+<!--
+			<case value="1"> <nextproto proto="#hci_packet_type"/> </case>
+			<case value="13"> <nextproto proto="#hci"/> </case>
+-->
+			<case value="1"> <nextproto proto="#ethernet" preferred="true"/> </case>
+			<case value="6"> <nextproto proto="#tokenring"/> </case>
+			<case value="10"> <nextproto proto="#fddi"/> </case>
+			<!-- Some OSes use this for ATM/LLC encapsulation -->
+			<case value="11"> <nextproto proto="#llc"/> </case>
+			<case value="113"> <nextproto proto="#linux"/> </case>
+			<!-- Encapsulation not supported. Let's use Ethernet, hoping that is correct -->
+			<default> <nextproto proto="#ethernet" preferred="true"/> </default>
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="startproto">
+			<section name="NUMBER"/>
+			<packethdr value="num"/>
+
+			<section name="TIME"/>
+			<packethdr value="timestamp"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

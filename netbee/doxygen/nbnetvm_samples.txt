@@ -1,0 +1,28 @@
+
+/** \example netvmexec.c
+
+<hr>
+
+This program loads an NetIL assembly file and executes it. It creates a NetVM environment with a single NetPE (single input and single output) and it loads the NetIL code into that PE.
+This program has been engineered with filtering in mind; the output may be unsatisfactory in case the program does not perform packet filtering.
+Processing data (i.e., packets) is loaded from either a physical interface or a file on disk.
+Filtered packets can be saved on pcap file ('-o' option).
+
+This program uses the NetVM control plane API, exploiting its basic functions to create the NetVM runtime environment and execute NetVM applications.
+In this example, PUSH connections are used to interconnect the packet source, the single NetPE execution engine, and the packet receiver (e.g. the callback function).
+It is trivial to extend this sample in order to have more complex topologies (e.g., multiple NetPEs).
+*/
+
+
+
+/**\example netvmcompiler.c
+
+<hr>
+This program loads one or more NetIL assembly files and compiles them into native code, according to the selected backend.
+This program does not execute the resulting code; it loads each NetIL file (specified on the command line), it creates a new NetPE for each file and it generates the corresponding native code.
+The resulting NetPE are connected together (the output of the first will become the input of the second), creating a 'pipeline' of NetPEs.
+Finally, the assembly files associated to each NetPE are dumped on disk.
+
+Programs can be executed by the <code>netvmexec</code> sample, which is however limited to a single NetPE (that does filtering).
+
+*/

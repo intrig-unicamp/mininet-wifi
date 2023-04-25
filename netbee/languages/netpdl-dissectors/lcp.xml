@@ -1,0 +1,89 @@
+<protocol name="lcp" longname="LCP (Link Control Protocol)" showsumtemplate="lcp">
+	<format>
+		<fields>
+			<field type="fixed" name="code" longname="Code" size="1" showtemplate="lcp.code"/>
+			<field type="fixed" name="identifier" longname="Identifier" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="len" longname="Length" size="2" showtemplate="FieldDec"/>
+			<if expr="buf2int(code) == 8">
+				<if-true>
+					<field type="fixed" name="rejpro" longname="Rejected Protocol" size="2" showtemplate="FieldHex"/>
+				</if-true>
+			</if>
+			<if expr="buf2int(code) == 9 or buf2int(code) == 10 or buf2int(code) == 11 or buf2int(code) == 12">
+				<if-true>
+					<field type="fixed" name="magic" longname="Magic Number" size="4" showtemplate="FieldDec"/>
+				</if-true>
+			</if>
+			<loop type="size" expr="buf2int(len)-4">
+				<!-- Here a switch could be better in order to provide
+				a better decription of each option-->
+				<field type="fixed" name="opt_type" longname="Option type" size="1" showtemplate="lcp.opt.type"/>
+				<field type="fixed" name="opt_len" longname="Option length" size="1" showtemplate="FieldDec"/>
+				<field type="variable" name="opt_data" longname="Option data" expr="buf2int(opt_len)-2" showtemplate="FieldHexBin"/>								
+			</loop>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="lcp">
+			<text value=" - LCP"/>
+		</showsumtemplate>
+
+		<showtemplate name="lcp.code" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Configure-Request"/> 
+					<case value="2" show="Configure-Ack"/> 
+					<case value="3" show="Configure-Nak"/> 
+					<case value="4" show="Configure-Reject"/> 
+					<case value="5" show="Terminate-Request"/> 
+					<case value="6" show="Terminate-Ack"/>
+					<case value="7" show="Code-Reject"/>
+					<case value="8" show="Protocol-Reject"/>
+					<case value="9" show="Echo-Request"/>
+					<case value="10" show="Echo-Reply"/>
+					<case value="11" show="Discard-Request"/>
+					<case value="12" show="Link-Quality Report"/>
+					<default show="Error in code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="lcp.opt.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<!--for more info see http://www.networksorcery.com/enp/protocol/LCP.htm-->
+					<case value="0" show="Vendor Specific"/> 
+					<case value="1" show="Maximum-Receive-Unit"/> 
+					<case value="3" show="Authentication-Protocol"/> 
+					<case value="4" show="Quality-Protocol"/> 					
+					<case value="5" show="Magic-Number"/> 
+					<case value="7" show="Protocol-Field-Compression (Deprecated)"/>
+					<case value="8" show="Address-and-Control-Field-Compression"/>
+					<case value="9" show="FCS-Alternatives"/>
+					<case value="10" show="Self-Describing-Pad"/>
+					<case value="11" show="Numbered-Mode"/>
+					<case value="12" show="Identification"/>
+					<case value="13" show="Callback"/>
+					<case value="14" show="Connect-Time (Deprecated)"/>
+					<case value="15" show="Compound-Frames (Deprecated)"/>
+					<case value="16" show="Nominal-Data-Encapsulation (Deprecated)"/>
+					<case value="17" show="Multilink Max-Receive-Reconstructed-Unit (MRRU)"/>
+					<case value="18" show="Multilink Short Sequence Number Header Format"/>
+					<case value="19" show="Multilink Endpoint Discriminator"/>
+					<case value="20" show="Proprietary"/>
+					<case value="21" show="DCE-Identifier"/>
+					<case value="22" show="MP+ Procedure Option"/>
+					<case value="23" show="Link Discriminator for BACP."/>
+					<case value="24" show="LCP-Authentication-Option"/>
+					<case value="25" show="COBS (Consistent Overhead Byte Stuffing)"/>					
+					<case value="26" show="Prefix Elision"/>
+					<case value="27" show="Multilink header format"/>
+					<case value="28" show="Internationalization"/>
+					<case value="29" show="Simple Data Link on SONET/SDH"/>					
+					<default show="Error option code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>

@@ -1,0 +1,109 @@
+<protocol name="gre" longname="GRE (Generic Router Encapsulation)" showsumtemplate="gre">
+	<format>
+		<fields>
+			<switch expr="buf2int($packet[$currentoffset:2]) bitwand 0x0007">
+				<case value="0">
+					<field type="fixed" name="flag" longname="Flags" size="2" showtemplate="FieldHex">
+						<field type="bit" name="cflag" longname="Checksum present" mask="0x8000" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="rflag" longname="Routing present" mask="0x4000" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="kflag" longname="Key present" mask="0x2000" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="snflag" longname="Sequence Number present" mask="0x1000" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="srflag" longname="Strict Source Route" mask="0x0800" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="recurflag" longname="Recursion Control" mask="0x0700" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="reserved" longname="Reserved" mask="0x00F8" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="vflag" longname="Version" mask="0x0007" size="2" showtemplate="FieldBin"/>
+					</field>
+
+					<field type="fixed" name="protocol" longname="Protocol type" size="2" showtemplate="FieldHex"/>
+
+					<if expr="buf2int(cflag) or buf2int(rflag)">
+						<if-true>
+							<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+							<field type="fixed" name="roffset" longname="Routing Offset" size="2" showtemplate="FieldDec"/>
+						</if-true>
+					</if>
+
+					<!-- These fields have been deprecated in the new GRE RFC (post RFC 1701) -->
+					<if expr="buf2int(kflag)">
+						<if-true>
+							<field type="fixed" name="key" longname="Key" size="4" showtemplate="FieldHex"/>
+						</if-true>
+					</if>
+					<if expr="buf2int(snflag)">
+						<if-true>
+							<field type="fixed" name="seq" longname="Sequence Number" size="4" showtemplate="FieldHex"/>
+						</if-true>
+					</if>
+
+					<if expr="buf2int(rflag)">
+						<if-true>
+							<loop type="do-while" expr="buf2int(sre_afamily) or buf2int(sre_length)">								
+								<block name="sre" longname="Source Routing Entry">
+									<field type="fixed" name="sre_afamily" longname="SRE Address Family" size="2" showtemplate="FieldHex"/>
+									<field type="fixed" name="sre_offset" longname="SRE Offset" size="1" showtemplate="FieldDec"/>
+									<field type="fixed" name="sre_length" longname="SRE Length" size="1" showtemplate="FieldDec"/>
+									<field type="variable" name="sre_route" longname="SRE Routing Information" expr="buf2int(sre_length)" showtemplate="FieldHex"/>
+								</block>
+							</loop>
+						</if-true>
+					</if>
+				</case>
+
+				<case value="1">
+					<field type="fixed" name="flag" longname="Flags" size="2" showtemplate="FieldHex">
+						<field type="bit" name="cflag" longname="Checksum present" mask="0x8000" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="rflag" longname="Routing present" mask="0x4000" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="kflag" longname="Key present" mask="0x2000" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="snflag" longname="Sequence Number present" mask="0x1000" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="srflag" longname="Strict Source Route" mask="0x0800" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="recurflag" longname="Recursion Control" mask="0x0700" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="aflag" longname="Acknowledgement present" mask="0x0080" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="reserved" longname="Reserved" mask="0x00780" size="2" showtemplate="FieldBin"/>
+						<field type="bit" name="vflag" longname="Version" mask="0x0007" size="2" showtemplate="FieldBin"/>
+					</field>
+					<field type="fixed" name="protocol" longname="Protocol type" size="2" showtemplate="FieldHex"/>
+					<field type="fixed" name="plen" longname="Payload length" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="callid" longname="Call ID" size="2" showtemplate="FieldDec"/>
+					<if expr="buf2int(snflag)">
+						<if-true>
+							<field type="fixed" name="seq" longname="Sequence Number" size="4" showtemplate="FieldHex"/>
+						</if-true>
+					</if>
+					<if expr="buf2int(aflag)">
+						<if-true>
+							<field type="fixed" name="ack" longname="Acnowledgement Number" size="4" showtemplate="FieldHex"/>
+						</if-true>
+					</if>
+				</case>
+			</switch>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<if expr="buf2int(vflag) == 1">
+			<if-true>
+				<switch expr="buf2int(protocol)">
+					<case value="0x880B"> <nextproto proto="#ppp"/> </case>
+				</switch>
+			</if-true>			
+		</if>	
+		<if expr="buf2int(vflag) == 0">
+			<if-true>
+				<switch expr="buf2int(protocol)">
+					<!--more protocols are defined in RFC1701, but they seems to be fairly uncommon-->
+					<case value="0x0800"> <nextproto proto="#ip"/> </case>
+					<case value="0x0806"> <nextproto proto="#arp"/> </case>					
+					<case value="0x880B"> <nextproto proto="#ppp"/> </case>
+				</switch>
+			</if-true>			
+		</if>		
+
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="gre">
+			<text value=" - GRE"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

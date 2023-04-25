@@ -1,0 +1,196 @@
+<protocol name="snmp" longname="SNMP (Simple Network Management Protocol)" showsumtemplate="snmp">
+<!--	BOOLEAN = 0x01
+		INTEGER = 0x02
+		BIT_STRING = 0x03
+		OCTET_STRING = 0x04
+		NULL = 0x05
+		OBJECT_ID = 0x06
+		REAL = 0x09
+		ENUMERATION = 0x0A
+		UTF8_STRING = 0x0C
+		GENERAL_STRING = 0x1B
+		SEQUENCE = 0x10
+		SET = 0x11
+-->
+	<execute-code>
+		<verify>
+			<!--<if expr="hasstring($packet[$currentoffset:0],'^\x30.*\x02\x01(\0|\0x1)',0) and (($packetlength - $currentoffset - 2) == buf2int($packet[$currentoffset +1:1]))">-->
+			<if expr="hasstring($packet[$currentoffset:0],'^\x30.*\x02\x01(\0|\0x1)',0) and ((($packetlength - $currentoffset - 2) == buf2int($packet[$currentoffset +1:1])) or (((buf2int($packet[$currentoffset+1 : 1]) bitwand 0x80  !=0) and (($packetlength - $currentoffset - 2 - (buf2int ($packet[$currentoffset +1 : 1]) bitwand 0x7F)) == buf2int ($packet[$currentoffset + 2 : buf2int($packet[$currentoffset + 1 : 1]) bitwand 0x7F ])))))">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+		
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#snmp"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#snmp"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#snmp"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#snmp"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+<!--
+	<execute-code>
+		<init>
+			<variable name="$SNMPtmp" type="number" validity="thispacket"/>
+		</init>
+	</execute-code>
+-->
+<!--	<format>
+
+		<fields>
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="length" longname="Message Length" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="ver" longname="Message Version" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+
+			<if expr="buf2int(ver) == 3">	-->	<!-- Just if version is equal to 3 -->
+<!--				<if-true>
+					<includeblk name="GlobHdr"/>
+					<includeblk name="SecHdr"/>
+				</if-true>
+			</if>
+
+
+			<loop type="while" expr="1">
+				<switch expr="buf2int($packet[$currentoffset:1])">
+-->
+					<!-- FULVIO: we have to define a 'fake' case, otherwise NetBee complains -->
+<!--					<case value="1">
+						<includeblk name="TEMP"/>
+						<loopctrl type="break"/>
+					</case>
+
+					<default>
+						<includeblk name="TEMP"/>
+						<loopctrl type="break"/>
+					</default>
+				</switch>
+			</loop>
+		</fields>
+
+
+		<block name="TEMP" longname="Unknown Option">
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="value" longname="Value" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="GlobHdr" longname="Global Header">
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="hlen" longname="Message Header Length" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="msgid" longname="Message ID" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="msgmaxs" longname="Message Max Size" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="msgflags" longname="Message Flags" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="msgsec" longname="Message Security Model" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="SecHdr" longname="Security Parameters">
+			<includeblk name="ASN1Enc"/> -->
+<!--
+			<field type="variable" name="hlen" longname="Message Header Length" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+-->
+<!--			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="autheng" longname="Authoritative Engine ID" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="engboots" longname="Engine Boots" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="endtime" longname="Engine Time" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="usrname" longname="User Name" expr="$SNMPtmp" showtemplate="FieldAscii"/>
+
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="authpar" longname="Authentication Parameter" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+
+			<includeblk name="ASN1Enc"/>
+			<field type="variable" name="pripar" longname="Privacy Parameter" expr="$SNMPtmp" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="ASN1Enc" longname="ASN1 Encoding Internal Info">
+			<field type="fixed" name="asn1type" longname="ASN.1 Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="asn1len" longname="ASN.1 Number of Bytes to Encode Length and Length" size="1" showtemplate="FieldDec"/>
+-->
+<!--
+			<assign-variable name="$SNMPtmp" value="buf2int(asn1len) bitwand 0x7F"/>
+			<if expr="(buf2int(asn1len) bitwand 0x80) != 0">
+				<if-true>
+					<assign-variable name="$SNMPtmp" scope="local" value="buf2int(asn1len) bitwand 0x7F"/>
+				</if-true>
+				
+				<if-false>
+					<assign-variable name="$SNMPtmp" scope="local" value="buf2int(asn1len) bitwand 0x7F"/>
+				</if-false>
+			</if>
+-->
+<!--		</block>-->
+	<format>
+		<fields>
+			<field type="variable" name="snmpdata" longname="SNMP Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="snmp">
+			<section name="next"/>
+			<text value="snmp"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

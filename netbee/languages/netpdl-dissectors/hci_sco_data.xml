@@ -1,0 +1,9 @@
+<protocol name="hci_sco_data" longname="HCI SCO Data">
+	<format>
+		<fields>
+			<field type="fixed" name="sco_connection_handle" longname="Connection Handle" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="sco_data_length" longname="Length of Data" size="1" showtemplate="FieldDec"/>
+ 			<field type="variable" name="sco_data_payload" longname="Data payload" expr="buf2int(sco_data_length)" showtemplate="Field2BytesHexDash"/>
+		</fields>
+	</format>
+</protocol>

@@ -1,0 +1,8 @@
+/** \example sockutilstest.cpp
+
+<hr>
+This program can be used to see how to use the <code>nbsockutils</code> cross-platform socket class. It creates a TCP connection (either IPv4 or IPv6) and it exchanges some data on it.
+
+This program should be launched twice, one time in 'server' mode and one in client mode. Once this has been done, the client will send a string (typed by the user) to the server, which will show the string on screen.
+
+*/

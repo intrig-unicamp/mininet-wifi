@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+    
+    <xs:element name="psml">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="structure"/> 
+                <xs:element ref="packet" minOccurs="1" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:string"/>
+            <xs:attribute name="creator" type="xs:string"/>
+            <xs:attribute name="dissectors" type="xs:string"/>
+            <xs:attribute name="date" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="structure">
+       <xs:complexType>
+           <xs:sequence>
+               <xs:element ref="section" minOccurs="0" maxOccurs="unbounded"/>
+           </xs:sequence>
+       </xs:complexType>
+   </xs:element>
+
+   <xs:element name="packet">
+       <xs:complexType>
+           <xs:sequence>
+               <xs:element ref="section" minOccurs="0" maxOccurs="unbounded"/>
+           </xs:sequence>
+       </xs:complexType>
+   </xs:element>
+
+   <xs:element name="section" type="xs:string"/>
+
+</xs:schema>

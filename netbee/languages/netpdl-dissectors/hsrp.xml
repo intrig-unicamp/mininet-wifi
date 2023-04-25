@@ -1,0 +1,98 @@
+<protocol name="hsrp" longname="Cisco Hot Standby Router Protocol (HSRP)" showsumtemplate="hsrp">
+	<execute-code>
+		<verify>
+			<if expr="$ipdst == '\xE0\x00\x00\x02'and buf2int(dport) == 1985">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>				
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#hsrp"/>
+			</update-lookuptable>	
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#hsrp"/>
+			</update-lookuptable>
+
+		</before>			
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="fixed" name="ver" longname="Version" comment="The only version supported is 0" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="opcode" longname="Operation Code" size="1" showtemplate="hsrp.opcode"/>
+			<field type="fixed" name="state" longname="State" size="1" showtemplate="hsrp.state"/>
+			<field type="fixed" name="helloTime" longname="Hello Time (sec)" description="Seconds between two Hello messages (Used only in Hello messages)" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="holdTime" longname="Hold Time (sec)" description="Time that the current Hello message should be considered valid (used only in Hello messages)" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="priority" longname="Priority" description="Higher value equal higher priority" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="group" longname="Group" description="For Token Ring, values between 0 and 2 inclusive are valid. For other media values between 0 and 255 inclusive are valid." size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="reserv" longname="Reserved" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="authData" longname="Authentification Data" size="8" showtemplate="FieldAscii"/>
+			<field type="fixed" name="vipAddr" longname="Virtual IP Address" size="4" showtemplate="ip4addr-noplg"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showtemplate name="hsrp.opcode" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Hello Message: router is running and is capable of becoming the active or standby router"/> 
+					<case value="1" show="Coup Message: router wishes to become the active router"/> 
+					<case value="2" show="Resign Message: router no longer wishes to be the active router"/>
+					<case value="3" show="Advertise Message: initial message sent by the router, but not documented in RFC"/>
+					<default show="Error in HSRP code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hsrp.state" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Init: HSRP is not running, bootstrap or configuration change"/> 
+					<case value="1" show="Learn: HSRP is running but the router does not know the virtual IP Address"/> 
+					<case value="2" show="Listen: the router knows the virtual IP address, but is neither the active router nor the standby router"/>
+					<case value="4" show="Speak: the router is participating in the election of the active and/or standby router"/>
+					<case value="8" show="Standby: the router is the Standby router"/>
+					<case value="16" show="Active: the router is the Active router"/>
+					<default show="Error in HSRP State code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="hsrp">
+			<section name="next"/>
+			<text value="HSRP "/>
+
+			<if expr="buf2int(opcode) == 0"> <if-true> <text value="Hello"/> </if-true> </if>
+			<if expr="buf2int(opcode) == 1"> <if-true> <text value="Coup"/> </if-true> </if>
+			<if expr="buf2int(opcode) == 2"> <if-true> <text value="Resign"/> </if-true> </if>
+			<if expr="buf2int(opcode) == 3"> <if-true> <text value="Advertise"/> </if-true> </if>
+
+			<text value=": State "/>
+
+			<if expr="buf2int(state) == 0"> <if-true> <text value="Init"/> </if-true> </if>
+			<if expr="buf2int(state) == 1"> <if-true> <text value="Learn"/> </if-true> </if>
+			<if expr="buf2int(state) == 2"> <if-true> <text value="Listen"/> </if-true> </if>
+			<if expr="buf2int(state) == 4"> <if-true> <text value="Speak"/> </if-true> </if>
+			<if expr="buf2int(state) == 8"> <if-true> <text value="Standby"/> </if-true> </if>
+			<if expr="buf2int(state) == 16"> <if-true> <text value="Active"/> </if-true> </if>
+
+			<text value=", Priority "/>
+			<protofield name="priority" showdata="showvalue"/>
+			<text value=", Group "/>
+			<protofield name="group" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

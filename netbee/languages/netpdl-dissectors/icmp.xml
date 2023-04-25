@@ -1,0 +1,249 @@
+<protocol name="icmp" longname="ICMP (Internet Control Message Protocol)" showsumtemplate="icmp">
+	<format>
+		<fields>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="icmp.type"/>
+
+			<!-- fields switch -->
+			<switch expr="buf2int(type)">
+				<case value="0">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="echoreply"/>
+				</case>
+
+				<case value="3">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="icmp.DestUnreachCode"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="destunreach"/>
+				</case>
+
+				<case value="4">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="squence"/>
+				</case>
+
+				<case value="5">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="icmp.RedirectCode"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="redirect"/>
+				</case>
+
+				<case value="8">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="echoreq"/>
+				</case>
+
+				<case value="9">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="radv"/>
+				</case>
+
+				<case value="10">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="rsol"/>
+				</case>
+
+				<case value="11">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="timeex"/>
+				</case>
+
+				<case value="12">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="paramprob"/>
+				</case>
+
+				<case value="13">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="tsreq"/>
+				</case>
+
+				<case value="14">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="tsreply"/>
+				</case>
+
+				<case value="17">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="maskreq"/>
+				</case>
+
+				<case value="18">
+					<field type="fixed" name="code" longname="Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="maskreply"/>
+				</case>
+
+			</switch>
+		</fields>
+
+		<block name="echoreq" longname="Echo Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="seqn" longname="Sequence number" size="2" showtemplate="FieldDec"/> 
+			<field type="variable" name="data" longname="Padding Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="echoreply" longname="Echo Reply">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="seqn" longname="Sequence number" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="data" longname="Padding Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="redirect" longname="Redirect">
+			<field type="fixed" name="address" longname="IP address" size="4" showtemplate="ip4addr-noplg"/> 
+		</block>
+
+		<block name="destunreach" longname="Destination Unreachable">
+			<field type="fixed" name="unused" longname="Unused (must be zero)" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="squence" longname="Source Quence">
+			<field type="fixed" name="unused" longname="Unused (must be zero)" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="timeex" longname="Time Exceeded for a Datagram">
+			<field type="fixed" name="unused" longname="Unused (must be zero)" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="paramprob" longname="Parameter Problem for a Datagram">
+			<field type="bit" name="pointer" longname="Pointer" mask="0xFF000000" size="4" showtemplate="FieldBin"/>
+			<field type="bit" name="unused" longname="Unused" mask="0x00FFFFFF" size="4" showtemplate="FieldBin"/>
+		</block>
+
+		<block name="tsreq" longname="Timestamp Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sequenum" longname="Sequence Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="otimestamp" longname="Originate Timestamp" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="rtimestamp" longname="Receive Timestamp" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="ttimestamp" longname="Transmit Timestamp" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="tsreply" longname="Timestamp Reply">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sequenum" longname="Sequence Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="otimestamp" longname="Originate Timestamp" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="rtimestamp" longname="Receive Timestamp" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="ttimestamp" longname="Transmit Timestamp" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="maskreq" longname="Address Mask Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sequenum" longname="Sequence Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="addmask" longname="Address Mask" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="maskreply" longname="Address Mask Reply">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sequenum" longname="Sequence Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="addmask" longname="Address Mask" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="radv" longname="Router Solicitation">
+			<field type="fixed" name="numadd" longname="NumAddr" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="addrsize" longname="AddrSize" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="lifetime" longname="LifeTime" size="2" showtemplate="FieldDec"/>
+			<block name="Address" longname="Address">
+				<loop type="times2repeat" expr="buf2int(numadd)">
+					<field type="fixed" name="routeaddr" longname="Router Address" size="4" showtemplate="ip4addr-noplg"/> 
+					<field type="fixed" name="preflevel" longname="Preference Level" size="4" showtemplate="FieldDec"/> 
+				</loop>
+			</block>
+		</block>
+
+		<block name="rsol" longname="Router Advertisement">
+			<field type="fixed" name="reserved" longname="Reserved" size="4" showtemplate="FieldDec"/>
+		</block>
+	</format>
+
+	<encapsulation>
+		<!--
+			Ivano:
+				Some ICMP packets carry the IP datagram that caused the error.
+				The encapsulation section was written according with the ICMP
+				descriptions provided at the following addresses:
+					* http://tools.ietf.org/html/rfc792
+					* http://www.ietf.org/rfc/rfc1256.txt
+					* http://www.rfc-editor.org/rfc/rfc950.txt
+		-->
+		<if expr="(buf2int(type) == 3) or (buf2int(type) == 4) or (buf2int(type) == 5) 
+					or (buf2int(type) == 11) or (buf2int(type) == 12)">
+			<if-true>
+				<nextproto proto="#ip" preferred="true"/>
+			</if-true>
+		</if>
+	</encapsulation>
+
+	<visualization>
+		<showtemplate name="icmp.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Echo Reply"/>
+					<case value="3" show="Destination Unreachable"/>
+					<case value="4" show="Source Quence"/>
+					<case value="5" show="Redirect"/>
+					<case value="8" show="Echo Request"/>
+					<case value="9" show="Router Advertisement"/>
+					<case value="10" show="Router Solicitation"/>
+					<case value="11" show="Time exceeded for a Datagram"/>
+					<case value="12" show="Parameter Problem on a Datagram"/>
+					<case value="13" show="Timestamp Request"/>
+					<case value="14" show="Timestamp Reply"/>
+					<case value="15" show="Information Request (obsolete)"/>
+					<case value="16" show="Information Reply (obsolete)"/>
+					<case value="17" show="Address Mask Request"/>
+					<case value="18" show="Address Mask Reply"/>
+					<default show="Error in ICMP Type lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp.DestUnreachCode" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Network Unreachable"/>
+					<case value="1" show="Host Unreachable"/>
+					<case value="2" show="Protocol Unreachable"/>
+					<case value="3" show="Port Unreachable"/>
+					<case value="4" show="Fragmentation needed and DF set"/>
+					<case value="5" show="Source routed failed"/>
+					<case value="6" show="Destination network failed"/>
+					<case value="7" show="Destination host failed"/>
+					<case value="8" show="Source host isolated"/>
+					<case value="9" show="Communication with destination network administratively prohibited"/>
+					<case value="10" show="Communication with destination host administratively prohibited"/>
+					<case value="11" show="Network unreachable for type of service"/>
+					<case value="12" show="Host unreachable for type of service"/>
+					<default show="Error in ICMP Destination Unreachable code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="icmp.RedirectCode" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Redirect datagrams for the Network"/>
+					<case value="1" show="Redirect datagrams for the Host"/>
+					<case value="2" show="Redirect datagrams for the Type of Service and Network"/>
+					<case value="3" show="Redirect datagrams for the Type of Service and Host"/>
+					<default show="Error in ICMP Redirect code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="icmp">
+			<section name="next"/>
+			<text value="ICMP "/>
+			<protofield name="type" showdata="showmap"/>
+		</showsumtemplate>
+
+	</visualization>
+</protocol>

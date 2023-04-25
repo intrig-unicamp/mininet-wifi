@@ -1,0 +1,41 @@
+<protocol name="bootp" longname="Boot Protocol" showsumtemplate="bootp">
+	<format>
+		<fields>
+			<field type="fixed" name="code" longname="Code" size="1" showtemplate="dhcp.code"/>
+			<field type="fixed" name="htype" longname="Hardware address type" description="Hardware address type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="hlen" longname="Hardware address length" description="Hardware address length (e.g. '6' for 10mb ethernet)" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="hops" longname="hops" description="Client sets to zero, optionally used by relay agents when booting via a relay agent" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="xid" longname="Transation ID" description="a random number chosen by the client, used by the client and server to associate messages and responses between a client and a server" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="secs" longname="Second elapsed" description="Filled in by client, seconds elapsed since client began address acquisition or renewal process" size="2" showtemplate="FieldDec"/>
+			<block name="flags" longname="Flags" description="Flags">
+				<field type="bit" name="MBZ" longname="Must be zero" description="MUST BE ZERO (reserved for future use)" mask="0xFFFE" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="B" longname="Broadcast flag" description="Broadcast flag" mask="0x0001" size="2" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="ciaddr" longname="Client IP address" description="Client IP address; only filled in if client is in BOUND, RENEW or REBINDING state and can respond to ARP requests" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="yiaddr" longname="Your IP Address" description="'your' (client) IP address" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="siaddr" longname="IP of next server to use in bootstrap" description="IP address of next server to use in bootstrap; returned in DHCPOFFER, DHCPACK by server" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="giaddr" longname="Relay agent IP address" description="Relay agent IP address, used in booting via a relay agent." size="4" showtemplate="ip4addr-noplg"/>
+
+			<field type="variable" name="chaddr" longname="Client hardware address" description="Client hardware address" expr="buf2int(hlen)" showtemplate="MAC-colon"/>
+			<field type="variable" name="chaddr_realign" longname="Client hardware address realign" expr="16 - buf2int(hlen)" showtemplate="Field4BytesHex"/>
+
+			<field type="fixed" name="sname" longname="Server host name" description="Optional server host name, null terminated string" size="64" showtemplate="FieldAscii"/>
+			<field type="fixed" name="file" longname="Boot file name" description="Boot file name, null terminated string; 'generic' name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER" size="128" showtemplate="FieldAscii"/>
+
+			<field type="fixed" name="magic" longname="Vendor Magic Cookie (often 0x63825363)" size="4" showtemplate="FieldHex" description="This field defines how has to be interpreted next section; the value 0x63825363 ahs been standardized as 'vendor independent' and it is the mostly used value."/>
+
+			<field type="variable" name="vendor" longname="Vendor" description="Length must be 60 bytes" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="bootp">
+			<section name="next"/>
+			<text value="BOOTP "/>
+			<protofield name="code" showdata="showmap"/>
+			<text value=": Transaction ID "/>
+			<protofield name="xid" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>

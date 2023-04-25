@@ -1,0 +1,38 @@
+<protocol name="ncp" longname="Netware Core Protocol" showsumtemplate="ncp">
+	<format>
+		<fields>
+			<field type="fixed" name="reqtype" longname="Request Type" size="2" showtemplate="reqtype"/>
+			<field type="fixed" name="seqnum" longname="Sequence Number" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="connumlow" longname="Connection Number Low" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="tasknum" longname="Task Number" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="connumhi" longname="Connection Number High" size="1" showtemplate="FieldHex"/>
+			<if expr="buf2int(reqtype) == 0x3333 or buf2int(reqtype) == 0x7777 or buf2int(reqtype) == 0x9999">
+				<if-true>
+					<field type="fixed" name="complcode" longname="Completion Code" size="1" showtemplate="FieldHex"/>
+					<field type="fixed" name="constat" longname="Connection Status" size="1" showtemplate="FieldHex"/>
+				</if-true>
+			</if>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showtemplate name="reqtype" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x1111" show="Create Connection"/>
+					<case value="0x2222" show="NCP request"/>
+					<case value="0x3333" show="NCP reply"/>
+					<case value="0x5555" show="Destroy Connection"/>
+					<case value="0x7777" show="Burst Mode Packet"/>
+					<case value="0x9999" show="Server Busy Packet"/>
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="ncp">
+			<section name="next"/>
+			<text value="NCP"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

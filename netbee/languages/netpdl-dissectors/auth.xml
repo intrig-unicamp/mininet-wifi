@@ -1,0 +1,30 @@
+<protocol name="auth" longname="Authentication Service" showsumtemplate="auth">
+	<format>
+		<fields>
+			<if expr="hasstring($packet[$currentoffset : 0], '[0-9]*,[0-9]*\x0D\x0A',0)">
+				<if-true>
+					<field type="line" name="request" longname="Request" showtemplate="FieldAscii">
+						<field type="tokenended" name="local_port" longname="Local Port" endtoken="," endoffset="$token_fieldlen" enddiscard ="1" showtemplate="FieldAscii"/>
+						<!--<field type="tokenended" name="foreign_port" longname="Foreign Port" endtoken="\x0d\x0a|:" endoffset="$token_fieldlen" enddiscard="$token_endtlen"   showtemplate="FieldAscii"/>-->
+						<field type="tokenended" name="foreign_port" longname="Foreign Port" endtoken="\x0D" endoffset="$token_fieldlen"  showtemplate="FieldAscii"/>
+					</field>
+				</if-true>
+				
+				<if-false>
+					<field type="line" name="response" longname="Response" showtemplate="FieldAscii">
+						<field type="tokenwrapped" name="response_type" longname="Response Type" begintoken=" : " endtoken=" : "  beginoffset="$token_begintlen" endoffset="$token_begintlen + $token_fieldlen" enddiscard ="$token_endtlen" showtemplate="FieldAscii"/>
+						<field type="variable" name="add_info" longname="Additional Info" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+						<field type="variable" name="Data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>					
+					</field>
+				</if-false>
+			</if>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="auth">
+			<section name="next"/>
+			<text value="Authentication Service"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

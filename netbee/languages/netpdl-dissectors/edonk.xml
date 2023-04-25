@@ -1,0 +1,290 @@
+<protocol name="edonk" longname="eDonkey (File Sharing)" showsumtemplate="edonk"> 
+		<execute-code>
+		<verify>
+			<!-- All message are encoded in little-endian -->
+			<!-- check if length of messagge is egual to four bytes after the marker -->
+			<if expr="($packetlength - $currentoffset - 5) == buf2int(changebyteorder($packet[$currentoffset+1:4]))"> 
+				<if-true>
+					<if expr="hasstring($packet[$currentoffset:0], '(\xe3|\xc5).{4}[\x01\x02\x05\x14\x15\x16\x18\x19\x1a\x1b\x1c\x20\x21\x23\x32\x33\x34\x35\x36\x38\x40\x41\x42\x43\x44\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x60\x81\x82\x85\x87]',0)"> 
+					
+					<!--<if expr="hasstring($packet[$currentoffset:0], '[\xe3\xc5].{4}[\x01\x38\x4c]',0)">-->
+						<if-true>
+							<assign-variable name="$protoverify_result" value="%FOUND"/>
+						</if-true>
+					</if>
+				</if-true>
+			</if>
+			<if expr="hasstring($packet[$currentoffset:0],'User-Agent: eMule',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+		
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#edonk"/>
+				<lookupdata value="0"/>				
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#edonk"/>
+							</update-lookuptable>
+							<!-- delete entry from KnowServerTempTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#edonk"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+		
+		<before when="hasstring($packet[$currentoffset:0],'^(\xe3....\x46)',0)">
+
+			<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<assign-lookuptable name="$tcpsessiontable.flag" value="1"/>
+				</if-true>
+			</if>
+		</before>
+		
+		<before when="hasstring($packet[$currentoffset:0],'^\xe3....[^\x46]',0)">
+			<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<assign-lookuptable name="$tcpsessiontable.flag" value="0"/>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+
+
+   <format>
+         <fields>
+			<!-- check length of message instead of signature-->
+			<!-- riesco a riconoscere anche i messaggi che hanno un tipo sconosciuto -->
+			<!-- i messaggi "Sending part" non rispettano il vincolo sulla lunghezza del messaggio -->
+			<!--<if expr="(($packetlength - $currentoffset - 5) == buf2int(changebyteorder($packet[$currentoffset+1:4])) or (buf2int($packet[$currentoffset : 1]) == 0xe3 and buf2int($packet[$currentoffset+ 5 :1]) == 0x46))"> -->
+			
+			<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport) and $tcpsessiontable.flag == 1">
+				<if-true>
+					<field type="variable" name="eDonkeyDownload" longname="eDonkey Download" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-true>
+			</if>
+			<loop type="while" expr="$packetlength - $currentoffset">
+				<if expr="buf2int($packet[$currentoffset :1]) == 0xe3 or buf2int($packet[$currentoffset :1]) == 0xc5"> 
+					<if-true>
+						<block name="header" longname="Header">
+							<field type="fixed" size="1" name="marker" longname="Marker" showtemplate="FieldHex"/>
+							<field type="fixed" size="4" name="messagelength"  longname="Length message" showtemplate="FieldHex"/> 
+							<field type="fixed" size="1" name="typemessage" longname="Type message" showtemplate="edonk.type"/>
+						</block>
+						<switch expr="buf2int(typemessage)">
+							<case value="0x01"> <includeblk name="login"/></case>
+							<case value="0x38"> <includeblk name="server_message"/></case>
+							<case value="0x32"> <includeblk name="server_list"/></case>
+							<case value="0x41"> <includeblk name="server_info"/></case>
+							<case value="0x46"> <includeblk name="sending_part"/></case>
+							<case value="0x47"> <includeblk name="request_file_part"/></case>
+							<case value="0x48"> <includeblk name="file_not_found"/></case>
+							<case value="0x4c"> <includeblk name="hello_answer"/></case>
+							<case value="0x4f"> <includeblk name="file_status_request"/></case>
+							<case value="0x50"> <includeblk name="file_status"/></case>
+							<case value="0x51"> <includeblk name="hashset_request"/></case>
+							<case value="0x52"> <includeblk name="hashset_answer"/></case>
+							<case value="0x54"> <includeblk name="slot_request"/></case>
+							<case value="0x58"> <includeblk name="file_request"/></case>
+							<case value="0x59"> <includeblk name="file_request_answer"/></case>
+							<case value="0x5c"> <includeblk name="queue_rank"/></case>
+							<default>
+								<field type="variable" name="edonkey_data" longname="eDonkey Data" expr="buf2int(changebyteorder(messagelength)) -1" showtemplate="FieldAscii"/>
+							</default>
+						</switch>
+					</if-true>
+					
+					<if-false>
+						<field type="variable" name="eDonkeyDownload" longname="eDonkey Download" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+					</if-false>
+				</if>			
+			</loop>
+	
+		</fields>
+		
+		<block name="login" longname="Login">
+			<field type="fixed" name="user_hash" longname="User Hash" size="16" showtemplate="FieldHex"/>
+			<field type="fixed" name="client_id" longname="Client ID" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="tcp_port" longname="TCP Port" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="tags" longname="Tags" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>					
+		</block>
+
+		<block name="hello_answer" longname="Hello Answer">
+			<field type="fixed" name="user_hash" longname="User Hash" size="16" showtemplate="FieldHex"/>
+			<field type="fixed" name="client_id" longname="Client ID" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="tcp_port" longname="TCP Port" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="tags" longname="Tags" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>					
+		</block>
+	
+		<block name="server_message" longname="Server Message">
+			<field type="fixed" name="size" longname="Size" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="message" longname="Message" expr="buf2int(changebyteorder(size))" showtemplate="FieldAscii"/>					
+		</block>
+		
+		<block name="file_request" longname="File Request">
+			<field type="fixed" name="file_hash" longname="File Hash" size="16" showtemplate="FieldHex"/>
+		</block>
+		
+		<block name="file_status_request" longname="File Status Request">
+			<field type="fixed" name="file_hash" longname="File Hash" size="16" showtemplate="FieldHex"/>
+		</block>
+		
+		<block name="file_request_answer" longname="File Request Answer">
+			<field type="fixed" name="file_hash" longname="File Hash" size="16" showtemplate="FieldHex"/>
+			<field type="fixed" name="name_length" longname="Name Length" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="file_name" longname="File Name" expr="buf2int(changebyteorder(name_length))" showtemplate="FieldAscii"/>					
+		</block>
+		
+		<block name="file_status" longname="File Status">
+			<field type="fixed" name="file_hash" longname="File Hash" size="16" showtemplate="FieldHex"/>
+			<field type="variable" name="part_status_list" longname="Part Status List" expr="buf2int(changebyteorder(messagelength))- 16 -1" showtemplate="FieldAscii"/>					
+		</block>
+		
+		<block name="slot_request" longname="Slot Request">
+			<field type="fixed" name="file_hash" longname="File Hash" size="16" showtemplate="FieldHex"/>
+		</block>
+
+		<block name="hashset_request" longname="Hashset Request">
+			<field type="fixed" name="file_hash" longname="File Hash" size="16" showtemplate="FieldHex"/>
+		</block>
+				
+		<block name="file_not_found" longname="File Not Found">
+			<field type="fixed" name="file_hash" longname="File Hash" size="16" showtemplate="FieldHex"/>
+		</block>
+		
+		<block name="queue_rank" longname="Queue Rank">
+			<field type="fixed" name="queue" longname="Queue" size="4" showtemplate="FieldDec"/>
+		</block>
+		
+		<block name="sending_part" longname="Sending Part">
+			<field type="fixed" name="file_hash" longname="File Hash" size="16" showtemplate="FieldHex"/>
+			<field type="fixed" name="start_offset" longname="Start Offeset" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="end_offset" longname="End Offeset" size="4" showtemplate="FieldDec"/>
+			
+			<field type="variable" name="eDonkeyDownload" longname="eDonkey Download" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+			
+		</block>
+		
+		<block name="request_file_part" longname="Request File Part">
+			<field type="fixed" name="file_hash" longname="File Hash" size="16" showtemplate="FieldHex"/>
+			<field type="variable" name="parts" longname="Parts" expr="buf2int(changebyteorder(messagelength)) - 16 -1" showtemplate="FieldHex"/>
+		</block>
+		
+		<block name="hashset_answer" longname="Hashset Answer">
+			<field type="fixed" name="file_hash" longname="File Hash" size="16" showtemplate="FieldHex"/>
+			<field type="variable" name="part_hash_list" longname="Part Hash List" expr="buf2int(changebyteorder(messagelength)) - 16 -1" showtemplate="FieldHex"/>
+		</block>
+		
+		<block name="server_list" longname="Server List">
+			<field type="fixed" name="entry_count" longname="Entry count" size="1" showtemplate="FieldDec"/>
+			<loop type="size" expr="buf2int(entry_count)*6">
+				<block name="server" longname="Server">
+					<field type="fixed" name="ip_server" longname="IP server" size="4" showtemplate="ip4addr"/>
+					<field type="fixed" name="Port_server" longname="Port server" size="2" showtemplate="FieldDec"/>
+				</block>
+			</loop>
+		</block>
+		
+		<block name="server_info" longname="Server Info">
+			<field type="fixed" name="server_hash" longname="Server Hash" size="16" showtemplate="FieldHex"/>
+			<field type="fixed" name="server_ip" longname="Server IP" size="4" showtemplate="ip4addr"/>
+			<field type="fixed" name="server_port" longname="Server Port" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="tags" longname="Tags" expr="buf2int(changebyteorder(messagelength)) - 1 - 16 - 4 - 2"  showtemplate="FieldHex"/>
+		</block>
+	</format>
+
+	<visualization>
+		<showtemplate name="edonk.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x01" show="Hello"></case>
+					<case value="0x14" show="Get list"></case>
+					<case value="0x15" show="Offer file"></case>
+					<case value="0x16" show="Search message"></case>
+					<case value="0x19" show="Get source"></case>
+					<case value="0x32" show="List of server"></case>
+					<case value="0x33" show="Result search"></case>
+					<case value="0x38" show="Login answer"></case>
+					<case value="0x41" show="Server Info"></case>
+					<case value="0x42" show="Found source"></case>
+					<case value="0x46" show="Sending part"></case>
+					<case value="0x47" show="Request file part"></case>
+					<case value="0x48" show="File not found"></case>
+					<case value="0x4C" show="Hello answer"></case>
+					<case value="0x4F" show="File status request"></case>
+					<case value="0x50" show="File status"></case>
+					<case value="0x51" show="Hashset Request"></case>
+					<case value="0x52" show="Hashset Answer"></case>
+					<case value="0x54" show="Slot request"></case>
+					<case value="0x55" show="Accept upload request"></case>
+					<case value="0x56" show="Slot release"></case>
+					<case value="0x57" show="Slot taken"></case>
+					<case value="0x58" show="File request"></case>
+					<case value="0x59" show="File request answer"></case>
+					<case value="0x5c" show="Queue rank"></case>
+					<default show="Unkown messagge"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="edonk">
+			<section name="next"/>
+			<text value="eDonkey "/>
+
+			
+			<if expr="ispresent(header)">
+				<if-true>
+					<text value=" ("/>
+					<protofield name="typemessage" showdata="showmap"/>
+					<text value=")"/>
+				</if-true>
+			</if>
+			
+			<if expr="checklookuptable ($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<if expr="$tcpsessiontable.flag == 1">
+						<if-true>
+							<text value=" download"/>
+						</if-true>
+					</if>
+				</if-true>
+			</if>			
+
+		</showsumtemplate>
+	</visualization>
+</protocol>

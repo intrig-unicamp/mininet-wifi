@@ -1,0 +1,165 @@
+<protocol name="llc" longname="IEEE 802.2 Logical Link Control" showsumtemplate="llc">
+	<format>
+		<fields>
+			<field type="fixed" name="dsap" longname="DSAP" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="ssap" longname="SSAP" size="1" showtemplate="FieldHex"/>
+
+			<if expr="(buf2int($packet[$currentoffset:1]) bitwand 0b00000011) == 0b00000011"> <!-- last two bits are '11' -->
+				<!-- LLC Unnumbered -->
+				<if-true>
+					<field type="fixed" name="ctrl" longname="Control (Unnumbered)" size="1" showtemplate="FieldHex">
+						<field type="bit" name="mod" longname="Modifier" mask="0xE0" size="1" showtemplate="FieldHex"/>
+						<field type="bit" name="pf" longname="Poll / Final" mask="0x10" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="type" longname="Type" mask="0x0C" size="1" showtemplate="FieldHex"/>
+						<field type="bit" name="flag" longname="Flag (Unnumbered frame)" mask="0x03" size="1" showtemplate="FieldBin"/>
+					</field>
+				</if-true>
+
+				<if-false>
+					<if expr="(buf2int($packet[$currentoffset:1]) bitwand 0b00000001) == 0b00000000">	<!-- last bit is '0' -->
+						<!-- LLC Information -->
+						<if-true>
+							<!-- Warning: the LLC information ctrl field can be also 16 bits -->
+							<field type="fixed" name="ctrl" longname="Control (Information)" size="1" showtemplate="FieldHex">
+								<field type="bit" name="nr" longname="Sequence Number (Receiver)" mask="0xE0" size="1" showtemplate="FieldHex"/>
+								<field type="bit" name="pf" longname="Poll / Final" mask="0x10" size="1" showtemplate="FieldBin"/>
+								<field type="bit" name="type" longname="Type" mask="0x0C" size="1" showtemplate="FieldHex"/>
+								<field type="bit" name="flag" longname="Flag (Information frame)" mask="0x03" size="1" showtemplate="FieldBin"/>
+							</field>
+						</if-true>
+
+						<if-false>
+							<if expr="(buf2int($packet[$currentoffset:1]) bitwand 0b00000001) == 0b00000001"> <!-- last two bits are '01' -->
+								<!-- LLC Supervisor -->
+								<if-true>
+									<!-- Warning: the LLC Supervisor ctrl field can be also 16 bits -->
+									<field type="fixed" name="ctrl" longname="Control (Supervisor)" size="1" showtemplate="FieldHex">
+										<field type="bit" name="nr" longname="Sequence Number (Receiver)" mask="0xE0" size="1" showtemplate="FieldDec"/>
+										<field type="bit" name="pf" longname="Poll / Final" mask="0x10" size="1" showtemplate="FieldBin"/>
+										<field type="bit" name="ns" longname="Sequence Number (Sender)" mask="0x0E" size="1" showtemplate="FieldDec"/>
+										<field type="bit" name="flag" longname="Flag (Supervisor frame)" mask="0x01" size="1" showtemplate="FieldBin"/>
+									</field>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-false>
+			</if>
+			
+			<!-- Ivano: snap -->
+			<if expr="buf2int(dsap) == 0xAA">
+				<if-true>
+					<field type="fixed" name="OUI" longname="Organization Unique Identifier" size="3" showtemplate="FieldHex"/>
+					<field type="fixed" name="pType" longname="Protocol Type" size="2" showtemplate="snap.pType"/>
+				</if-true>
+			</if>
+		</fields>
+	</format>
+
+
+	<encapsulation>
+		<if expr="(buf2int(dsap) == 0xE0) and (buf2int(ssap) == 0xE0) and (buf2int(ctrl) == 0x03) and (buf2int($packet[$currentoffset:2]) == 0xFFFF)">
+			<if-true>
+				<nextproto proto="#ipx"/>
+			</if-true>	
+		</if>
+		
+		<!-- Ivano: snap -->
+		<if expr="buf2int(dsap) == 0xAA">
+			<if-true>
+				<if expr="buf2int(OUI) == 0">
+					<if-true>
+						<switch expr="buf2int(pType)">
+							<case value="0x0800"> <nextproto proto="#ip" preferred="true"/> </case>
+							<case value="0x0806"> <nextproto proto="#arp" preferred="true"/> </case>
+							<case value="0x8137"> <nextproto proto="#ipx"/> </case>
+						</switch>
+					</if-true>
+				</if>
+
+				<if expr="buf2int(OUI) == 0x00000C">
+					<if-true>
+						<switch expr="buf2int(pType)">
+							<case value="0x2000"> <nextproto proto="#cdp"/> </case>
+							<case value="0x010B"> <nextproto proto="#stp"/> </case>
+						</switch>
+					</if-true>
+				</if>
+			</if-true>
+			<if-false>
+				<switch expr="buf2int(dsap)">
+					<case value="0x06"> <nextproto proto="#ip" preferred="true"/> </case>
+					<case value="0x42"> <nextproto proto="#stp"/> </case>
+				<!--	<case value="0xAA"> <nextproto proto="#snap"/> </case>-->
+					<case value="0xF0"> <nextproto proto="#netbeui"/></case>
+				</switch>
+			</if-false>
+		</if>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="llc">
+			<text value=" - "/>
+			<if expr="(buf2int(ctrl) bitwand 0b00000011) == 0b00000011">
+				<if-true>
+					<text value="LLC Unnumbered "/>
+				</if-true>
+
+				<if-false>
+					<if expr="(buf2int(ctrl) bitwand 0b00000001) == 0b00000000">
+						<!-- LLC Information -->
+						<if-true>
+							<text value="LLC Information "/>
+						</if-true>
+
+						<if-false>
+							<if expr="(buf2int(ctrl) bitwand 0b00000011) == 0b00000001">
+								<!-- LLC Supervisor -->
+								<if-true>
+									<text value="LLC Supervisor "/>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-false>
+			</if>
+	
+			<text value=": DSAP "/>
+			<protofield name="dsap" showdata="showvalue"/>
+			<text value=": SSAP "/>
+			<protofield name="ssap" showdata="showvalue"/>
+			<text value=", Ctrl "/>
+			<protofield name="ctrl" showdata="showvalue"/>
+	
+			<!-- Ivano: snap -->
+			<if expr="buf2int(dsap) == 0xAA">
+				<if-true>
+					<text value=", OUI "/>
+					<protofield name="OUI" showdata="showvalue"/>
+					<text value=", Type "/>
+					<protofield name="pType" showdata="showmap"/>
+					<text value="("/>
+					<protofield name="pType" showdata="showvalue"/>
+					<text value=")"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+		
+		<!-- Ivano: snap -->
+		<showtemplate name="snap.pType" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0800" show="IP"/>
+					<case value="0x0806" show="ARP"/>
+					<case value="0x8137" show="IPX"/>
+
+					<case value="0x2000" show="Cisco Discovery Protocol"/>
+					<case value="0x010B" show="Cisco Per-VLAN Spanning Tree"/>
+
+					<default show="Error in snap.pType lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+	</visualization>
+</protocol>

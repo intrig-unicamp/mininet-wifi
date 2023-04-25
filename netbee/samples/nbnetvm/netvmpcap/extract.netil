@@ -1,0 +1,144 @@
+segment .ports
+  push_input in
+  push_output out1
+ends
+
+
+segment .init
+  .maxstacksize 5
+init:
+  ret
+ends
+
+
+segment .pull
+  ret
+ends
+
+
+; Code for filter: "extractfields(ip.src, ip.dst)"
+
+segment .push
+.maxstacksize 30
+.locals 14
+  pop  ; discard the "calling" port id
+
+  push 0 
+  locstore 1
+  push 0
+  locstore 3
+  push 0
+  locstore 4
+  push 0 
+  locstore 12
+
+;reset ip header counter
+  push 0
+  push 0
+  istore.32
+
+  push 14
+  locstore 0 ; next_header_offs = 14
+  
+  
+  ; PROTOCOL ethernet: ENCAPSULATION
+  ; SWITCH 'buf2int(type)'
+  push 12
+  upload.16
+  push 2048
+  jcmp.neq SEND_PACKET_l10
+
+
+FOUND_IP:
+  ;compute the offset of the ip.src field
+  locload 0;
+  push 12
+  add
+  locstore 1; ip.src offset
+  
+  ;compute the offset of the ip.dst field (4 bytes ahead of ip.src)
+  locload 1; ip.src offset
+  push 4
+  add
+  locstore 2; ip.dst offset
+  
+  ;get the header counter
+  push 0
+  siload.32
+  locstore 3 ;tmp header counter
+  
+  
+  ;compute the offset inside the info where to store the offset of ip.src
+  ;and put it in local 12
+  locload 3
+  push 8
+  mul
+  push 4
+  add
+  locstore 12; current ip_fields element
+
+  ;store the offset of ip.src for the n-th header into info
+  locload 1; ip.src offs
+  locload 12; current ip_fields element
+  istore.16; store it into info 
+  
+  ;store the len of ip.src for the n-th header into info
+  ;len is 2 bytes ahead of offs
+  push 4; ip.src len 
+  locload 12 ;current ip_fields element
+  push 2; displacement for the ip.src-len field inside info
+  add
+  istore.16; 
+  
+  ;store the offs of ip.dst for the n-th header into info
+  locload 2; ip.dst offs
+  locload 12;current ip_fields element
+  push 4; displacement for the ip.dst-offs field inside info
+  add
+  istore.16
+  
+  ;store the len  of ip.dst for the n-th header into info
+  ;len is 2 bytes ahead of offs
+  push 4; ip.dst len
+  locload 12;current ip_fields element
+  push 6; displacement for the ip.dst-offs field inside info
+  add
+  istore.16
+
+  ;update the header counter and store its value inside info
+  locload 3; tmp header counter
+  push 1
+  add
+  push 0 ;offset of the header counter inside info
+  istore.16
+  
+  ;compute the offset of ip.nextp field and put it in local4
+  locload 0
+  push 9
+  add
+  locstore 4
+  
+  ;update the next header offset with ip.hlen
+  ; that is local0 = local0 + ((packet[local0] & 0xf) << 2)
+  locload 0
+  upload.8
+  push 0xf
+  and
+  push 2
+  shl
+  locload 0
+  add
+  locstore 0
+  
+  ;retrieve ip.nextp and check it with 4 which is ip again
+  locload 4
+  upload.8
+  push 4
+  jcmp.eq FOUND_IP
+  
+  ;otherwise forward packet
+SEND_PACKET_l10:
+  pkt.send out1
+  
+ends
+

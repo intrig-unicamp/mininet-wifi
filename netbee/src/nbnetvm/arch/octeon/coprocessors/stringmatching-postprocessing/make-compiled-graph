@@ -1,0 +1,183 @@
+#!/usr/bin/perl
+# Copyright (c) 2003-2005, Cavium Networks. All rights reserved.
+#  
+# This Software is the property of Cavium Networks.  The Software and all 
+# accompanying documentation are copyrighted.  The Software made available 
+# here constitutes the proprietary information of Cavium Networks.  You 
+# agree to take reasonable steps to prevent the disclosure, unauthorized use 
+# or unauthorized distribution of the Software.  You shall use this Software 
+# solely with Cavium hardware.  
+#  
+# Except as expressly permitted in a separate Software License Agreement 
+# between You and Cavium Networks, you shall not modify, decompile, 
+# disassemble, extract, or otherwise reverse engineer this Software.  You 
+# shall not make any copy of the Software or its accompanying documentation, 
+# except for copying incident to the ordinary and intended use of the 
+# Software and the Underlying Program and except for the making of a single 
+# archival copy.  
+#  
+# This Software, including technical data, may be subject to U.S.  export 
+# control laws, including the U.S.  Export Administration Act and its 
+# associated regulations, and may be subject to export or import regulations 
+# in other countries.  You warrant that You will comply strictly in all 
+# respects with all such regulations and acknowledge that you have the 
+# responsibility to obtain licenses to export, re-export or import the 
+# Software.  
+#  
+# TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
+# AND WITH ALL FAULTS AND CAVIUM MAKES NO PROMISES, REPRESENTATIONS OR 
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT 
+# TO THE SOFTWARE, INCLUDING ITS CONDITION, ITS CONFORMITY TO ANY 
+# REPRESENTATION OR DESCRIPTION, OR THE EXISTENCE OF ANY LATENT OR PATENT 
+# DEFECTS, AND CAVIUM SPECIFICALLY DISCLAIMS ALL IMPLIED (IF ANY) WARRANTIES 
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR 
+# PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET 
+# POSSESSION OR CORRESPONDENCE TO DESCRIPTION.  THE ENTIRE RISK ARISING OUT 
+# OF USE OR PERFORMANCE OF THE SOFTWARE LIES WITH YOU.  
+#
+# File version info: $Id: make-compiled-graph,v 1.4 2006/12/06 00:55:18 trent Exp $
+# $Name: DFA_REL_0_7_0_3 $
+
+
+$use_run_length=1;
+
+#die "Usage:  make-compiled-graph <input file> <output file>" if ($#ARGV != 1);
+
+print "number of graph: $ARGV[0]\n";
+$num_graph = $ARGV[0];
+$i=0;
+open(OUTPUT,">$ARGV[1]") || die "Could not open output file '$ARGV[1]' for writing\n";
+$n=i+2;
+
+
+while ($i < $num_graph )
+{
+
+open(INPUT,"<$ARGV[$n]") || die "Could not open input file '$ARGV[i+1]' for reading\n";
+binmode INPUT;
+
+$ls= `ls -l $ARGV[$n]`;
+chomp($ls);
+
+print OUTPUT <<END;
+
+const char compiled_graph_name$i [] = "$ARGV[$n]";
+const char compiled_graph_info$i [] = "$ls";
+const uint64_t compiled_graph$i [] = {
+END
+
+
+$num_read = read(INPUT, $upper, 4);
+$num_read += read(INPUT, $lower, 4);
+$prefix = "0x";
+$last_value = sprintf ("%1x%08xull",vec($upper,0,32),vec($lower,0,32));
+$run=-1;
+while ($num_read == 8) {
+    $num_input++;
+    $value = sprintf ("%1x%08xull",vec($upper,0,32),vec($lower,0,32));
+    die "ERROR: '$ARGV[$n]' contains a number > 36 bits: $value\n" if (length $value != 12);
+
+    if ($use_run_length) {
+	if ($value eq $last_value) {
+	    $run++;
+	}
+	else {
+	    printf OUTPUT ("%s%07x%s", $prefix, $run, $last_value);
+	    $prefix = ",\n0x";
+	    $num_output++;
+	    $run = 0;
+	    $last_value=$value;
+	}
+    }
+    else {
+	printf OUTPUT ("%s%07x%s", $prefix, 0, $value);
+	$prefix = ",\n0x";
+	$num_output++;
+    }
+
+    $num_read = read(INPUT, $upper, 4);
+    $num_read += read(INPUT, $lower, 4);
+}
+
+printf OUTPUT ("%s%07x%s", $prefix, $run, $last_value) if ($run >= 0);
+
+die "ERROR: '$ARGV[$n]' is not a multiple of 8 bytes long\n" if ($num_read != 0);
+
+print OUTPUT <<END;
+
+};
+
+END
+
+$compiled_graph_image_size [$i] = $num_output * 8;
+$compiled_graph_llm_size [$i] = $num_input * 4;
+
+$i++;
+$n++;
+}
+print OUTPUT <<END;
+
+const char *compiled_graph_name []={
+END
+for ($i=0;$i<$num_graph-1; $i++)
+{
+	print OUTPUT <<END;
+	
+	compiled_graph_name$i,
+END
+}
+
+	print OUTPUT <<END;
+	compiled_graph_name$i
+};
+
+const char *compiled_graph_info []={
+END
+for ($i=0;$i<$num_graph-1; $i++)
+{
+	print OUTPUT <<END;
+	compiled_graph_info$i,
+END
+}
+print OUTPUT <<END;
+	compiled_graph_info$i
+};
+
+const uint64_t *compiled_graph []={
+END
+for ($i=0;$i<$num_graph-1; $i++)
+{
+	print OUTPUT <<END;
+	compiled_graph$i,
+END
+}
+print OUTPUT <<END;
+	compiled_graph$i
+};
+
+const uint64_t compiled_graph_image_size []={
+END
+for ($i=0;$i<$num_graph-1; $i++)
+{
+	print OUTPUT <<END;
+	$compiled_graph_image_size[$i],
+END
+}
+print OUTPUT <<END;
+	$compiled_graph_image_size[$i]
+};
+const uint64_t compiled_graph_llm_size []={
+END
+for ($i=0;$i<$num_graph-1; $i++)
+{
+	print OUTPUT <<END;
+	$compiled_graph_llm_size[$i],
+END
+}
+print OUTPUT <<END;
+	$compiled_graph_llm_size[$i]
+};
+END
+
+$percent = int((1-($num_output/$num_input)) * 100);
+print "Created graph.h:  $num_input words compressed to $num_output words ($percent%)\n";

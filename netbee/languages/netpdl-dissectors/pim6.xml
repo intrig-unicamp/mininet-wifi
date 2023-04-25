@@ -1,0 +1,261 @@
+<protocol name="pim6" longname="PIM v.2 for IPv6 (Protocol Indipendent Multicast)" showsumtemplate="pim6">
+	<format>
+		<fields>
+			<field type="bit" name="PimVer" longname="Version" description="Version must be 2" mask="0xF0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="PimType" longname="Type" description="Numeric id of PIM message" mask="0x0F" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="reserved" longname="Reserved byte" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="PimCheck" longname="Checksum" description="Message Checksum" size="2" showtemplate="FieldHex"/>
+
+			<switch expr="buf2int(PimType)">
+				<case value="0"> <includeblk name="PimHellov6"/> </case>
+				<case value="1"> <includeblk name="PimRegisterv6"/> </case>
+				<case value="2"> <includeblk name="PimRegisterStopv6"/> </case>
+				<case value="3"> <includeblk name="PimJoinPrunev6"/> </case>
+				<case value="4"> <includeblk name="PimBootstrapv6"/> </case>
+				<case value="5"> <includeblk name="PimAssertv6"/> </case>
+				<case value="6"> <includeblk name="PimGraftv6"/> </case>
+				<case value="7"> <includeblk name="PimGraftAckv6"/> </case>
+				<case value="8"> <includeblk name="PimCandidateRPAdvertisementv6"/> </case>
+				<case value="9"> <includeblk name="PimStateRefreshv6"/> </case>
+			</switch>
+		</fields>
+
+		<block name="PimHellov6" longname="PIM Hello Message ipv6" showsumtemplate="pim6.hello">
+			<switch expr="buf2int($packet[$currentoffset:2])">
+				<case value="1">
+					<block name="HelloOldTime" longname="Hello Hold Time">
+						<field type="fixed" name="Type" longname="Type: HoldTime" size="2" showtemplate="FieldDec"/>
+						<field type="fixed" name="Length" longname="Length of option" size="2" showtemplate="FieldDec"/>
+						<field type="fixed" name="Value" longname="Hold Time" size="2" showtemplate="FieldDec"/>
+					</block>
+				</case>
+
+				<case value="2">
+					<block name="LanPruneDelay" longname="Lan Prune Delay">
+						<field type="fixed" name="Type" longname="Type: PruneDelay" size="2" showtemplate="FieldDec"/>
+						<field type="fixed" name="Length" longname="Length of option" size="2" showtemplate="FieldDec"/>
+						<block name="delay" longname="Masked Delay">
+							<field type="bit" name="T" longname="Disable join suppression" mask="0x8000" size="2" showtemplate="FieldBin"/>
+							<field type="bit" name="LanDelay" longname="Lan delay" mask="0x7FFF" size="2" showtemplate="FieldDec"/>
+						</block>
+						<field type="fixed" name="OverrideInterval" longname="Override Interval" size="2" showtemplate="FieldDec"/>
+					</block>
+				</case>
+
+				<case value="19">
+					<block name="DRPriority" longname="DR Priority">
+						<field type="fixed" name="Type" longname="Type: DR priority" size="2" showtemplate="FieldDec"/>
+						<field type="fixed" name="Length" longname="Length of option" size="2" showtemplate="FieldDec"/>
+						<field type="fixed" name="Priority" longname="Priority" size="4" showtemplate="FieldDec"/>
+					</block>
+				</case>
+
+				<case value="20">
+					<block name="GenerationID" longname="Generation ID">
+						<field type="fixed" name="Type" longname="Type: Generation ID" size="2" showtemplate="FieldDec"/>
+						<field type="fixed" name="Length" longname="Length of option" size="2" showtemplate="FieldDec"/>
+						<field type="fixed" name="Id" longname="Id" size="4" showtemplate="FieldDec"/>
+					</block>
+				</case>
+
+				<case value="21">
+					<block name="StateRefreshCapable" longname="State Refresh Capable">
+						<field type="fixed" name="Type" longname="Type: State refresh cap" size="2" showtemplate="FieldDec"/>
+						<field type="fixed" name="Length" longname="Length of option" size="2" showtemplate="FieldDec"/>
+						<field type="fixed" name="Version" longname="Version" size="1" showtemplate="FieldDec"/>
+						<field type="fixed" name="Interval" longname="Interval" size="1" showtemplate="FieldDec"/>
+						<field type="fixed" name="Reserved" longname="Reserved" size="2" showtemplate="FieldDec"/>
+					</block>
+				</case>
+			</switch>
+		</block>
+
+		<block name="PimRegisterv6" longname="PIM Register Message" showsumtemplate="pim6.register">
+			<block name="bnres" longname="PIM Register Flags">
+				<field type="bit" name="B" longname="Border Bit" mask="0x80000000" size="4" showtemplate="FieldBin"/>
+				<field type="bit" name="N" longname="Null Register Bit" mask="0x40000000" size="4" showtemplate="FieldBin"/>
+				<field type="bit" name="Reserved" longname="Reserved" mask="0x3FFFFFFF" size="4" showtemplate="FieldHex"/>
+			</block>
+		</block>
+
+		<block name="PimRegisterStopv6" longname="PIM Register Stop Message" showsumtemplate="pim6.registerstop">
+			<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="Reserved" longname="Reserved" mask="0xFE" size="1" showtemplate="FieldHex"/>
+			<field type="bit" name="Z" longname="Admin Scope Zone" mask="0x01" size="1" showtemplate="FieldBin"/>
+			<field type="fixed" name="MaskLen" longname="Mask Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="MulticastAddress" longname="Multicast Address" size="16" showtemplate="ip6addr-noplg"/>
+			<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="UnicastAddress" longname="Unicast Address" size="16" showtemplate="ip6addr-noplg"/>
+		</block>
+
+		<block name="PimJoinPrunev6" longname="PIM Join Prune Message ipv6" showsumtemplate="pim6.joinprune">
+			<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="UnicastAddress" longname="Unicast Address" size="16" showtemplate="ip6addr-noplg"/>
+			<field type="fixed" name="Reserved" longname="Reserved" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="NumGroups" longname="Number of groups in message" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="HoldTime" longname="Hold time" size="2" showtemplate="FieldDec"/>
+			<includeblk name="MulticastGroups"/>
+		</block>
+
+
+		<block name="PimBootstrapv6" longname="PIM Bootstrap Message ipv6" showsumtemplate="pim6.bootstrap">
+			<field type="fixed" name="FragmentTag" longname="Fragment tag identifier" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="HashMaskLen" longname="Hash mask len" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="BSRP" longname="Bootstrap Router priority" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="UnicastAddress" longname="Unicast Address" size="16" showtemplate="ip6addr-noplg"/>
+		</block>
+
+		<block name="PimAssertv6" longname="PIM Assert Message ipv6" showsumtemplate="pim6.assert">
+			<field type="fixed" name="MAddrFamily" longname="Multicast Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="MEncodingType" longname="Multicast Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="Reserved" longname="Reserved" mask="0xFE" size="1" showtemplate="FieldHex"/>
+			<field type="bit" name="MZ" longname="Admin Scope Zone" mask="0x01" size="1" showtemplate="FieldBin"/>
+			<field type="fixed" name="MMaskLen" longname="Multicast Mask Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="MulticastAddress" longname="Multicast Address" size="16" showtemplate="ip6addr-noplg"/>
+			<field type="fixed" name="SAddrFamily" longname="Source Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="SEncodingType" longname="Source Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="SourceAddress" longname="Source Address" size="16" showtemplate="ip6addr-noplg"/>
+			<block name="MetricR" longname="Metric/R">
+				<field type="bit" name="R" longname="Rendezvous" description="Rendezvous Point Tree bit" mask="0x80000000" size="4" showtemplate="FieldBin"/>
+				<field type="bit" name="MetricPreference" longname="Metric Preference" mask="0x7FFFFFFF" size="4" showtemplate="FieldHex"/>
+			</block>
+			<field type="fixed" name="Metric" longname="Cost Metric" description="The cost metric of the unicast route to the source" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="PimGraftv6" longname="PIM Graft Message ipv6" showsumtemplate="pim6.graft">
+			<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="UnicastAddress" longname="Unicast Address" size="16" showtemplate="ip6addr-noplg"/>
+			<field type="fixed" name="Reserved" longname="Reserved" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="NumGroups" longname="Number of groups in message" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="HoldTime" longname="Hold time" size="2" showtemplate="FieldDec"/>
+			<includeblk name="MulticastGroups"/>
+		</block>
+
+		<block name="PimGraftAckv6" longname="PIM Graft Ack Message ipv6" showsumtemplate="pim6.graftack">
+			<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="UnicastAddress" longname="Unicast Address" size="16" showtemplate="ip6addr-noplg"/>
+			<field type="fixed" name="Reserved" longname="Reserved" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="NumGroups" longname="Number of groups in message" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="HoldTime" longname="Hold time" size="2" showtemplate="FieldDec"/>
+			<includeblk name="MulticastGroups"/>
+		</block>
+
+		<block name="PimCandidateRPAdvertisementv6" longname="PIM Candidate RP Advertisement Message ipv6" showsumtemplate="pim6.candidaterp">
+			<field type="fixed" name="PrefixCnt" longname="Prefix Cnt" description="number of encoded group addresses included in the message" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Priority" longname="Priority" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="Holdtime" longname="Holdtime" description="amount of time the advertisement is valid" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="UnicastAddress" longname="Unicast Address" size="16" showtemplate="ip6addr-noplg"/>
+			<loop type="times2repeat" expr="buf2int(PrefixCnt)">
+				<block name="GroupAddresses" longname="Multicast Groups">
+					<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+					<field type="bit" name="Reserved" longname="Reserved" mask="0xFE" size="1" showtemplate="FieldHex"/>
+					<field type="bit" name="Z" longname="Admin Scope Zone" mask="0x01" size="1" showtemplate="FieldBin"/>
+					<field type="fixed" name="MaskLen" longname="Mask Length" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="MulticastAddress" longname="Multicast Address" size="16" showtemplate="ip6addr-noplg"/>
+				</block>
+			</loop>
+		</block>
+
+		<block name="PimStateRefreshv6" longname="PIM State Refresh Message ipv6" showsumtemplate="pim6.staterefresh">
+			<field type="fixed" name="MAddrFamily" longname="Multicast Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="MEncodingType" longname="Multicast Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="Reserved" longname="Reserved" mask="0xFE" size="1" showtemplate="FieldHex"/>
+			<field type="bit" name="MZ" longname="Admin Scope Zone" mask="0x01" size="1" showtemplate="FieldBin"/>
+			<field type="fixed" name="MMaskLen" longname="Multicast Mask Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="MulticastAddress" longname="Multicast Address" size="16" showtemplate="ip6addr-noplg"/>
+			<field type="fixed" name="SAddrFamily" longname="Source Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="SEncodingType" longname="Source Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="SourceAddress" longname="Source Address" size="16" showtemplate="ip6addr-noplg"/>
+			<field type="fixed" name="OAddrFamily" longname="Originator Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="OEncodingType" longname="Originator Encoding Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="OriginatorAddress" longname="Originator Address" size="16" showtemplate="ip6addr-noplg"/>
+			<block name="MetricR" longname="Masked Matric/R">
+				<field type="bit" name="R" longname="Rendezvous bit" description="Rendezvous Point Tree bit" mask="0x80000000" size="4" showtemplate="FieldBin"/>
+				<field type="bit" name="MetricPreference" longname="Metric Preference" mask="0x7FFFFFFF" size="4" showtemplate="FieldHex"/>
+			</block>
+			<field type="fixed" name="Metric" longname="Cost Metric" description="The cost metric of the unicast route to the source" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="Masklen" longname="Mask Length" description="length of the address mask of the unicast route to the source" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="TTL" longname="Time To Live" description="Time To Live of the State Refresh message" size="1" showtemplate="FieldDec"/>
+			<block name="flags" longname="Flags">
+				<field type="bit" name="P" longname="Prune" description="Prune indicator flag" mask="0x80" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="N" longname="PNow" description="Prune now Flag" mask="0x40" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="O" longname="Assert" description="Assert Override flag" mask="0x20" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="Reserved" longname="Reserved" description="Reserved bits" mask="0x1F" size="1" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="Interval" longname="Interval" description="seconds between consecutive State Refresh messages" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="MulticastGroups" longname="Multicast Groups">
+			<loop type="times2repeat" expr="buf2int(NumGroups)">
+				<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+				<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+				<field type="fixed" name="UnicastAddress" longname="Unicast Address" size="4" showtemplate="ip4addr-noplg"/>
+				<field type="fixed" name="NumJoined" longname="Number of joined sources" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="NumPruned" longname="Number of pruned sources" size="2" showtemplate="FieldDec"/>
+				<block name="JoinedSources" longname="Joined Sources">
+					<loop type="times2repeat" expr="buf2int(NumJoined)">
+						<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+						<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+						<field type="fixed" name="UnicastAddress" longname="Unicast Address" size="4" showtemplate="ip4addr-noplg"/>
+					</loop>
+				</block>
+				<block name="PrunedSources" longname="Pruned Sources">
+					<loop type="times2repeat" expr="buf2int(NumPruned)">
+						<field type="fixed" name="AddrFamily" longname="Address Family" description="The PIM address family" size="1" showtemplate="FieldDec"/>
+						<field type="fixed" name="EncodingType" longname="Encoding Type" size="1" showtemplate="FieldDec"/>
+						<field type="fixed" name="UnicastAddress" longname="Unicast Address" size="4" showtemplate="ip4addr-noplg"/>
+					</loop>
+				</block>
+			</loop>
+		</block>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="pim6">
+			<section name="next"/>
+			<text value="PIM6"/>
+		</showsumtemplate>
+
+		<showsumtemplate name="pim6.hello">
+			<text value=" Hello"/>
+		</showsumtemplate>
+		<showsumtemplate name="pim6.register">
+			<text value=" Register"/>
+		</showsumtemplate>
+		<showsumtemplate name="pim6.registerstop">
+			<text value=" Stop Register"/>
+		</showsumtemplate>
+		<showsumtemplate name="pim6.joinprune">
+			<text value=" Join / Prune"/>
+		</showsumtemplate>
+		<showsumtemplate name="pim6.bootstrap">
+			<text value=" Bootstrap"/>
+		</showsumtemplate>
+		<showsumtemplate name="pim6.assert">
+			<text value=" Assert"/>
+		</showsumtemplate>
+		<showsumtemplate name="pim6.graft">
+			<text value=" Graft"/>
+		</showsumtemplate>
+		<showsumtemplate name="pim6.graftack">
+			<text value=" Graft Ack"/>
+		</showsumtemplate>
+		<showsumtemplate name="pim6.candidaterp">
+			<text value=" Candidate RP Advertisement"/>
+		</showsumtemplate>
+		<showsumtemplate name="pim6.staterefresh">
+			<text value=" State Refresh"/>
+		</showsumtemplate>
+	</visualization>
+	
+</protocol>

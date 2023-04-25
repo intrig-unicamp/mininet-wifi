@@ -1,0 +1,807 @@
+<protocol name="hci_command" longname="HCI Command" showsumtemplate="hci_command">
+	<format>
+		<fields>
+			<field type="fixed" name="flags" longname="Opcode" size="2" showtemplate="hci_command.flags">
+				<field type="bit" name="ocf" longname="Opcode Command Field" mask="0xFFC0" size="2" showtemplate="hci_command.ocf"/>
+				<field type="bit" name="ogf" longname="Opcode Group Field" mask="0x003F" size="2" showtemplate="hci_command.ogf"/>
+			</field>
+
+			<field type="fixed" name="hci_command_length" longname="Data Length" size="1" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(flags)">
+				<case value="0260" comment="0x0104-HCI Inquiry">						<includeblk name="blk_hci_inquiry"/>						</case>
+				<case value="0516" comment="0x204- Inquiry Cancel">						<includeblk name="blk_inquiry_cancel"/>						</case>
+
+				<case value="0722" comment="0x304- Periodic Inquiry Mode">				<includeblk name="blk_periodic_enquiry_mode"/>				</case>
+				<case value="1028" comment="0x0404-Exit Periodic Inquiry Mode">			<includeblk name="blk_exit_periodic_inquiry_mode"/>			</case>
+
+				<case value="1284" comment="0x0504-Create_Connection">					<includeblk name="blk_create_connection"/>					</case>
+
+				<case value="1540" comment="0x0604-Disconnect">							<includeblk name="blk_disconnect"/>							</case>
+
+				<case value="1796" comment="0x0704-Add SCO Connection">					<includeblk name="blk_add_sco_connection"/>					</case>
+				<case value="2052" comment="0x0804-Accept_Connection_Request">			<includeblk name="blk_accept_connection_request"/>			</case>
+				<case value="2308" comment="0x0904-Reject_Connection_Request">			<includeblk name="blk_reject_connection_request"/>			</case>
+				<case value="2820" comment="0x0B04-Link_Key_Request_Reply">				<includeblk name="blk_link_key_request_reply"/>				</case>
+				<case value="3076" comment="0x0C04-Link_Key_Request_Negative_Reply">	<includeblk name="blk_link_key_request_negative_reply"/>	</case>
+
+ 				<case value="3332" comment="0x0D04-PIN_Code_Request_Reply">				<includeblk name="blk_pin_code_request_reply"/>				</case>
+				<case value="3588" comment="0x0E04-Pin_Code_Request_Negative_Reply">	<includeblk name="blk_link_key_request_negative_reply"/>	</case>
+				<case value="3844" comment="0x0F04-Change_Connection_Packet_Type">		<includeblk name="blk_change_connection_packet_type"/>		</case>
+				<case value="4356" comment="0x1104-Authentication_Requested">			<includeblk name="blk_authentication_requested"/>			</case>
+				<case value="4868" comment="0x1304-Set_Connection_Encryption">			<includeblk name="blk_set_connection_encryption"/>			</case>
+				<case value="5380" comment="0x1504-Change_Connection_Link_Key">			<includeblk name="blk_change_connection_link_key"/>			</case>
+				<case value="5892" comment="0x1704-Mastre_Link_Key">					<includeblk name="blk_master_link_key"/>					</case>
+				<case value="6404" comment="0x1904-Remote_Name_Request">				<includeblk name="blk_remote_name_request"/>				</case>
+				<case value="6916" comment="0x1B04-Read_Remote_Supported_Features">		<includeblk name="blk_read_remote_supported_features"/>		</case>
+				<case value="7428" comment="0x1D04-Read_Remote_version_Information">	<includeblk name="blk_read_remote_version_information"/>	</case>
+				<case value="7904" comment="0x1F04-Read_Clock_Offset">					<includeblk name="blk_read_clock_offset"/>					</case>
+
+				<case value="0264" comment="0x0108-Hold_Mode">							<includeblk name="blk_hold_mode"/>							</case>
+				<case value="0776" comment="0x0308-Sniff_Mode">							<includeblk name="blk_sniff_mode"/>							</case>
+				<case value="1032" comment="0x0408-Exit_Sniff_Mode">					<includeblk name="blk_exit_sniff_mode"/>					</case>
+				<case value="1288" comment="0x0508-Park_Mode">							<includeblk name="blk_park_mode"/>							</case>
+				<case value="1544" comment="0x0608-Exit_Park_Mode">						<includeblk name="blk_exit_park_mode"/>						</case>
+				<case value="1800" comment="0x0708-QoS_Setup">							<includeblk name="blk_qos_setup"/>							</case>
+				<case value="2312" comment="0x0908-Role_Discovery">						<includeblk name="blk_role_discovery"/>						</case>
+				<case value="2824" comment="0x0B08-Switch_Role">						<includeblk name="blk_switch_role"/>						</case>
+				<case value="3080" comment="0x0C08-Read_Link_Policy_Settings">			<includeblk name="blk_read_link_policy_settings"/>			</case>
+				<case value="3336" comment="0x0D08-write_Link_Policy_Sttings">			<includeblk name="blk_write_link_policy_settings"/>			</case>
+
+				<case value="0268" comment="0x010C-Set_Event_Mask">						<includeblk name="blk_set_eventmask"/>						</case>
+				<case value="0780" comment="0x030C-Reset">								<includeblk name="blk_hci_reset"/>							</case>
+				<case value="1292" comment="0x050C-Set_Event_Filter">					<includeblk name="blk_hci_set_event_filter"/>				</case>
+				<case value="2060" comment="0x080C-Flush">								<includeblk name="blk_hci_flush"/>							</case>
+				<case value="2316" comment="0x090C-Read_PIN_Type">						<includeblk name="blk_read_pin_type"/>						</case>
+				<case value="2572" comment="0x0A0C-Write PIN Type">						<includeblk name="blk_write_pin_type"/>						</case>
+				<case value="2828" comment="0x0B0C-Create_New_Unit_Key">				<includeblk name="blk_create_new_unit_key"/>				</case>
+				<case value="3340" comment="0x0D0C-Read_Stroed_Link_Key">				<includeblk name="blk_read_stored_link_key"/>				</case>
+				<case value="4364" comment="0x110C-Write_Stored_Link_Key">				<includeblk name="blk_write_stored_link_key"/>				</case>
+				<case value="4620" comment="0x120C-Delete_Stored_Link_Key">				<includeblk name="blk_delete_stored_link_key"/>				</case>
+ 				<case value="4876" comment="0x130C-Change_Local_Name">					<includeblk name="blk_change_local_name"/>					</case>
+				<case value="5132" comment="0x140C-Read_Local_Name">					<includeblk name="blk_read_local_name"/>					</case>
+				<case value="5388" comment="0x150C-Read_Connection_Accept_Timeout">		<includeblk name="blk_read_connection_accept_timeout"/>		</case>
+				<case value="5644" comment="0x160C-Write_Connection_Accept_Timeout">	<includeblk name="blk_write_connection_accept_timeout"/>	</case>
+				<case value="5900" comment="0x170C-Read_Page_Timeout">					<includeblk name="blk_read_page_timeout"/>					</case>
+				<case value="6156" comment="0x180C-Write_Page_Timeout">					<includeblk name="blk_write_page_timeout"/>					</case>
+				<case value="6412" comment="0x190C-Read_Scan_Enable">					<includeblk name="blk_read_scan_enable"/>					</case>
+				<case value="6668" comment="0x1A0C-Write_Scan_Enable">					<includeblk name="blk_write_scan_enable"/>					</case>
+				<case value="6924" comment="0x1B0C-Read_Page_Scan_Activity">			<includeblk name="blk_read_page_scan_activity"/>			</case>
+				<case value="7180" comment="0x1C0C-Write_Page_Scan_Activity">			<includeblk name="blk_write_page_scan_activity"/>			</case>
+				<case value="7436" comment="0x1D0C-Read_Inquiry_Scan_Activity">			<includeblk name="blk_read_inquiry_scan_activity"/>			</case>
+				<case value="7692" comment="0x1E0C-Write_Inquiry_Scan_Activity">		<includeblk name="blk_write_inquiry_scan_activity"/>		</case>
+				<case value="7948" comment="0x1F0C-Read_Authentication_Enable">			<includeblk name="blk_read_authentication_enable"/>			</case>
+				<case value="8204" comment="0x200C-Write_Authentication_Enable">		<includeblk name="blk_write_authentication_enable"/>		</case>
+				<case value="8460" comment="0x210C-Read_Encryption_Mode">				<includeblk name="blk_read_encryption_mode"/>				</case>
+				<case value="8716" comment="0x220C-Write_Encryption_Mode">				<includeblk name="blk_write_encryption_mode"/>				</case>
+ 				<case value="8972" comment="0x230C-Read_Class_of_Device">				<includeblk name="blk_read_class_of_device"/>				</case>
+				<case value="9228" comment="0x240C-Write_Class_of_Device">				<includeblk name="blk_write_class_of_device"/>				</case>
+				<case value="9484" comment="0x250C-Read_Voice_Setting">					<includeblk name="blk_read_voice_setting"/>					</case>
+				<case value="9740" comment="0x260C-Write_Voice_Setting">				<includeblk name="blk_write_voice_setting"/>				</case>
+				<case value="9996" comment="0x270C-Read_Automatic_Flush_Timeout">		<includeblk name="blk_read_automatic_flush_timeout"/>		</case>
+				<case value="10252" comment="0x280C-Write_Automatic_Flush_Timeout">		<includeblk name="blk_write_automatic_flush_timeout"/>		</case>
+				<case value="10508" comment="0x290C-Read_Num_Broadcast_Retransmission">	<includeblk name="blk_read_num_broadcast_retransmission"/>	</case>
+				<case value="10764" comment="0x2A0C-Write_Num_Broadcast_retransmission">	<includeblk name="blk_write_num_broadcast_retransmission"/>	</case>
+				<case value="11020" comment="0x2B0C-Read_Hold_Mode_Activity">			<includeblk name="blk_read_hold_mode_activity"/>			</case>
+				<case value="11276" comment="0x2C0C-Write_Hold_Mode_Activity">			<includeblk name="blk_write_hold_mode_activity"/>			</case>
+				<case value="11532" comment="0x2D0C-Read_Transmit_Power_Level">			<includeblk name="blk_read_transmit_power_level"/>			</case>
+				<case value="11788" comment="0x2E0C-Read_SCO_Flow_Control_Enable">		<includeblk name="blk_read_sco_flowcontrol_enable"/>		</case>
+				<case value="12044" comment="0x2F0C-Write_SCO_Flow_Control_Enable">		<includeblk name="blk_write_sco_flowcontrol_enable"/>		</case>
+				<case value="12556" comment="0x310C-Set_Host_Controller_To_Host_Flow_Control">	<includeblk name="blk_set_host_controller_to_host_flow_control"/>	</case>
+ 				<case value="13068" comment="0x330C-Host_Buffer_Size">					<includeblk name="blk_host_buffer_size"/>					</case>
+				<case value="13580" comment="0x350C-Host_Number_Of_Completed_Packets">	<includeblk name="blk_host_number_of_completed_packets"/>	</case>
+				<case value="13836" comment="0x360C-Read_Link_Supervision_Timeout">		<includeblk name="blk_read_link_supervision_timeout"/>		</case>
+				<case value="14092" comment="0x370C-Write_Link_Supervision_Timeout">	<includeblk name="blk_write_link_supervision_timeout"/>		</case>
+				<case value="14348" comment="0x380C-Read_Number_Of_Supported_IAC">		<includeblk name="blk_read_number_of_supported_iac"/>		</case>
+				<case value="14604" comment="0x390C-Read_Current_IAC_LAP">				<includeblk name="blk_read_current_iac_lap"/>				</case>
+				<case value="14860" comment="0x3A0C-Write_Current_IAC_LAP">				<includeblk name="blk_write_current_iac_lap"/>				</case>
+				<case value="15116" comment="0x3B0C-Read_Page_Scan_Period_Mode">		<includeblk name="blk_read_page_scan_period_mode"/>			</case>
+				<case value="15372" comment="0x3C0C-Write_Page_Scan_Period_Mode">		<includeblk name="blk_write_page_scan_period_mode"/>		</case>
+				<case value="15628" comment="0x3D0C-Read_Page_Scan_Mode">				<includeblk name="blk_read_page_scan_mode"/>				</case>
+				<case value="15884" comment="0x3E0C-Write_Page_Scan_Mode">				<includeblk name="blk_write_page_scan_mode"/>				</case>
+				<case value="0272" comment="0x0110-Read_Local_Version_Information">		<includeblk name="blk_read_local_version_information"/>		</case>
+				<case value="0784" comment="0x0310-Read_Local_Supported_Features">		<includeblk name="blk_read_local_supported_features"/>		</case>
+				<case value="1296" comment="0x0510-Read_Buffer_Size">					<includeblk name="blk_read_buffer_size"/>					</case>
+				<case value="1808" comment="0x0710-Read_Country_Code">					<includeblk name="blk_read_country_code"/>					</case>
+				<case value="2320" comment="0x0910-Read_BD_ADDR">						<includeblk name="blk_read_bd_addr"/>						</case>
+				<case value="0276" comment="0x0114-Read_Faild_Contact_Counter">			<includeblk name="blk_read_failed_contact_counter"/>		</case>
+				<case value="0532" comment="0x0214-Reset_Faild_Contact_Counter">		<includeblk name="blk_reset_failed_contact_counter"/>		</case>
+				<case value="0788" comment="0x0314-Get_Link_Quality">					<includeblk name="blk_get_link_quality"/>					</case>
+				<case value="1300" comment="0x0514-Read_RSSI">							<includeblk name="blk_read_rssi"/>							</case>
+				<case value="0280" comment="0x0118-Read_Loopback_Mode">					<includeblk name="blk_read_loopback_mode"/>					</case>
+				<case value="0536" comment="0x0218-Write_Loopback_Mode">				<includeblk name="blk_write_loopback_mode"/>				</case>
+				<case value="0792" comment="0x0318-Enable_Device_Under_Test_Mode">		<includeblk name="blk_enable_device_under_test_mode"/>		</case>
+
+ 				<default>
+					<field type="variable" name="payload" longname="Parameters" expr="buf2int(hci_command_length)" showtemplate="Field2BytesHexDash"/>
+				</default>
+			</switch>
+
+		</fields>
+
+
+		<!-- Blocks -->
+		<block name="blk_hci_inquiry" longname="Parameters">
+			<field type="fixed" name="lap" longname="LAP" size="3" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="inquiry_length" longname="Inquiry Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="num_response" longname="Maximum Number of Responses" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_inquiry_cancel" longname="Parameters">
+			<!-- Return
+			<field type="fixed" name="status" longname="Resturn Status" size="1" showtemplate="FieldDec"/>
+			-->
+		</block>
+
+		<block name="blk_periodic_enquiry_mode" longname="Parameters">
+			<field type="fixed" name="max_period_length" longname="Maximum Period Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="min_period_length" longname="Minimum Period Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="lap" longname="LAP" size="3" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="inquiry_length" longname="Inquiry Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="num_response" longname="Maximum Number of Responses" size="1" showtemplate="FieldDec"/>
+			<!-- Ret
+			<field type="fixed" name="status" longname="Resturn Status" size="1" showtemplate="FieldDec"/>
+			-->
+		</block>
+
+		<block name="blk_exit_periodic_inquiry_mode" longname="Parameters">
+			<!-- ret
+			<field type="fixed" name="status" longname="Resturn Status" size="1" showtemplate="FieldDec"/>
+			-->
+		</block>
+
+		<block name="blk_create_connection" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="packet_type" longname="Packet Type" size="2" showtemplate="hci_command.packet_type"/>
+			<field type="fixed" name="page_scan_repetition_mode" longname="Page Scan Repetition Mode" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="page_scan_mode" longname="Page Scan Mode" size="1" showtemplate="bluetooth.page_scan_mode"/>
+			<field type="fixed" name="clock_offset" longname="Clock Offset" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="allow_role_switch" longname="Allow Role Switch" size="1" showtemplate="hci_command.allow_role_switch"/>
+		</block>
+
+		<block name="blk_disconnect" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="reason" longname="Reason" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_add_sco_connection" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="packet_type" longname="Packet Type" size="2" showtemplate="hci_command.packet_type"/>
+		</block>
+
+		<block name="blk_accept_connection_request" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="role" longname="Role" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_reject_connection_request" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="reason" longname="Reason" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_link_key_request_reply" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="link_key" longname="Link Key" size="16" showtemplate="Field1BytesHex"/>
+			<!-- Ret
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="r_bd_addr" longname="Return BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			-->
+		</block>
+
+		<block name="blk_link_key_request_negative_reply" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<!-- RET
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="r_bd_addr" longname="Return BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			-->
+		</block>
+
+		<block name="blk_pin_code_request_reply" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="pincode_length" longname="PIN Code Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="pincode" longname="PIN Code" size="16" showtemplate="Field1BytesHex"/>
+			<!-- RET
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="r_bd_addr" longname="Return BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			-->
+		</block>
+
+		<block name="blk_pin_code_request_negative_reply" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+	 		<!-- RET
+	 		<field type="fixed" name="status" longname="Status" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="r_bd_addr" longname="Return BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			-->
+		</block>
+
+		<block name="blk_change_connection_packet_type" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="packet_type" longname="Packet Type" size="2" showtemplate="hci_command.packet_type"/>
+		</block>
+
+		<block name="blk_authentication_requested" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_set_connection_encryption" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="encryption_enable" longname="Encryption Enable" size="1" showtemplate="bluetooth.encryption_enable"/>
+		</block>
+
+		<block name="blk_change_connection_link_key" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_master_link_key" longname="Parameters">
+			<field type="fixed" name="key_flag" longname="Key Flag" size="1" showtemplate="hci_command.key_flag"/>
+		</block>
+
+		<block name="blk_remote_name_request" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+	 		<field type="fixed" name="page_scan_repetition_mode" longname="Page Scan Repetetion Mode" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="page_scan_mode" longname="Page Scan Mode" size="1" showtemplate="bluetooth.page_scan_mode"/>
+			<field type="fixed" name="clock_offset" longname="Clock Offset" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_remote_supported_features" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_remote_version_information" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_clock_offset" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_hold_mode" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="hold_mode_max_interval" longname="Hold Mode Max Interval" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="hold_mode_min_interval" longname="Hold Mode Min Interval" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_sniff_mode" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sniff_mode_max_interval" longname="Sniff Mode Max Interval" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sniff_mode_min_interval" longname="Sniff Mode Min Interval" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sniff_attempt" longname="Sniff Attempt" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sniff_timeout" longname="Sniff Timeout" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_exit_sniff_mode" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_park_mode" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="beacon_max_interval" longname="Beacon Max Interval" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="beacon_min_interval" longname="Beacon Min Interval" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_exit_park_mode" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_qos_setup" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="flags" longname="Flags" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="service_type" longname="Service Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="token_rate" longname="Token rate" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="peak_bandwidth" longname="Peak Bandwidth" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="latency" longname="Latency" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="delay_variation" longname="Delay Variation" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_role_discovery" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<!-- RET
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="r_connection_handle" longname="Return Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="current_role" longname="Current Role" size="1" showtemplate="FieldDec"/>
+			-->
+		</block>
+
+		<block name="blk_switch_role" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="role" longname="Role" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_link_policy_settings" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<!-- RET
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="r_connection_handle" longname="Return Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="link_policy_settings" longname="Link Polcy Settings" size="2" showtemplate="FieldDec"/>
+			-->
+		</block>
+
+		<block name="blk_write_link_policy_settings" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="link_policy_settings" longname="Link Polcy Settings" size="2" showtemplate="FieldDec"/>
+			<!-- RET
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="r_connection_handle" longname="Return Connection Handle" size="2" showtemplate="FieldDec"/>
+			-->
+		</block>
+
+		<block name="blk_set_eventmask" longname="Parameters">
+			<field type="fixed" name="event_mask" longname="Event Mask" size="1" showtemplate="FieldDec"/>
+			<!-- RET
+			<field type="fixed" name="status" longname="Status" size="1" showtemplate="FieldDec"/>
+			-->
+		</block>
+
+		<block name="blk_hci_reset" longname="Parameters">
+			<!-- No Params... -->
+		</block>
+
+		<block name="blk_hci_set_event_filter" longname="Parameters">
+			<field type="fixed" name="filter_type" longname="Filter Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="inquiry_result_filter_condition_type" longname="Inqyuiry Result Filter Condition Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="connection_setup_filter_condition_type" longname="Connection Setup Filter Condition Type" size="1" showtemplate="FieldDec"/>
+
+			<!-- Comment ################### Add and Check it later -->
+			<field type="variable" name="condition" longname="Condition" expr="buf2int(hci_command_length) - 3" showtemplate="Field2BytesHexDash"/>
+		</block>
+
+		<block name="blk_hci_flush" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_pin_type" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_pin_type" longname="Parameters">
+			<field type="fixed" name="pin_type" longname="PIN Type" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_create_new_unit_key" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_read_stored_link_key" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="read_all_flag" longname="Read All Flag" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_write_stored_link_key" longname="Parameters">
+			<field type="fixed" name="num_keys_to_write" longname="Number of Keys to write" size="1" showtemplate="FieldDec"/>
+
+			<block name="key_list" longname="List of Keys">
+				<loop type="times2repeat" expr="buf2int(num_keys_to_write)">
+					<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+					<field type="fixed" name="link_key" longname="Link Key" size="16" showtemplate="Field1BytesHex"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="blk_delete_stored_link_key" longname="Parameters">
+			<field type="fixed" name="bd_addr" longname="BD ADDR" size="6" showtemplate="Field1BytesHex"/>
+			<field type="fixed" name="delete_all_flag" longname="Delete All Flag" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_change_local_name" longname="Parameters">
+			<field type="fixed" name="name" longname="Name" size="248" showtemplate="Field1BytesHex"/>
+		</block>
+
+		<block name="blk_read_local_name" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_read_connection_accept_timeout" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_connection_accept_timeout" longname="Parameters">
+			<field type="fixed" name="connection_accept_timeout" longname="Connection Accept Timeout" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_page_timeout" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_page_timeout" longname="Parameters">
+			<field type="fixed" name="page_timeout" longname="Page Timeout" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_scan_enable" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_scan_enable" longname="Parameters">
+			<field type="fixed" name="scan_enable" longname="Scan Enable" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_page_scan_activity" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_page_scan_activity" longname="Parameters">
+			<field type="fixed" name="page_scan_interval" longname="Page Scan Interval" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="page_scan_window" longname="Page Scan Window" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_inquiry_scan_activity" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_inquiry_scan_activity" longname="Parameters">
+			<field type="fixed" name="inquiry_scan_interval" longname="Inquiry Scan Interval" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="inquiry_scan_window" longname="Inquiry Scan Window" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_authentication_enable" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_authentication_enable" longname="Parameters">
+			<field type="fixed" name="authentication_enable" longname="Authentication Enable" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_encryption_mode" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_encryption_mode" longname="Parameters">
+			<field type="fixed" name="encryption_mode" longname="Encryption Mode" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_class_of_device" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_class_of_device" longname="Parameters">
+			<field type="fixed" name="class_of_device" longname="Class of Device" size="3" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_voice_setting" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_voice_setting" longname="Parameters">
+			<field type="fixed" name="voice_setting" longname="Voice Settings" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_automatic_flush_timeout" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_write_automatic_flush_timeout" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="flush_timeout" longname="Flush Timeout" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_num_broadcast_retransmission" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_num_broadcast_retransmission" longname="Parameters">
+			<field type="fixed" name="num_broadcast_retransmission" longname="Number of Broadcase Retransmission" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_hold_mode_activity" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_hold_mode_activity" longname="Parameters">
+			<field type="fixed" name="hold_mode_activity" longname="Hold mode activity" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_transmit_power_level" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_sco_flowcontrol_enable" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_sco_flowcontrol_enable" longname="Parameters">
+			<field type="fixed" name="sco_flowcontrol_enable" longname="SCO Flow control Enable" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_set_host_controller_to_host_flow_control" longname="Parameters">
+			<field type="fixed" name="flowcontrol_enable" longname="Flow control Enable" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_host_buffer_size" longname="Parameters">
+			<field type="fixed" name="host_acl_data_packet_length" longname="Host ACL Data Packet length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="host_sco_data_packet_length" longname="Host SCO Data Packet Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="host_total_num_acl_data_packets" longname="Total Number of ACL Data Packets" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="host_total_num_sco_data_packets" longname="Total Number of SCO Data Packets" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_host_number_of_completed_packets" longname="Parameters">
+			<field type="fixed" name="number_of_handles" longname="Number of Handles" size="1" showtemplate="FieldDec"/>
+
+			<block name="key_list" longname="List of Keys">
+				<loop type="times2repeat" expr="buf2int(num_keys_to_write)">
+					<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="host_number_of_completed_packets" longname="Host Number of Completed Packets" size="2" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="blk_read_link_supervision_timeout" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_write_link_supervision_timeout" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="link_supervision_timeout" longname="Link Supervision Timeout" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_number_of_supported_iac" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_read_current_iac_lap" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_current_iac_lap" longname="Parameters">
+			<field type="fixed" name="num_current_iac" longname="Num Current IAC" size="1" showtemplate="FieldDec"/>
+
+			<block name="key_list" longname="List of Keys">
+				<loop type="times2repeat" expr="buf2int(num_keys_to_write)">
+					<field type="fixed" name="iac_lap" longname="IAC LAP" size="3" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="blk_read_page_scan_period_mode" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_page_scan_period_mode" longname="Parameters">
+			<field type="fixed" name="page_scan_period_mode" longname="Page Scan Period Mode" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_page_scan_mode" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_page_scan_mode" longname="Parameters">
+			<field type="fixed" name="page_scan_mode" longname="Page Scan Mode" size="1" showtemplate="bluetooth.page_scan_mode"/>
+		</block>
+
+		<!-- ################################################################################ -->
+		<block name="blk_read_local_version_information" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_read_local_supported_features" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_read_buffer_size" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_read_country_code" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_read_bd_addr" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_read_failed_contact_counter" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_reset_failed_contact_counter" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_get_link_quality" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_rssi" longname="Parameters">
+			<field type="fixed" name="connection_handle" longname="Connection Handle" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_read_loopback_mode" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+
+		<block name="blk_write_loopback_mode" longname="Parameters">
+			<field type="fixed" name="loopback_mode" longname="Loopback Mode" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="blk_enable_device_under_test_mode" longname="Parameters">
+			<!-- No Parameters -->
+		</block>
+	</format>
+
+
+ 	<encapsulation>
+		<nextproto proto="#ethernet"/>
+	</encapsulation>
+
+
+	<visualization>
+		<showtemplate name="hci_command.flags" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1025" comment="0x0401" show="HCI Inquiry"/>
+					<case value="1026" comment="0x0402" show="Inquiry Cancel"/>
+					<case value="1027" comment="0x0403" show="Periodic Enquiry Mode"/>
+					<case value="1028" comment="0x0404" show="Exit Periodic Inquiry Mode"/>
+					<case value="1029" comment="0x0405" show="Create_Connection"/>
+					<case value="1030" comment="0x0406" show="Disconnect"/>
+					<case value="1031" comment="0x0407" show="Add_SCO_Connection "/>
+					<case value="1032" comment="0x0408" show="Accept_Connection_Request"/>
+					<case value="1033" comment="0x0409" show="Reject_Connection_Request"/>
+					<case value="1035" comment="0x040B" show="Link_Key_Request_Reply"/>
+					<case value="1036" comment="0x040C" show="Link_Key_Request_Negative_Reply"/>
+					<case value="1037" comment="0x040D" show="PIN_Code_Request_Reply"/>
+					<case value="1038" comment="0x040E" show="Pin_Code_Request_Negative_Reply"/>
+					<case value="1039" comment="0x040F" show="Change_Connection_Packet_Type"/>
+					<case value="1041" comment="0x0411" show="Authentication_Requested"/>
+					<case value="1043" comment="0x0413" show="Set_Connection_Encryption"/>
+					<case value="1045" comment="0x0415" show="Change_Connection_Link_Key"/>
+					<case value="1047" comment="0x0417" show="Mastre_Link_Key"/>
+					<case value="1049" comment="0x0419" show="Remote_Name_Request"/>
+					<case value="1051" comment="0x041B" show="Read_Remote_Supported_Features"/>
+					<case value="1053" comment="0x041D" show="Read_Remote_version_Information"/>
+					<case value="1055" comment="0x041F" show="Read_Clock_Offset"/>
+
+					<case value="2049" comment="0x0801" show="Hold_Mode"/>
+					<case value="2051" comment="0x0803" show="Sniff_Mode"/>
+					<case value="2052" comment="0x0804" show="Exit_Sniff_Mode"/>
+					<case value="2053" comment="0x0805" show="Park_Mode"/>
+					<case value="2054" comment="0x0806" show="Exit_Park_Mode"/>
+					<case value="2055" comment="0x0807" show="QoS_Setup"/>
+					<case value="2057" comment="0x0809" show="Role_Discovery"/>
+					<case value="2059" comment="0x080B" show="Switch_Role"/>
+					<case value="2060" comment="0x080C" show="Read_Link_Policy_Settings"/>
+					<case value="2061" comment="0x080D" show="write_Link_Policy_Sttings"/>
+		
+					<case value="3073" comment="0x0C01" show="Set_Event_Mask"/>
+					<case value="2075" comment="0x0C03" show=" Reset"/>
+		 			<case value="3077" comment="0x0C05" show="Set_Event_Filter"/>
+		 			<case value="3080" comment="0x0C08" show="Flush"/>
+		 			<case value="3081" comment="0x0C09" show="Read_PIN_Type"/>
+		 			<case value="3082" comment="0x0C0A" show="Write PIN Type"/>
+		 			<case value="3083" comment="0x0C0B" show="Create_New_Unit_Key"/>
+					<case value="3085" comment="0x0C0D" show="Read_Stroed_Link_Key"/>
+		 			<case value="3089" comment="0x0C11" show="Write_Stored_Link_Key"/>
+		 			<case value="3090" comment="0x0C12" show="Delete_Stored_Link_Key"/>
+					<case value="3091" comment="0x0C13" show="Change_Local_Name"/>
+		 			<case value="3092" comment="0x0C14" show="Read_Local_Name"/>
+		 			<case value="3093" comment="0x0C15" show="Read_Connection_Accept_Timeout"/>
+					<case value="3094" comment="0x0C16" show="Write_Connection_Accept_Timeout"/>
+		 			<case value="3095" comment="0x0C17" show="Read_Page_Timeout"/>
+		 			<case value="3096" comment="0x0C18" show="Write_Page_Timeout"/>
+					<case value="3097" comment="0x0C19" show="Read_Scan_Enable"/>
+		 			<case value="3098" comment="0x0C1A" show="Write_Scan_Enable"/>
+		 			<case value="3099" comment="0x0C1B" show="Read_Page_Scan_Activity"/>
+					<case value="3100" comment="0x0C1C" show="Write_Page_Scan_Activity"/>
+		 			<case value="3101" comment="0x0C1D" show="Read_Inquiry_Scan_Activity"/>
+		 			<case value="3102" comment="0x0C1E" show="Write_Inquiry_Scan_Activity"/>
+					<case value="3103" comment="0x0C1F" show="Read_Authentication_Enable"/>
+		 			<case value="3104" comment="0x0C20" show="Write_Authentication_Enable"/>
+		 			<case value="3105" comment="0x0C21" show="Read_Encryption_Mode"/>
+					<case value="3106" comment="0x0C22" show="Write_Encryption_Mode"/>
+		 			<case value="3107" comment="0x0C23" show="Read_Class_of_Device"/>
+		 			<case value="3108" comment="0x0C24" show="Write_Class_of_Device"/>
+					<case value="3109" comment="0x0C25" show="Read_Voice_Setting"/>
+		 			<case value="3110" comment="0x0C26" show="Write_Voice_Setting"/>
+		 			<case value="3111" comment="0x0C27" show="Read_Automatic_Flush_Timeout"/>
+					<case value="3112" comment="0x0C28" show="Write_Automatic_Flush_Timeout"/>
+		 			<case value="3113" comment="0x0C29" show="Read_Num_Broadcast_Retransmission"/>
+		 			<case value="3114" comment="0x0C2A" show="Write_Num_Broadcast_retransmission"/>
+					<case value="3115" comment="0x0C2B" show="Read_Hold_Mode_Activity"/>
+		 			<case value="3116" comment="0x0C2C" show="Write_Hold_Mode_Activity"/>
+		 			<case value="3117" comment="0x0C2D" show="Read_Transmit_Power_Level"/>
+					<case value="3118" comment="0x0C2E" show="Read_SCO_Flow_Control_Enable"/>
+		 			<case value="3119" comment="0x0C2F" show="Write_SCO_Flow_Control_Enable"/>
+		 			<case value="3121" comment="0x0C31" show="Set_Host_Control_To_Host_Flow_Control"/>
+					<case value="3123" comment="0x0C33" show="Host_Buffer_Size"/>
+		 			<case value="3125" comment="0x0C35" show="Host_Number_Of_Completed_Packets"/>
+		 			<case value="3126" comment="0x0C36" show="Read_Link_Supervision_Timeout"/>
+		 			<case value="3127" comment="0x0C37" show="Write_Link_Supervision_Timeout"/>
+		 			<case value="3128" comment="0x0C38" show="Read_Number_Of_Supported_IAC"/>
+		 			<case value="3129" comment="0x0C39" show="Read_Current_IAC_LAP"/>
+		 			<case value="3130" comment="0x0C3A" show="Write_Current_IAC_LAP"/>
+		 			<case value="3131" comment="0x0C3B" show="Read_Page_Scan_Period_Mode"/>
+		 			<case value="3132" comment="0x0C3C" show="Write_Page_Scan_Period_Mode"/>
+		 			<case value="3133" comment="0x0C3D" show="Read_Page_Scan_Mode"/>
+		 			<case value="3134" comment="0x0C3E" show="Write_Page_Scan_Mode"/>
+
+		 			<case value="4097" comment="0x1001" show="Read_Local_Version_Information"/>
+		 			<case value="4099" comment="0x1003" show="Read_Local_Supported_Features"/>
+		 			<case value="4101" comment="0x1005" show="Read_Buffer_Size"/>
+	 			<case value="4103" comment="0x1007" show="Read_Country_Code"/>
+		 			<case value="4105" comment="0x1009" show="Read_BD_ADDR"/>
+		
+		 			<case value="5121" comment="0x1401" show="Read_Faild_Contact_Counter"/>
+		 			<case value="5122" comment="0x1402" show="Reset_Faild_Contact_Counter"/>
+		 			<case value="5123" comment="0x1403" show="Get_Link_Quality"/>
+		 			<case value="5125" comment="0x1405" show="Read_RSSI"/>
+
+		 			<case value="6145" comment="0x1801" show="Read_Loopback_Mode"/>
+					<case value="6146" comment="0x1802" show="Write_Loopback_Mode"/>
+					<case value="6147" comment="0x1803" show="Enable_Device_Under_Test_Mode"/>
+
+		 			<default show="Unknown Command Packet"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_command.ogf" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="4" comment="Hex 0x04 is BE 1" show="Link Control Commands"/>
+					<case value="8" comment="Hex 0x08 is BE 2" show="Link Policy Commands"/>
+					<case value="12" comment="Hex 0x0C is BE 3" show="HC Baseband Commands"/>
+					<case value="16" comment="Hex 0x10 is BE 4" show="Information Paramters"/>
+					<case value="20" comment="Hex 0x14 is BE 5" show="Satus Parameters"/>
+					<case value="24" comment="Hex 0x18 is BE 6" show="Testing Commands"/>
+					<case value="248" comment="Hex 0xF8 is BE 3E" show="BT Logo Testing"/>
+					<case value="252" comment="Hex 0xFC is BE 3F" show="Debug Commands"/>
+					<default show="Unknown Command Group"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_command.ocf" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<!-- Fake 'case', otherwise NetBee complains about this -->
+					<case value="1" show="Default OCF Map"/>
+					<default show="Default OCF Map"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_command.packet_type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0800" show="DM1"/>
+					<case value="0x1000" show="DH1"/>
+					<case value="0x2000" show="HV1"/>
+					<case value="0x4000" show="HV2"/>
+					<case value="0x8000" show="HV3"/>
+					<case value="0x0004" show="DM3"/>
+					<case value="0x0008" show="DH3"/>
+					<case value="0x0040" show="DM5"/>
+					<case value="0x0080" show="DH5"/>
+					<default show="Reserved for future use"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_command.allow_role_switch" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Local device will be a master and will not accept a master slave role switch by a remote device"/>
+					<case value="1" show="Accepts Master-Slave switcing"/>
+					<default show="Reserved"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="hci_command.key_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Use Semin-ermanentLink Keys"/>
+					<case value="1" show="Use Temporary Link Keys"/>
+					<default show="Invalid Code"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="hci_command">
+			<section name="next"/>
+			<text value=" OpcodeCommandField: "/>
+			<protofield name="ogf" showdata="showmap"/>
+			<text value=" OpcodeGroupField: "/>
+			<protofield name="ocf" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

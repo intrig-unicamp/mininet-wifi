@@ -1,0 +1,1117 @@
+/*****************************************************************************/
+/*                                                                           */
+/* Copyright notice: please read file license.txt in the NetBee root folder. */
+/*                                                                           */
+/*****************************************************************************/
+
+#include "octeon-asm.h"
+#include "octeon-coprocessor.h"
+#include "octeon-switch.h"
+#include "cfg.h"
+#include "mirnode.h"
+#include "application.h"
+#include "int_structs.h" 
+#include <sstream>
+#include <string>
+
+#define MBMAX_OPCODES 256
+#define MBTREE_TYPE jit::MIRNode
+#define MBREG_TYPE  jit::octeon::octeonRegType
+
+#define MBTREE_LEFT(t) ((t)->getKid(0))
+#define MBTREE_RIGHT(t) ((t)->getKid(1))
+#define MBTREE_OP(t) ((t)->getOpcode())
+#define MBTREE_STATE(t) ((t)->state)
+#define MBTREE_VALUE(t) ((t)->getDefReg())
+#define MBALLOC_STATE   new MBState()
+#define MBGET_OP_NAME(opcode) nvmOpCodeTable[opcode].CodeName
+
+#define MBTREE_GET_CONST_VALUE(t) (((ConstNode *)t)->getValue())
+#define APPLICATION Application::getApp(BB) 
+
+namespace jit
+{
+	namespace octeon {
+
+		class octeon_base_address_man{
+
+			public:
+
+			typedef enum
+			{
+				packet,
+				info,
+				data
+			} base_mem_type;
+
+			void reset();
+
+			octeon_base_address_man();
+			~octeon_base_address_man();
+
+			MBREG_TYPE load_base(CFG<octeon_Insn>& cfg, base_mem_type type);
+			MBREG_TYPE load_base(CFG<octeon_Insn>& cfg, MIRNode* insn);
+
+			private:
+			MBREG_TYPE* bases[3];
+		};
+
+		extern octeon_base_address_man base_man;
+	}
+}
+typedef jit::octeon::octeon_Insn IR;
+
+using namespace jit;
+using namespace octeon;
+
+
+%%
+
+%term CNST RET SNDPKT PBL LDPORT
+
+;packet load terminals
+%term PBLDS PBLDU PSLDS PSLDU PILD
+;packet store terminals
+%term PBSTR PSSTR PISTR
+;info load terminals
+%term ISSBLD ISBLD ISSSLD ISSLD ISSILD
+;info store terminals
+%term IBSTR ISSTR IISTR
+;data load terminals
+%term DBLDS DBLDU DSLDS DSLDU DILD
+;data store terminals
+%term DBSTR DSSTR DISTR
+
+;inc dec
+%term IINC_1 IDEC_1 
+
+;arithmetic instruction
+%term SUBUOV ADDUOV SUB ADD NEG AND OR NOT
+
+;multiply and divide instructions
+%term IMUL MOD 
+
+;shift instructions
+%term USHR SHR SHL
+
+;jump instructions
+%term JCMPEQ JCMPNEQ JCMPLE JCMPL JCMPG JCMPGE JUMPW JNE JEQ JUMP SWITCH
+
+;load store registers
+%term LDREG STREG
+
+;coprocessors
+%term COPRUN COPINIT COPPKTOUT
+
+;compare
+%term CMP
+
+;clear info mem
+%term INFOCLR
+
+%start stmt
+
+stmt: INFOCLR {
+#warning INFOCLR should be define sooner or later
+}
+
+;stmt: INFOCLR
+;{
+;	MBREG_TYPE base(base_man.load_base(cfg, octeon_base_address_man::info));
+;	MBREG_TYPE a0(octeonRegType::mach_reg(A0));
+;
+;	std::ostringstream offset;
+;	offset << "%got_disp("  << Application::getCurrentPEHandler()->OwnerPE->Name << "_" << copro->name << ")";
+;	std::string off_displ(offset.str());
+;}
+
+con: CNST
+{
+}
+
+reg: con
+{
+	MBREG_TYPE new_reg(MBREG_TYPE::new_virt_reg());
+	MBREG_TYPE zero(MBREG_TYPE::mach_reg(ZERO));
+	uint32_t imm = MBTREE_GET_CONST_VALUE(tree);
+
+	if(imm == 0)
+	{
+		tree->setDefReg(zero);
+	}
+	else if (imm > 0xffff)
+	{
+		tree->setDefReg(new_reg);
+		BB.getCode().push_back( new octeonAlu2Op(OCTEON_LUI, new_reg, (imm >> 16)) );
+		BB.getCode().push_back( new octeonAlu3op(OCTEON_ORI, new_reg, new_reg, imm & 0xffff) );
+	}
+	else
+	{
+		tree->setDefReg(new_reg);
+		BB.getCode().push_back( new octeonAlu3op(OCTEON_ADDI, new_reg, zero, imm, OC_WORD));
+	}
+}
+
+stmt: con
+{
+}
+
+stmt: reg
+{
+}
+
+stmt: RET
+{
+	if(Application::getApp(BB).getSegmentType() == INIT_SEGMENT)
+	{
+		//do nothing
+		return;
+	}
+
+#ifdef RTE_PROFILE_COUNTERS
+	std::string name(Application::getApp(BB).getCurrentPEHandler()->OwnerPE->Name);
+	octeonRegType nreg(octeonRegType::new_virt_reg());
+	BB.getCode().push_back(new octeonStopTicks(name, nreg));
+#endif
+
+	BB.getCode().push_back(new octeonRet());
+}
+
+reg: LDPORT
+{
+	throw "LDPORT not implemented in Instruction Selection\n";
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Coprocessor instructions
+;
+
+reg: COPINIT
+{
+	CopMIRNode* insn = dynamic_cast<CopMIRNode*>(tree);
+	assert(insn != NULL);
+
+	nvmCoprocessorState* copro = APPLICATION.getCoprocessor(insn->getcoproId());
+
+	nvmNetPE* pe = APPLICATION.getCurrentPEHandler()->OwnerPE;
+	uint32_t index = pe->Copros[ insn->getcoproId() ];
+
+	nvmCoproInitFunct *init_func = octeon_copro_map[index].copro_init;
+	nvmMemDescriptor inited(APPLICATION.getMemDescriptor(Application::inited));
+
+	//call compile time init function
+	if(init_func != NULL)
+	{
+		init_func(copro, inited.Base + insn->getcoproInitOffset());
+	}
+
+	//emit code to call run time init function
+	MBREG_TYPE reg(MBTREE_VALUE(tree));
+	MBREG_TYPE gp(octeonRegType::mach_reg(GP));
+	MBREG_TYPE t9(octeonRegType::mach_reg(T9));
+	MBREG_TYPE a0(octeonRegType::mach_reg(A0));
+	MBREG_TYPE a1(octeonRegType::mach_reg(A1));
+	MBREG_TYPE v0(octeonRegType::mach_reg(V0));
+	MBREG_TYPE zero(octeonRegType::mach_reg(ZERO));
+
+	std::ostringstream offset;
+	offset << "%got_disp("  
+		   << Application::getCurrentPEHandler()->OwnerPE->Name 
+		   << "_" << copro->name << ")";
+	std::string off_displ(offset.str());
+	BB.getCode().push_back( new octeonLoad(OCTEON_LD, gp, off_displ, a0) );
+
+	uint32_t imm = insn->getcoproOp();
+	if (imm > 0xffff)
+	{
+		BB.getCode().push_back(
+			new octeonAlu2Op(OCTEON_LUI, a1, (imm >> 16)) );
+		BB.getCode().push_back(
+			new octeonAlu3op(OCTEON_ORI, a1, a1, imm & 0xffff) );
+	}
+	else
+	{
+		BB.getCode().push_back(
+			new octeonAlu3op(OCTEON_DADDI, a1, zero, insn->getcoproOp()) );
+	}
+	BB.getCode().push_back(
+		new octeonLoad(OCTEON_LD, a0, offsets.CoprocessorState.init, t9));
+	BB.getCode().push_back( new octeonUnOp(OCTEON_JAL, t9));
+	BB.getCode().push_back( new octeon_Insn(OCTEON_NOP));
+	BB.getCode().push_back( new octeonMoveOp(v0, reg));
+}
+
+stmt: COPRUN
+{
+	CopMIRNode* insn = dynamic_cast<CopMIRNode*>(tree);
+	assert(insn != NULL);
+
+	nvmCoprocessorState* copro = APPLICATION.getCoprocessor(insn->getcoproId());
+	MBREG_TYPE gp(octeonRegType::mach_reg(GP));
+	MBREG_TYPE t9(octeonRegType::mach_reg(T9));
+	MBREG_TYPE a0(octeonRegType::mach_reg(A0));
+	MBREG_TYPE a1(octeonRegType::mach_reg(A1));
+	MBREG_TYPE zero(octeonRegType::mach_reg(ZERO));
+
+#ifdef RTE_PROFILE_COUNTERS
+	std::string name(Application::getApp(BB).getCurrentPEHandler()->OwnerPE->Name);
+	octeonRegType nreg(octeonRegType::new_virt_reg());
+	BB.getCode().push_back(new octeonStopTicks(name, nreg));
+#endif
+
+	std::ostringstream offset;
+	offset << "%got_disp("  << Application::getCurrentPEHandler()->OwnerPE->Name << "_" << copro->name << ")";
+	std::string off_displ(offset.str());
+	BB.getCode().push_back( new octeonLoad(OCTEON_LD, gp, off_displ, a0) );
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_DADDI, a1, zero, insn->getcoproOp()) );
+	BB.getCode().push_back( new octeonLoad(OCTEON_LD, a0, offsets.CoprocessorState.invoke, t9));
+	BB.getCode().push_back( new octeonUnOp(OCTEON_JAL, t9));
+	BB.getCode().push_back( new octeon_Insn(OCTEON_NOP));
+
+#ifdef RTE_PROFILE_COUNTERS
+	//std::string name(Application::getApp(BB).getCurrentPEHandler()->OwnerPE->Name);
+	BB.getCode().push_back(new octeonStartTicks(name));
+#endif
+}
+
+stmt: COPPKTOUT
+{
+	CopMIRNode* insn = dynamic_cast<CopMIRNode*>(tree);
+	assert(insn != NULL);
+
+	MBREG_TYPE src(octeonRegType::new_virt_reg());
+	MBREG_TYPE dst(octeonRegType::new_virt_reg());
+	MBREG_TYPE sp(octeonRegType::mach_reg(SP));
+	MBREG_TYPE gp(octeonRegType::mach_reg(GP));
+
+	nvmCoprocessorState* copro = APPLICATION.getCoprocessor(insn->getcoproId());
+
+	//load exbuf address
+	BB.getCode().push_back( new octeonLoad(OCTEON_LD, sp, 0, src));
+	BB.getCode().push_back( new octeonLoad(OCTEON_LD, src, 0, src));
+	//load address in coprocessor state
+
+	std::ostringstream offset;
+	offset << "%got_disp("  << Application::getCurrentPEHandler()->OwnerPE->Name << "_" << copro->name << ")";
+	std::string off_displ(offset.str());
+	BB.getCode().push_back( new octeonLoad(OCTEON_LD, gp, off_displ, dst) );
+	BB.getCode().push_back( new octeonStore(OCTEON_SD, dst, offsets.CoprocessorState.xbuff, src));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; packet instruction
+;
+
+stmt: SNDPKT
+{
+	SndPktNode* insn = dynamic_cast<SndPktNode *>(tree);
+	assert(insn != NULL);
+
+#ifdef RTE_PROFILE_COUNTERS
+	std::string name(Application::getApp(BB).getCurrentPEHandler()->OwnerPE->Name);
+	octeonRegType nreg(octeonRegType::new_virt_reg());
+	BB.getCode().push_back(new octeonStopTicks(name, nreg));
+#endif
+	BB.getCode().push_back(new octeonSendPkt(insn->getPort_number()));
+}
+
+reg: PBL
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE sp(octeonRegType::mach_reg(SP));
+
+	BB.getCode().push_back(new octeonLoad(OCTEON_LD, sp, 0, dst));
+	BB.getCode().push_back(new octeonLoad(OCTEON_LD, dst, 0, dst));
+	BB.getCode().push_back(new octeonLoad(OCTEON_LW, dst, offsets.ExchangeBuffer.PacketLen, dst));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; LDREG STREG
+;
+
+stmt: STREG(reg)
+{
+	MBREG_TYPE src(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+
+	if(dst.get_model()->get_space() == Application::getCoprocessorRegSpace())
+	{
+		MBREG_TYPE gp(octeonRegType::mach_reg(GP));
+		MBREG_TYPE reg(octeonRegType::new_virt_reg());
+
+		uint32_t regname = dst.get_model()->get_name();
+		uint32_t coproId = regname / MAX_COPRO_REGISTERS;
+		uint32_t coproReg = regname % MAX_COPRO_REGISTERS;
+
+		nvmCoprocessorState* copro = APPLICATION.getCoprocessor(coproId);
+		std::ostringstream offset;
+		offset << "%got_disp("  << Application::getCurrentPEHandler()->OwnerPE->Name << "_" << copro->name << ")";
+		std::string off_displ(offset.str());
+		BB.getCode().push_back( new octeonLoad(OCTEON_LD, gp, off_displ, reg) );
+		BB.getCode().push_back( new octeonStore(OCTEON_SW, reg, offsets.CoprocessorState.regsOffs + 4 *coproReg, src) );
+
+	}
+	else
+	{
+		BB.getCode().push_back( new octeonMoveOp(src, dst) );
+	}
+}
+
+reg: LDREG
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+
+	if(dst.get_model()->get_space() == Application::getCoprocessorRegSpace())
+	{
+		MBREG_TYPE gp(octeonRegType::mach_reg(GP));
+		MBREG_TYPE reg(octeonRegType::new_virt_reg());
+		tree->setDefReg(reg);
+
+		uint32_t regname = dst.get_model()->get_name();
+		uint32_t coproId = regname / MAX_COPRO_REGISTERS;
+		uint32_t coproReg = regname % MAX_COPRO_REGISTERS;
+
+		nvmCoprocessorState* copro = APPLICATION.getCoprocessor(coproId);
+		std::ostringstream offset;
+		offset << "%got_disp("  << Application::getCurrentPEHandler()->OwnerPE->Name << "_" << copro->name << ")";
+		std::string off_displ(offset.str());
+		BB.getCode().push_back( new octeonLoad(OCTEON_LD, gp, off_displ, reg) );
+		BB.getCode().push_back( new octeonLoad(OCTEON_LW, reg, offsets.CoprocessorState.regsOffs + 4 *coproReg, reg) );
+	}
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; INC DEC
+;
+
+reg: IINC_1(reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE src(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_ADDI, dst, src, 1));
+}
+
+reg: IDEC_1(reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE src(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_ADDI, dst, src, (uint32_t)-1));
+}
+
+reg: NOT(reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE zero(octeonRegType::mach_reg(ZERO));
+	MBREG_TYPE src(MBTREE_VALUE(MBTREE_LEFT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_NOR, dst, zero, src));
+}
+
+reg: NEG(reg)
+{
+	std::cerr << "NEG opcode not implemented yet" << std::endl;
+}
+
+reg: NEG(con)
+{
+std::cerr << "NEG opcode not implemented yet" << std::endl;
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Mul and div instructions
+;
+
+reg: IMUL(reg, reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE src1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE lo(octeonRegType::mach_reg(LO));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_MUL, dst, src1, src2));
+	//BB.getCode().push_back( new octeonMoveOp(lo, dst));
+}
+
+reg: MOD(reg, reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE src1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE hi(octeonRegType::mach_reg(HI));
+
+	BB.getCode().push_back( new octeonMulDivOp(OCTEON_DIV, src2, src1));
+	BB.getCode().push_back( new octeonMoveOp(hi, dst));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Shift instruction
+;
+
+reg: USHR (con, reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	uint32_t con(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_SRL, dst, src, con));
+}
+
+reg: USHR (reg, reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE src1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_SRLV, dst, src1, src2));
+}
+
+reg: SHR (con, reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	uint32_t con(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_SRA, dst, src, con));
+}
+
+reg: SHR (reg, reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE src1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_SRAV, dst, src1, src2));
+}
+
+;reg: SHL(reg, con){
+;	MBREG_TYPE dst(MBTREE_VALUE(tree));
+;	MBREG_TYPE reg(octeonRegType::new_virt_reg());
+;	uint32_t con(MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree)));
+;	MBREG_TYPE src(MBTREE_VALUE(MBTREE_LEFT(tree)));
+;	MBREG_TYPE zero(octeonRegType::mach_reg(ZERO));
+;
+;	BB.getCode().push_back( new octeonAlu3op(OCTEON_DADDI, reg, zero, con) );
+;	BB.getCode().push_back( new octeonAlu3op(OCTEON_SRAV,  dst, reg , src) );
+;}
+
+;reg: SHL (con, reg)
+;{
+;	MBREG_TYPE dst(MBTREE_VALUE(tree));
+;	uint32_t con(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+;	MBREG_TYPE src(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+;
+;	BB.getCode().push_back( new octeonAlu3op(OCTEON_SLL, dst, src, con));
+;}
+
+reg: SHL (reg, reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE src1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_SLLV, dst, src1, src2));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Arithmetich instructions
+;
+
+reg: AND(reg, reg)
+{
+	MBREG_TYPE dst( MBTREE_VALUE(tree));
+	MBREG_TYPE src1( MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src2( MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op( OCTEON_AND, dst, src1, src2));
+}
+
+reg: AND(reg, con)
+{
+	MBREG_TYPE dst( MBTREE_VALUE(tree));
+	MBREG_TYPE src1( MBTREE_VALUE(MBTREE_LEFT(tree)));
+	uint32_t src2( MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree)));
+
+	if (src2 > 0xffff)
+	{
+		BB.getCode().push_back( new octeonAlu2Op(OCTEON_LUI, dst, (src2 >> 16)) );
+		BB.getCode().push_back( new octeonAlu3op(OCTEON_ORI, dst, dst, src2 & 0xffff) );
+		BB.getCode().push_back( new octeonAlu3op(OCTEON_AND, dst, src1, dst) ); 
+	} 
+	else
+	{
+		BB.getCode().push_back( new octeonAlu3op( OCTEON_ANDI, dst, src1, src2));
+	}
+}
+
+reg: OR(reg, reg)
+{
+	MBREG_TYPE dst( MBTREE_VALUE(tree));
+	MBREG_TYPE src1( MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src2( MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op( OCTEON_OR, dst, src1, src2));
+}
+
+reg: OR(reg, con)
+{
+	MBREG_TYPE dst( MBTREE_VALUE(tree));
+	MBREG_TYPE src1( MBTREE_VALUE(MBTREE_LEFT(tree)));
+	uint32_t src2( MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree)));
+
+	if (src2 > 0xffff)
+	{
+		BB.getCode().push_back( new octeonAlu2Op(OCTEON_LUI, dst, (src2 >> 16)) );
+		BB.getCode().push_back( new octeonAlu3op(OCTEON_ORI, dst, dst, src2 & 0xffff) );
+		BB.getCode().push_back( new octeonAlu3op(OCTEON_OR, dst, src1, dst) ); 
+	} 
+	else
+	{
+		BB.getCode().push_back( new octeonAlu3op( OCTEON_ORI, dst, src1, src2));
+	}
+}
+
+reg: SUB(reg, reg),
+reg: SUBUOV(reg, reg)
+{
+	MBREG_TYPE dst( MBTREE_VALUE(tree));
+	MBREG_TYPE src1( MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src2( MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+    // OMG, src1 and src2 were originally inverted...
+	BB.getCode().push_back( new octeonAlu3op( OCTEON_SUB, dst, src1, src2));
+}
+
+reg: ADDUOV(reg, reg),
+reg: ADD(reg, reg)
+{
+	MBREG_TYPE dst( MBTREE_VALUE(tree));
+	MBREG_TYPE src1( MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE src2( MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	BB.getCode().push_back( new octeonAlu3op( OCTEON_ADD, dst, src1, src2));
+}
+
+reg: SUBUOV(reg, con),
+reg: SUB(reg, con)
+{
+	MBREG_TYPE dst( MBTREE_VALUE(tree));
+	MBREG_TYPE src1( MBTREE_VALUE(MBTREE_LEFT(tree)));
+	uint32_t src2( MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree)));
+
+	if (src2 > 0xffff)
+	{
+		BB.getCode().push_back( new octeonAlu2Op(OCTEON_LUI, dst, (src2 >> 16)) );
+		BB.getCode().push_back( new octeonAlu3op(OCTEON_ORI, dst, dst, src2 & 0xffff) );
+		BB.getCode().push_back( new octeonAlu3op(OCTEON_SUB, dst, src1, dst) ); 
+	} 
+	else
+	{
+		BB.getCode().push_back( new octeonAlu3op( OCTEON_ADDI, dst, src1, -src2));
+	}
+}
+
+reg: ADDUOV(reg, con),
+reg: ADD(reg, con)
+{
+	MBREG_TYPE dst( MBTREE_VALUE(tree));
+	MBREG_TYPE src1( MBTREE_VALUE(MBTREE_LEFT(tree)));
+	uint32_t src2( MBTREE_GET_CONST_VALUE(MBTREE_RIGHT(tree)));
+
+	if (src2 > 0xffff)
+	{
+		BB.getCode().push_back( new octeonAlu2Op(OCTEON_LUI, dst, (src2 >> 16)) );
+		BB.getCode().push_back( new octeonAlu3op(OCTEON_ORI, dst, dst, src2 & 0xffff) );
+		BB.getCode().push_back( new octeonAlu3op(OCTEON_ADD, dst, src1, dst) ); 
+	} 
+	else
+	{
+		BB.getCode().push_back( new octeonAlu3op( OCTEON_ADDI, dst, src1, src2));
+	}
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; PACKET LOAD INSTRUCTION
+;
+
+reg: DBLDS(con),
+reg: ISSBLD(con),
+reg: PBLDS(con)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	uint32_t off(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back( new octeonLoad(OCTEON_LB, base, off, dst, OC_BYTE) );
+}
+
+reg: DBLDU(con),
+reg: ISBLD(con),
+reg: PBLDU(con)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	uint32_t off(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back( new octeonLoad(OCTEON_LBU, base, off, dst, OC_BYTE) );
+}
+
+reg: DSLDS(con),
+reg: ISSSLD(con),
+reg: PSLDS(con)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	uint32_t off(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back( new octeonLoad(OCTEON_LH, base, off, dst, OC_HWORD) );
+}
+
+reg: DSLDU(con),
+reg: ISSLD(con),
+reg: PSLDU(con)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	uint32_t off(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back( new octeonLoad(OCTEON_LHU, base, off, dst, OC_HWORD) );
+}
+
+reg: DILD(con),
+reg: ISSILD(con),
+reg: PILD(con)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	uint32_t off(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back( new octeonLoad(OCTEON_LW, base, off, dst, OC_WORD) );
+}
+
+reg: DBLDS(reg),
+reg: ISSBLD(reg),
+reg: PBLDS(reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE reg(octeonRegType::new_virt_reg());
+	MBREG_TYPE off(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_DADD, reg, base, off) );
+	BB.getCode().push_back( new octeonLoad(OCTEON_LB, reg, 0, dst, OC_BYTE) );
+}
+
+reg: DBLDU(reg),
+reg: ISBLD(reg),
+reg: PBLDU(reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE reg(octeonRegType::new_virt_reg());
+	MBREG_TYPE off(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_DADD, reg, base, off) );
+	BB.getCode().push_back( new octeonLoad(OCTEON_LBU, reg, 0, dst, OC_BYTE) );
+}
+
+reg: DSLDS(reg),
+reg: ISSSLD(reg),
+reg: PSLDS(reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE reg(octeonRegType::new_virt_reg());
+	MBREG_TYPE off(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_DADD, reg, base, off) );
+	BB.getCode().push_back( new octeonLoad(OCTEON_LH, reg, 0, dst, OC_HWORD) );
+}
+
+reg: DSLDU(reg),
+reg: ISSLD(reg),
+reg: PSLDU(reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE reg(octeonRegType::new_virt_reg());
+	MBREG_TYPE off(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_DADD, reg, base, off) );
+	BB.getCode().push_back( new octeonLoad(OCTEON_LHU, reg, 0, dst, OC_HWORD) );
+}
+
+reg: DILD(reg),
+reg: ISSILD(reg),
+reg: PILD(reg)
+{
+	MBREG_TYPE dst(MBTREE_VALUE(tree));
+	MBREG_TYPE reg(octeonRegType::new_virt_reg());
+	MBREG_TYPE off(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_DADD, reg, base, off) );
+	BB.getCode().push_back( new octeonLoad(OCTEON_LW, reg, 0, dst, OC_WORD) );
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; PACKET STORE INSTRUCTION
+;
+
+stmt: DBSTR(con, reg),
+stmt: IBSTR(con, reg),
+stmt: PBSTR(con, reg)
+{
+	uint32_t offset(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back(new octeonStore(OCTEON_SB, base, offset, value, OC_BYTE));
+}
+
+stmt: DBSTR(reg, reg),
+stmt: IBSTR(reg, reg),
+stmt: PBSTR(reg, reg)
+{
+	MBREG_TYPE offset(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back(new octeonAlu3op(OCTEON_DADD, offset, base, offset));
+	BB.getCode().push_back(new octeonStore(OCTEON_SB, offset, 0, value, OC_BYTE));
+}
+
+stmt: DSSTR(con, reg),
+stmt: ISSTR(con, reg),
+stmt: PSSTR(con, reg)
+{
+	uint32_t offset(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back(new octeonStore(OCTEON_SH, base, offset, value, OC_HWORD));
+}
+
+stmt: DSSTR(reg, reg),
+stmt: ISSTR(reg, reg),
+stmt: PSSTR(reg, reg)
+{
+	MBREG_TYPE offset(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back(new octeonAlu3op(OCTEON_DADD, offset, base, offset));
+	BB.getCode().push_back(new octeonStore(OCTEON_SH, offset, 0, value, OC_HWORD));
+}
+
+stmt: DISTR(con, reg),
+stmt: IISTR(con, reg),
+stmt: PISTR(con, reg)
+{
+	uint32_t offset(MBTREE_GET_CONST_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back(new octeonStore(OCTEON_SW, base, offset, value, OC_WORD));
+}
+
+stmt: DISTR(reg, reg),
+stmt: IISTR(reg, reg),
+stmt: PISTR(reg, reg)
+{
+	MBREG_TYPE offset(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE value(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE base(base_man.load_base(cfg, tree));
+
+	BB.getCode().push_back(new octeonAlu3op(OCTEON_DADD, offset, base, offset));
+	BB.getCode().push_back(new octeonStore(OCTEON_SW, offset, 0, value, OC_WORD));
+}
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; jump instructions
+;
+
+stmt: JCMPEQ (reg, reg)
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE reg2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	BB.getCode().push_back( new octeonBranchCmp2Op(OCTEON_BEQ, reg1, reg2, target, jf) );
+}
+
+stmt: JCMPNEQ(reg, reg)
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE reg2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+
+	BB.getCode().push_back( new octeonBranchCmp2Op(OCTEON_BNE, reg1, reg2, target, jf) );
+}
+
+stmt: JCMPLE (reg, reg)
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE reg2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE temp(octeonRegType::new_virt_reg());
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_SUB, temp, reg2, reg1) );
+	BB.getCode().push_back( new octeonBranchCmp1Op(OCTEON_BLEZ, temp, target, jf));
+}
+
+stmt: JCMPL  (reg, reg)
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE reg2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE temp(octeonRegType::new_virt_reg());
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_SUB, temp, reg2, reg1) );
+	BB.getCode().push_back( new octeonBranchCmp1Op(OCTEON_BLTZ, temp, target, jf));
+}
+
+stmt: JCMPG  (reg, reg)
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE reg2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE temp(octeonRegType::new_virt_reg());
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_SUB, temp, reg2, reg1) );
+	BB.getCode().push_back( new octeonBranchCmp1Op(OCTEON_BGTZ, temp, target, jf));
+}
+
+stmt: JCMPGE (reg, reg)
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE reg2(MBTREE_VALUE(MBTREE_RIGHT(tree)));
+	MBREG_TYPE temp(octeonRegType::new_virt_reg());
+
+	BB.getCode().push_back( new octeonAlu3op(OCTEON_SUB, temp, reg2, reg1) );
+	BB.getCode().push_back( new octeonBranchCmp1Op(OCTEON_BGEZ, temp, target, jf));
+}
+
+stmt: JUMPW,
+stmt: JUMP
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+
+	BB.getCode().push_back( new octeonBranchLblOp(OCTEON_J, target) );
+}
+
+stmt: JNE(CMP(reg, reg))
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+	MIRNode* cmp = MBTREE_LEFT(tree);
+
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(cmp)));
+	MBREG_TYPE reg2(MBTREE_VALUE(MBTREE_RIGHT(cmp)));
+
+	BB.getCode().push_back(new octeonBranchCmp2Op(OCTEON_BNE, reg1, reg2, target, jf));
+}
+
+stmt: JEQ(CMP(reg,reg))
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+	MIRNode* cmp = MBTREE_LEFT(tree);
+
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(cmp)));
+	MBREG_TYPE reg2(MBTREE_VALUE(MBTREE_RIGHT(cmp)));
+
+	BB.getCode().push_back(new octeonBranchCmp2Op(OCTEON_BEQ, reg1, reg2, target, jf));
+}
+
+stmt: JNE(reg)
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE zero(octeonRegType::mach_reg(ZERO));
+
+	BB.getCode().push_back(new octeonBranchCmp2Op(OCTEON_BNE, reg1, zero, target, jf));
+}
+
+stmt: JEQ(reg) 
+{
+	JumpMIRNode *jump = dynamic_cast<JumpMIRNode *>(tree);
+	uint32_t target = jump->getTrueTarget();
+	uint32_t jf = jump->getFalseTarget();
+	MBREG_TYPE reg1(MBTREE_VALUE(MBTREE_LEFT(tree)));
+	MBREG_TYPE zero(octeonRegType::mach_reg(ZERO));
+
+	BB.getCode().push_back(new octeonBranchCmp2Op(OCTEON_BEQ, reg1, zero, target, jf));
+}
+
+stmt: SWITCH(reg)
+{
+	//!\todo use switch_emitter
+	SwitchMIRNode* insn = dynamic_cast<SwitchMIRNode*>(tree);
+	assert(insn != NULL);
+
+	MBREG_TYPE reg = MBTREE_VALUE(MBTREE_LEFT(insn));
+	MBREG_TYPE temp = octeonRegType::new_virt_reg();
+	MBREG_TYPE zero(octeonRegType::mach_reg(ZERO));
+
+	// Switch emitter temporary disabled
+	if(insn->get_targets_num() > 3)
+	{
+		octeon_Switch_Helper helper(cfg, BB, *insn);
+		octeon_SwitchEmitter sw(helper, *insn);
+
+		sw.run();
+	}
+	else
+	{
+		SwitchMIRNode::targets_iterator i;
+		for(i = insn->TargetsBegin(); i != insn->TargetsEnd(); i++)
+		{
+
+			BB.getCode().push_back(new octeonAlu3op(OCTEON_DADDI, temp, zero, i->first));
+			BB.getCode().push_back(new octeonBranchCmp2Op(OCTEON_BEQ, reg, temp, i->second, 0));
+		}
+
+		BB.getCode().push_back(new octeonBranchLblOp(OCTEON_J, insn->getDefaultTarget()));
+	}
+}
+
+%%
+
+octeon_base_address_man jit::octeon::base_man;
+
+octeon_base_address_man::octeon_base_address_man()
+{
+	reset();
+}
+
+octeon_base_address_man::~octeon_base_address_man()
+{
+	reset();
+}
+
+MBREG_TYPE octeon_base_address_man::load_base(CFG<octeon_Insn>& cfg, MIRNode* insn)
+{
+	base_mem_type type = data;
+
+	switch(insn->getOpcode())
+	{
+		case PBLDS:
+		case PBLDU:
+		case PSLDS:
+		case PSLDU:
+		case PILD:
+		case PBSTR:
+		case PSSTR:
+		case PISTR:
+			type = packet;
+			break;
+		case ISSBLD: 
+		case ISBLD:
+		case ISSSLD:
+		case ISSLD:
+		case ISSILD:
+		case IBSTR:
+		case ISSTR:
+		case IISTR:
+			type = info;
+			break;
+		case DBLDS:
+		case DBLDU:
+		case DSLDS:
+		case DSLDU:
+		case DILD:
+		case DBSTR:
+		case DSSTR:
+		case DISTR:
+			type = data;
+			break;
+		default:
+			assert(false);
+	}
+
+	return load_base(cfg, type);
+}
+
+MBREG_TYPE octeon_base_address_man::load_base(CFG<octeon_Insn>& cfg, base_mem_type type)
+{
+	if(bases[type])
+		return *bases[type];
+	
+	MBREG_TYPE new_reg = octeonRegType::new_virt_reg();
+	BasicBlock<octeon_Insn>* BB = cfg.getEntryBB();
+
+	if(type == data)
+	{
+		std::ostringstream offset; 
+		MBREG_TYPE gp(octeonRegType::mach_reg(GP));
+		offset << "%got_disp("  << Application::getCurrentPEHandler()->OwnerPE->Name  << "_data)";
+		std::string off_displ(offset.str());
+
+		BB->getCode().push_back(new octeonLoad(OCTEON_LD, gp, off_displ, new_reg));
+	}
+	else
+	{
+		uint32_t offset = (type == packet ? 
+				offsets.ExchangeBuffer.PacketBuffer : 
+				offsets.ExchangeBuffer.InfoData);
+
+
+		MBREG_TYPE sp(octeonRegType::mach_reg(SP));
+		BB->getCode().push_back(new octeonLoad(OCTEON_LD, sp, 0, new_reg, OC_DWORD));
+		BB->getCode().push_back(new octeonLoad(OCTEON_LD, new_reg, 0, new_reg, OC_DWORD));
+		BB->getCode().push_back(new octeonLoad(OCTEON_LD, new_reg, offset, new_reg, OC_DWORD));
+	}
+
+	bases[type] = new MBREG_TYPE(new_reg);
+	return new_reg;
+}
+
+void octeon_base_address_man::reset()
+{
+	if(bases[0])
+		delete bases[0];
+
+	if(bases[1])
+		delete bases[1];
+	
+	if(bases[2])
+		delete bases[2];
+
+	bases[0] = NULL;
+	bases[1] = NULL;
+	bases[2] = NULL;
+}

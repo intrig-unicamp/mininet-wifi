@@ -1,0 +1,107 @@
+
+<protocol name="stp" longname="Spanning Tree Protocol (802.1d)" showsumtemplate="stp">
+	<format>
+		<fields>
+			<field type="fixed" name="ptype" longname="Protocol Type" size="2" showtemplate="stp.ptype"/>
+			<field type="fixed" name="version" longname="Protocol Version" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="BPDU Type" size="1" showtemplate="stp.type"/>
+
+			<switch expr="buf2int(type)">
+
+				<case value="0">
+					<block name="ConfBPDU" longname="Configuration BPDU">
+						<field type="fixed" name="Flags" longname="Flags" size="1" showtemplate="FieldBin">
+							<field type="bit" name="TCA" longname="Topology change acknowledgement" mask="0x80" size="1" showtemplate="FieldBin"/>
+							<field type="bit" name="TC" longname="Topology change" mask="0x01" size="1" showtemplate="FieldBin"/>
+						</field>
+						<field type="fixed" name="RP" longname="Root ID priority" size="2" showtemplate="FieldHex"/>
+						<field type="fixed" name="ROOTID" longname="Root ID MAC address" size="6" showtemplate="MACaddressEth"/>
+						<field type="fixed" name="ROOTPATHCOST" longname="Root path cost" size="4" showtemplate="FieldHex"/>
+						<field type="fixed" name="BP" longname="Source Bridge priority" size="2" showtemplate="FieldHex"/>
+						<field type="fixed" name="BRIDGEID" longname="Source Bridge MAC address" size="6" showtemplate="MACaddressEth"/>
+						<field type="fixed" name="PORTPRIORITY" longname="Port priority" size="1" showtemplate="FieldHex"/>
+						<field type="fixed" name="PORTNUMBER" longname="Port number" size="1" showtemplate="FieldHex"/>
+						<field type="fixed" name="MSGAGE" longname="Message age" size="2" showtemplate="ShortDiv256Dec"/>
+						<field type="fixed" name="MAXAGE" longname="Max age" size="2" showtemplate="ShortDiv256Dec"/>
+						<field type="fixed" name="HELLOTIME" longname="Hello time" size="2" showtemplate="ShortDiv256Dec"/>
+						<field type="fixed" name="FWDELAY" longname="Forward delay" size="2" showtemplate="ShortDiv256Dec"/>
+					</block>
+				</case>
+
+				<!-- Rapid Spanning Tree: type == 2 -->
+				<case value="2">
+					<block name="ConfBPDU" longname="Configuration BPDU">
+						<field type="fixed" name="Flags" longname="Flags" size="1" showtemplate="FieldBin">
+							<field type="bit" name="TCA" longname="Topology change acknowledgement" mask="0x80" size="1" showtemplate="FieldBin"/>
+							<field type="bit" name="AG" longname="Agreement" mask="0x40" size="1" showtemplate="FieldBin"/>
+							<field type="bit" name="FWD" longname="Forwarding" mask="0x20" size="1" showtemplate="FieldBin"/>
+							<field type="bit" name="LRN" longname="Learning" mask="0x10" size="1" showtemplate="FieldBin"/>
+							<field type="bit" name="PR" longname="Port Role" mask="0x0C" size="1" showtemplate="FieldBin"/>
+							<field type="bit" name="PROP" longname="Proposal" mask="0x02" size="1" showtemplate="FieldBin"/>
+							<field type="bit" name="TC" longname="Topology change" mask="0x01" size="1" showtemplate="FieldBin"/>
+						</field>
+						<field type="fixed" name="RP" longname="Root ID priority" size="2" showtemplate="FieldHex"/>	
+						<field type="fixed" name="ROOTID" longname="Root ID MAC address" size="6" showtemplate="MACaddressEth"/>
+						<field type="fixed" name="ROOTPATHCOST" longname="Root path cost" size="4" showtemplate="FieldHex"/>
+						<field type="fixed" name="BP" longname="Source Bridge priority" size="2" showtemplate="FieldHex"/>
+						<field type="fixed" name="BRIDGEID" longname="Source Bridge MAC address" size="6" showtemplate="MACaddressEth"/>
+						<field type="fixed" name="PORTPRIORITY" longname="Port priority" size="1" showtemplate="FieldHex"/>
+						<field type="fixed" name="PORTNUMBER" longname="Port number" size="1" showtemplate="FieldHex"/>
+						<field type="fixed" name="MSGAGE" longname="Message age" size="2" showtemplate="ShortDiv256Dec"/>
+						<field type="fixed" name="MAXAGE" longname="Max age" size="2" showtemplate="ShortDiv256Dec"/>
+						<field type="fixed" name="HELLOTIME" longname="Hello time" size="2" showtemplate="ShortDiv256Dec"/>
+						<field type="fixed" name="FWDELAY" longname="Forward delay" size="2" showtemplate="ShortDiv256Dec"/>
+						<field type="fixed" name="VERLEN" longname="Version 1 Length" size="1" showtemplate="FieldDec"/>
+					</block>
+				</case>
+			</switch>
+		</fields>
+
+	</format>
+
+	<visualization>
+		<showtemplate name="stp.ptype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Configuration BPDU"/> 
+					<case value="128" show="Topology change BPDU"/> 
+					<default show="Error in 802.1d code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="stp.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Spanning Tree"/> 
+					<case value="2" show="Rapid Spanning Tree"/> 
+					<default show="Error in 802.1d protocol code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="stp">
+			<if expr="$prevproto == #llc">
+				<if-true>
+					<text value=" - "/>
+				</if-true>
+				<if-false>
+					<section name="next"/>
+				</if-false>
+			</if>
+
+			<if expr="buf2int(type) == 0">
+				<if-true>
+					<text value="Spanning Tree "/>
+				</if-true>
+				<if-false>
+					<text value="Rapid Spanning Tree "/>
+				</if-false>
+			</if>
+
+			<protofield name="ptype" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+

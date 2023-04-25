@@ -1,0 +1,1151 @@
+<protocol name="dhcp" longname="Dynamic Host Configuration Protocol" showsumtemplate="dhcp">
+	<format>
+		<fields>
+			<field type="fixed" name="code" longname="Code" size="1" showtemplate="dhcp.code"/>
+			<field type="fixed" name="htype" longname="Hardware address type" description="Hardware address type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="hlen" longname="Hardware address length" description="Hardware address length (e.g. '6' for 10mb ethernet)" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="hops" longname="Hops" description="Client sets to zero, optionally used by relay agents when booting via a relay agent" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="xid" longname="Transation ID" description="a random number chosen by the client, used by the client and server to associate messages and responses between a client and a server" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="secs" longname="Second elapsed" description="Filled in by client, seconds elapsed since client began address acquisition or renewal process" size="2" showtemplate="FieldDec"/>
+			<block name="flags" longname="Flags" description="Flags">
+				<field type="bit" name="MBZ" longname="Must be zero" description="MUST BE ZERO (reserved for future use)" mask="0xFFFE" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="B" longname="Broadcast flag" description="Broadcast flag" mask="0x0001" size="2" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="ciaddr" longname="Client IP address" description="Client IP address; only filled in if client is in BOUND, RENEW or REBINDING state and can respond to ARP requests" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="yiaddr" longname="Your IP Address" description="'your' (client) IP address" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="siaddr" longname="IP of next server to use in bootstrap" description="IP address of next server to use in bootstrap; returned in DHCPOFFER, DHCPACK by server" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="giaddr" longname="Relay agent IP address" description="Relay agent IP address, used in booting via a relay agent" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="variable" name="chaddr" longname="Client hardware address" description="Client hardware address" expr="buf2int(hlen)" showtemplate="MAC-colon" comment="The sum of the size of this field and the next one MUST be 16 bytes"/>
+			<field type="variable" name="chaddr_realign" longname="Client hardware address realign" expr=" 16 - buf2int(hlen)" showtemplate="Field4BytesHex" comment="The sum of the size of this field and the previous one MUST be 16 bytes"/>
+			<field type="fixed" name="sname" longname="Server host name" description="Optional server host name, null terminated string" size="64" showtemplate="FieldAscii"/>
+			<field type="fixed" name="file" longname="Boot file name" description="Boot file name, null terminated string; 'generic' name or null in DHCPDISCOVER, fully qualified directory-path name in DHCPOFFER" size="128" showtemplate="FieldAscii"/>
+
+			<field type="fixed" name="magic" longname="DHCP magic cookie (OK)" size="4" showtemplate="FieldHex"/>
+
+			<loop type="while" expr="1">
+				<!-- Loop until we find a 'break' -->
+
+				<switch expr="buf2int($packet[$currentoffset:1])">
+					<case value="0"> <includeblk name="pad_option"/>									</case>
+					<case value="1"> <includeblk name="subnet_option"/>									</case>
+					<case value="2"> <includeblk name="time_option"/>									</case>
+					<case value="3"> <includeblk name="router_option"/>									</case>
+					<case value="4"> <includeblk name="time_server_option"/>							</case>
+					<case value="5"> <includeblk name="name_server_option"/>							</case>
+					<case value="6"> <includeblk name="domain_name_server_option"/>						</case>
+					<case value="7"> <includeblk name="log_server_option"/>								</case>
+					<case value="8"> <includeblk name="cookie_server_option"/>							</case>
+					<case value="9"> <includeblk name="lpr_server_option"/>								</case>
+					<case value="10"> <includeblk name="impress_server_option"/>						</case>
+					<case value="11"> <includeblk name="resource_location_server_option"/>				</case>
+					<case value="12"> <includeblk name="host_name_option"/>								</case>
+					<case value="13"> <includeblk name="boot_file_size_option"/>						</case>
+					<case value="14"> <includeblk name="merit_dump_file_option"/>						</case>
+					<case value="15"> <includeblk name="domain_name_option"/>							</case>
+					<case value="16"> <includeblk name="swap_server_option"/>							</case>
+					<case value="17"> <includeblk name="root_path_option"/>								</case>
+					<case value="18"> <includeblk name="extensions_path_option"/>						</case>
+					<case value="19"> <includeblk name="ip_forwading_option"/>							</case>
+					<case value="20"> <includeblk name="non_local_source_routing_option"/>				</case>
+					<case value="21"> <includeblk name="policy_filter_option"/>							</case>
+					<case value="22"> <includeblk name="maximum_datagram_reassembly_size_option"/>		</case>
+					<case value="23"> <includeblk name="default_ip_ttl_option"/>						</case>
+					<case value="24"> <includeblk name="path_mtu_aging_timeout_option"/>		 		</case>
+					<case value="25"> <includeblk name="path_mtu_plateau_table_option"/>				</case>
+					<case value="26"> <includeblk name="interface_mtu_option"/>							</case>
+					<case value="27"> <includeblk name="all_subnets_are_local_option"/>					</case>
+					<case value="28"> <includeblk name="broadcast_address_option"/>						</case>
+					<case value="29"> <includeblk name="perform_mask_discovery_option"/>				</case>
+					<case value="30"> <includeblk name="mask_supplier_option"/>							</case>
+					<case value="31"> <includeblk name="perform_router_discovery_option"/> 				</case>
+					<case value="32"> <includeblk name="router_solicitation_address_option"/>			</case>
+					<case value="33"> <includeblk name="static_route_option"/>							</case>
+					<case value="34"> <includeblk name="trailer_encapsulation_option"/>					</case>
+					<case value="35"> <includeblk name="arp_cache_timeout_option"/>						</case>
+					<case value="36"> <includeblk name="ethernet_encapsulation_option"/>				</case>
+					<case value="37"> <includeblk name="tcp_default_ttl_option"/> 						</case>
+					<case value="38"> <includeblk name="tcp_keepalive_interval_option"/>				</case>
+					<case value="39"> <includeblk name="tcp_keepalive_garbage_option"/>					</case>
+					<case value="40"> <includeblk name="network_information_service_domain_option"/>	</case>
+					<case value="41"> <includeblk name="network_information_servers_option"/>			</case>
+					<case value="42"> <includeblk name="network_time_protocol_servers_option"/>			</case>
+					<case value="43"> <includeblk name="vendor_specific_information_option"/>			</case>
+					<case value="44"> <includeblk name="netbios_ns_option"/>							</case>
+					<case value="45"> <includeblk name="netbios_dds_option"/>							</case>
+					<case value="46"> <includeblk name="netbios_node_type_option"/>						</case>
+					<case value="47"> <includeblk name="netbios_scope_option"/>							</case>
+					<case value="48"> <includeblk name="xwindows_system_font_server_option"/>			</case>
+					<case value="49"> <includeblk name="x_window_system_display_manager_option"/>		</case>
+					<case value="50"> <includeblk name="requested_ip_address_option"/> 					</case>
+					<case value="51"> <includeblk name="ip_address_lease_time_option"/> 				</case>
+					<case value="52"> <includeblk name="overload_option"/>								</case>
+					<case value="53"> <includeblk name="dhcp_message_type_option"/>						</case>
+					<case value="54"> <includeblk name="server_identifier_option"/>						</case>
+					<case value="55"> <includeblk name="parameter_request_list_option"/>				</case>
+					<case value="56"> <includeblk name="message_option"/>								</case>
+					<case value="57"> <includeblk name="maximum_dhcp_message_size_option"/>				</case>
+					<case value="58"> <includeblk name="renewal_time_value_option"/>					</case>
+					<case value="59"> <includeblk name="rebinding_time_value_option"/>					</case>
+					<case value="60"> <includeblk name="vendor_class_identifier_option"/>				</case>
+					<case value="61"> <includeblk name="client_identifier_option"/>						</case>
+					<case value="62"> <includeblk name="netware_ip_domain_name_option"/>				</case>
+					<case value="63"> <includeblk name="the_netware_ip_information_option"/>			</case>
+					<case value="64"> <includeblk name="network_information_service_domain_option"/>	</case>
+					<case value="65"> <includeblk name="network_information_serivice_servers_option"/>	</case>
+					<case value="66"> <includeblk name="tftp_server_name_option"/>						</case>
+					<case value="67"> <includeblk name="bootfile_name_option"/>							</case>
+					<case value="68"> <includeblk name="mobile_ip_home_agent_option"/>					</case>
+					<case value="69"> <includeblk name="smtp_server_option"/>							</case>
+					<case value="70"> <includeblk name="pop3_server_option"/>							</case>
+					<case value="71"> <includeblk name="nntp_server_option"/>							</case>
+					<case value="72"> <includeblk name="default_www_server_option"/>					</case>
+					<case value="73"> <includeblk name="default_finger_server_option"/>					</case>
+					<case value="74"> <includeblk name="default_irc_server_option"/>					</case>
+					<case value="75"> <includeblk name="streettalk_server_option"/>						</case>
+					<case value="76"> <includeblk name="stda_server_option"/>							</case>
+					<case value="77"> <includeblk name="user_class_option"/>							</case>
+					<case value="78"> <includeblk name="slp_directory_agent_option"/>					</case>
+					<case value="79"> <includeblk name="slp_service_scope_option"/>						</case>
+					<case value="80"> <includeblk name="naming_authority_extension_option"/>			</case>
+					<case value="81"> <includeblk name="client_fqdn_option"/>							</case>
+					<case value="82"> <includeblk name="relay_agent_information_option"/>				</case>
+					<case value="83"> <includeblk name="agent_remote_id_option"/>						</case>
+					<case value="85"> <includeblk name="nds_server_option"/>							</case>
+					<case value="86"> <includeblk name="nds_tree_name_option"/>							</case>
+					<case value="88"> <includeblk name="ieee_1003_1_posix_timezone_specifier_option"/>	</case>
+					<case value="90"> <includeblk name="authentication_option"/>						</case>
+					<case value="98"> <includeblk name="user_authentication_protocol_option"/>			</case>
+					<case value="116"> <includeblk name="auto_configure_option"/>						</case>
+					<case value="117"> <includeblk name="name_service_search_option"/>					</case>
+					<case value="118"> <includeblk name="subnet_selection_option"/>						</case>
+					<case value="120"> <includeblk name="sip_server_dhcp_option"/>						</case>
+					<case value="126"> <includeblk name="extension_option"/>							</case>
+					<case value="127"> <includeblk name="extension_option"/>							</case>
+
+					<case value="128" maxvalue="254">
+						<!-- Options from 128 to 254 are for private use -->
+						<includeblk name="private_use_option"/>
+					</case>
+
+					<case value="255">
+						<includeblk name="end_option"/>
+						<loopctrl type="break"/>
+					</case>
+
+					<default>
+						<includeblk name="unsupported_option"/>
+					</default>
+				</switch>
+			</loop>
+
+			<field type="variable" name="padding" longname="Padding" description="Padding must be a sequence of 0" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+
+
+		<block name="unsupported_option" longname="Unsupported Option" description="Unsupported">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="value" longname="Value" expr="buf2int(len)" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="extension_option" longname="Extension Option" description="Extension">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="value" longname="Value" expr="buf2int(len)" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="pad_option" longname="Pad" description="Pad to align">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="end_option" longname="End of vendor field" description="The end option marks the end of valid information in the vendor field">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="subnet_option" longname="Subnet mask option" description="The subnet mask option specifies the client's subnet mask as per RFC 950">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length of Subnetmask" description="Must be 4. see rfc2132" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="netmask" longname="Subnet Mask" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="time_option" longname="Time offset option" description="The subnet mask option specifies the client's subnet mask as per RFC 950">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length of time" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="toffset" longname="Time Offset" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="router_option" longname="Router Option" description="The router option specifies a list of IP addresses for routers on the client's subnet. Routers SHOULD be listed in order of preference">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Number of address * 4" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="time_server_option" longname="Time Server Option" description="The time server option specifies a list of RFC 868 time servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Number of address * 4" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="name_server_option" longname="Name Server Option" description="The name server option specifies a list of IEN 116 name servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length of Subnetmask" description="Must be 4. see rfc2132" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="domain_name_server_option" longname="Domain Name Server Option" description="The domain name server option specifies a list of Domain Name System (STD 13, RFC 1035) name servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Number of address * 4" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="log_server_option" longname="Log Server Option" description="The log server option specifies a list of MIT-LCS UDP log servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Number of address * 4" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="cookie_server_option" longname="Cookie Server Option" description="The cookie server option specifies a list of RFC 865 cookie servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Number of address * 4" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="lpr_server_option" longname="LPR Server Option" description="The LPR server option specifies a list of RFC 1179 line printer servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Number of address * 4" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="impress_server_option" longname="Impress Server Option" description="The Impress server option specifies a list of Imagen Impress servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Number of address * 4" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="resource_location_server_option" longname="Resource Location Server Option" description="This option specifies a list of RFC 887 Resource Location servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Number of address * 4" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="host_name_option" longname="Host Name Option" description="This option specifies the name of the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum lengthh is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="hname" longname="Host Name" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="boot_file_size_option" longname="Boot File Size Option" description="This option specifies the length in 512-octet blocks of the default boot image for the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length " description="Must be 2" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="filesize" longname="File Size" description="Length in 512-octect blocks" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="merit_dump_file_option" longname="Merit Dump File Option" description="This option specifies the path-name of a file to which the client's core image should be dumped in the event the client crashes">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="String Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="dump" longname="Dump File Pathname" description="The path is formatted as a character string consisting of characters from the NVT ASCII character set" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="domain_name_option" longname="Domain Name Option" description="This option specifies the domain name that client should use when resolving hostnames via the Domain Name System">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="String Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="domain" longname="Domain Name" description="Domain Name" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+
+		<block name="swap_server_option" longname="Swap Server Option" description="This specifies the IP address of the client's swap server">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="String Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="address" longname="Swap Server Address" description="IP address of the client's swap server" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="root_path_option" longname="Root Path Option" description="This option specifies the path-name that contains the client's root disk">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="String Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="pathname" longname="Root Disk Pathname" description="The path is formatted as a character string consisting of characters from the NVT ASCII character set" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="extensions_path_option" longname="Extension Path Option" description="A string to specify a file, retrievable via TFTP">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="String Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="pathname" longname="Extensions Pathname" description="see rfc 2132 3.20" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="ip_forwading_option" longname="IP Forwading Enable/Disable Option" description="This option specifies whether the client should configure its IP layer for packet forwarding">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="String Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" description="A value of 0 means disable IP forwarding, and a value of 1 means enable IP forwarding" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="non_local_source_routing_option" longname="Non-Local Source Routing Enable/Disable Option" description="This option specifies whether the client should configure its IP layer to allow forwarding of datagrams with non-local source routes">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="String Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" description="A value of 0 means disallow forwarding of such datagrams, and a value of 1 means allow forwarding" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="policy_filter_option" longname="Policy Filter Option" description="This option specifies policy filters for non-local source routing">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Number of address * 8" description="Must be a multiple of 8" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 8">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+					<field type="fixed" name="mask" longname="Mask" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="maximum_datagram_reassembly_size_option" longname="Maximum Datagram Reassembly Size Option" description="This option specifies the maximum size datagram that the client should be prepared to reassemble">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 2" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="size" longname="Size" description="The size is specified as a 16-bit unsigned integer. The minimum value legal value is 576" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="default_ip_ttl_option" longname="Default IP Time-to-live Option" description="This option specifies the default time-to-live that the client should use on outgoing datagrams">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="ttl" longname="Time-to-live" description="The TTL is specified as an octet with a value between 1 and 255" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="path_mtu_aging_timeout_option" longname="Path MTU Aging Timeout Option" description="This option specifies the timeout (in seconds) to use when aging Path MTU values discovered by the mechanism defined in RFC 1191">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="ttl" longname="Time-to-live" description="The timeout is specified as a 32-bit unsigned integer" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="path_mtu_plateau_table_option" longname="Path MTU Plateau Table Option" description="This option specifies a table of MTU sizes to use when performing Path MTU Discovery as defined in RFC 1191">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="MUST be a multiple of 2" size="1" showtemplate="FieldDec"/>
+
+			<!-- Are we sure that the 'address list' contains a list of 'size'? -->
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 2">
+					<field type="fixed" name="size" longname="Size" size="2" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="interface_mtu_option" longname="Interface MTU Option" description="This option specifies the MTU to use on this interface">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 2" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="mtu" longname="MTU" description="The minimum legal value for the MTU is 68" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="all_subnets_are_local_option" longname="All Subnets are Local Option" description="This option specifies whether or not the client may assume that all subnets of the IP network to which the client is connected use the same MTU as the subnet of that network to which the client is directly connected">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" description="A value of 1 indicates that all subnets share the same MTU. A value of 0 means that the client should assume that some subnets of the directly connected network may have smaller MTUs" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="broadcast_address_option" longname="Broadcast Adress Option" description="This option specifies the broadcast address in use on the client's subnet">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="baddr" longname="Broadcast Address" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="perform_mask_discovery_option" longname="Perform Masck Discovery Option" description="This option specifies whether or not the client should perform subnet mask discovery using ICMP">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" description="A value of 0 indicates that the client should not perform mask discovery. A value of 1 means that the client should perform mask discovery" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="mask_supplier_option" longname="Mask Supplier Option" description="This option specifies whether or not the client should respond to subnet mask requests using ICMP">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" description="A value of 0 indicates that the client should not respond. A value of 1 means that the client should respond" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="perform_router_discovery_option" longname="Perform Router Discovery Option" description="This option specifies whether or not the client should solicit routers using the Router Discovery mechanism defined in RFC 1256">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" description="A value of 0 indicates that the client should not perform router discovery. A value of 1 means that the client should perform router discovery" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="router_solicitation_address_option" longname="Router Solicitation Address Option" description="This option specifies the address to which the client should transmit router solicitation requests">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="addr" longname="Address" description="Address" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="static_route_option" longname="Static Route Option" description="This option specifies a list of static routes that the client should install in its routing cache">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be a multiple of 8" size="1" showtemplate="FieldDec"/>
+			<block name="destinations" longname="Destination List">
+				<loop type="times2repeat" expr="buf2int(len) div 8">
+					<field type="fixed" name="destination" longname="Destination Address" size="4" showtemplate="ip4addr-noplg"/>
+					<field type="fixed" name="router" longname="Router Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="trailer_encapsulation_option" longname="Trailer Encapsulation Option" description="This option specifies whether or not the client should negotiate the use of trailers (RFC 893) when using the ARP protocol">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" description="A value of 0 indicates that the client should not attempt to use trailers. A value of 1 means that the client should attempt to use trailers" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="arp_cache_timeout_option" longname="ARP Cache Timeout Option" description="This option specifies the timeout in seconds for ARP cache entries">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="time" longname="Time" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="ethernet_encapsulation_option" longname="Ethernet Encapsulation Option" description="This option specifies whether or not the client should use Ethernet Version 2 (RFC 894) or IEEE 802.3 (RFC 1042) encapsulation if the interface is an Ethernet">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" description="A value of 0 indicates that the client should use RFC 894 encapsulation. A value of 1 means that the client should use RFC 1042 encapsulation" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="tcp_default_ttl_option" longname="TCP Default TTL Option" description="This option specifies the default TTL that the client should use when sending TCP segments">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="ttl" longname="TTL" description="Time To Live. The minimum value is 1" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="tcp_keepalive_interval_option" longname="TCP Keeplive Intervall Option" description="This option specifies the interval (in seconds) that the client TCP should wait before sending a keepalive message on a TCP connection">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="time" longname="Time" description="A value of zero indicates that the client should not generate keepalive messages on connections unless specifically requested by an application" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="tcp_keepalive_garbage_option" longname="TCP Keeplive Garbage Option" description="This option specifies the whether or not the client should send TCP keepalive messages with a octet of garbage for compatibility with older implementations">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="network_information_service_domain_option" longname="Network Information Service Domain Option" description="This option specifies the name of the client's NIS domain">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="String Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="nisdn" longname="NIS Domain Name" description="The domain is formatted as a character string consisting of characters from the NVT ASCII character set" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="network_information_servers_option" longname="Network Information Servers Option" description="This option specifies a list of IP addresses indicating NIS servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="nis_list" longname="NIS servers list" description="Servers SHOULD be listed in order of preference">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="network_time_protocol_servers_option" longname="Network Time Protocol Servers Option" description="This option specifies a list of IP addresses indicating NTP servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="ntp_list" longname="NTP servers list" description="Servers SHOULD be listed in order of preference">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="vendor_specific_information_option" longname="Vendor Specific Information Option" description="This option is used by clients and servers to exchange vendor-specific information">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="sub_options_list" longname="Sub Options List">
+				<loop type="size" expr="buf2int(len)">
+					<field type="fixed" name="sub_code" longname="Sub Option Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="sub_len" longname="Length" size="1" showtemplate="FieldDec"/>
+					<field type="variable" name="data_item" longname="Data item" expr="buf2int(sub_len)" showtemplate="Field4BytesHex"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="netbios_ns_option" longname="NetBIOS over TCP/IP Name Server Option" description="The NetBIOS name server (NBNS) option specifies a list of RFC 1001/1002 NBNS name servers listed in order of preference">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="nbns_list" longname="NBNS List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="netbios_dds_option" longname="NetBIOS over TCP/IP Datagram Distribution Server Option" description="The NetBIOS datagram distribution server (NBDD) option specifies a list of RFC 1001/1002 NBDD servers listed in order of preference">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="nbdds_list" longname="NBDDS List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="netbios_node_type_option" longname="NetBIOS over TCP/IP Node Type Option" description="The NetBIOS node type option allows NetBIOS over TCP/IP clients which are configurable to be configured as described in RFC 1001/1002">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length of Subnetmask" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<block name="node_type" longname="Node Type">
+				<field type="bit" name="b_node" longname="B-node" mask="0x01" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="p_node" longname="P-node" mask="0x02" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="m_node" longname="M-node" mask="0x04" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="h_node" longname="H-node" mask="0x08" size="1" showtemplate="FieldBin"/>
+			</block>
+		</block>
+
+		<block name="netbios_scope_option" longname="NetBIOS over TCP/IP Scope Option" description="The NetBIOS scope option specifies the NetBIOS over TCP/IP scope parameter for the client as specified in RFC 1001/1002">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum lengthh is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="netbios_scope" longname="NetBIOS Scope" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="xwindows_system_font_server_option" longname="X Window System Font Server Option" description="This option specifies a list of X Window System Font servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="xwsfs_list" longname="XWindows SFS List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="x_window_system_display_manager_option" longname="X Window System Display Manager Option" description="This option specifies a list of IP addresses of systems that are running the X Window System Display Manager and are available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="xwsdm_list" longname="XWindows SDM List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="network_information_service_domain_option" longname="Network Information Service + Domain Option" description="This option specifies the name of the client's NIS+ domain">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum lengthh is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="nis_client_domain_name" longname="NIS Client Domain Name" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="network_information_serivice_servers_option" longname="Network Information Service+ Servers Options" description="This option specifies a list of IP addresses indicating NIS+ servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="NBDDS List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="mobile_ip_home_agent_option" longname="Mobile IP Home Agent Option" description="This option specifies a list of IP addresses indicating mobile IP home agents available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="smtp_server_option" longname="SMTP Server Option" description="The SMTP server option specifies a list of SMTP servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="pop3_server_option" longname="POP3 Server Option" description="The POP3 server option specifies a list of POP3 available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="nntp_server_option" longname="NNTP Server Option" description="The NNTP server option specifies a list of NNTP available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="default_www_server_option" longname="Default WWW Server Option" description="The WWW server option specifies a list of WWW available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="default_finger_server_option" longname="Default Finger Server Option" description="The Finger server option specifies a list of Finger available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="default_irc_server_option" longname="Default IRC Server Option" description="The IRC server option specifies a list of IRC available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="streettalk_server_option" longname="StreetTalk Server Option" description="The StreetTalk server option specifies a list of StreetTalk servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="stda_server_option" longname="STDA Server Option" description="The StreetTalk Directory Assistance (STDA) server option specifies a list of STDA servers available to the client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="requested_ip_address_option" longname="Requested IP Address Option" description="This option is used in a client request (DHCPDISCOVER) to allow the client to request that a particular IP address be assigned">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="ip_address_lease_time_option" longname="IP Address Lease Time Option" description="This option is used in a client request (DHCPDISCOVER or DHCPREQUEST) to allow the client to request a lease time for the IP address">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="time" longname="Lease Time" description="The time is in units of seconds" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="overload_option" longname="Overload Option" description="This option is used to indicate that the DHCP 'sname' or 'file' fields are being overloaded by using them to carry DHCP options">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" description="Must be 1, 2 or 3" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="tftp_server_name_option" longname="TFTP Sever Name Option" description="This option is used to identify a TFTP server when the 'sname' field in the DHCP header has been used for DHCP options">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="tftp_server" longname="TFTP Server" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="bootfile_name_option" longname="Boot File Name Option" description="This option is used to identify a bootfile when the 'file' field in the DHCP header has been used for DHCP options">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="bootfile_name" longname="Bootfile Name" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="dhcp_message_type_option" longname="DHCP Message Type Option" description="This option is used to convey the type of the DHCP message" showsumtemplate="dhcp.MessTypeOpt">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="DHCP Message Type" size="1" showtemplate="dhcp.type"/>
+		</block>
+
+		<block name="server_identifier_option" longname="Server Identifier Option" description="This option is used in DHCPOFFER and DHCPREQUEST messages, and may optionally be included in the DHCPACK and DHCPNAK messages">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="parameter_request_list_option" longname="Parameter Request List Option" description="This option is used by a DHCP client to request values for specified configuration parameters">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum lengthh is 1" size="1" showtemplate="FieldDec"/>
+
+			<block name="option_codes" longname="Option Codes" description="List of Requested Option">
+				<loop type="times2repeat" expr="buf2int(len)">
+					<field type="fixed" name="option" longname="Option" size="1" showtemplate="dhcp.option"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="message_option" longname="Message Option" description="This option is used by a DHCP server to provide an error message to a DHCP client in a DHCPNAK message in the event of a failure">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum lengthh is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="text" longname="Text" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="maximum_dhcp_message_size_option" longname="Maximum DHCP Message Size Option" description="This option specifies the maximum length DHCP message that it is willing to accept">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="msg_size" longname="Message Size" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="renewal_time_value_option" longname="Renewal (T1) Time Value Option" description="This option specifies the time interval from address assignment until the client transitions to the RENEWING state">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="t1" longname="T1 Interval" description="The time is in units of seconds" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="rebinding_time_value_option" longname="Rebinding (T2) Time Value Option" description="This option specifies the time interval from address assignment until the client transitions to the REBINDING state">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="t2" longname="T2 Interval" description="The time is in units of seconds" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="vendor_class_identifier_option" longname="Vendor Class Indentifier Option" description="This option is used by DHCP clients to optionally identify the vendor type and configuration of a DHCP client">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="vendor_class_id" longname="Vendor Class Identifier" expr="buf2int(len)" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="client_identifier_option" longname="Client Identifier Option" description="This option is used by DHCP clients to specify their unique identifier">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="client_id" longname="Client Identifier" expr="buf2int(len) - 1" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="nds_server_option" longname="Novell Directory Services Server Option" description="This option specifies one or more NDS servers for the client to contact for access to the NDS database">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be a multiple of 4" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="buf2int(len) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="nds_tree_name_option" longname="Novell Tree Name Option" description="This option specifies the name of the NDS tree the client will be ontacting">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="nds_tree_name" longname="NDS Tree Name" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="user_authentication_protocol_option" longname="User Authentication Protocol Option" description="This option specifies a list of URLs, each pointing to a user authentication service that is capable of processing authentication requests encapsulated in the User Authentication Protocol (UAP)">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="url_list" longname="URL List" description="Separed by the ASCII space character (0x20)" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="private_use_option" longname="Private Use Option" description="Private use option">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="value" longname="Value" description="Value" expr="buf2int(len)" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="auto_configure_option" longname="Auto Configure Option" description="This option code is used to ask whether, and be notified if, auto-configuration should be disabled on the local subnet">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="subnet_selection_option" longname="Subnet Selection Option" description="The option contains a single IPv4 address that is the address of a subnet">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="address" longname="IPv4 Address" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="netware_ip_domain_name_option" longname="NetWare/IP Domain Name Option" description="This option code is used to convey the NetWare/IP domain name used by the NetWare/IP product">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="netware_ip_domain_name" longname="NetWare/IP Domain Name" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="the_netware_ip_information_option" longname="The NetWare/IP Information option" description="The NetWare/IP option code will be used to convey all the NetWare/IP related information except for the NetWare/IP domain name">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="sub_options_list" longname="Sub Options List">
+				<loop type="size" expr="buf2int(len)">
+					<switch expr="buf2int($packet[$currentoffset:1])">
+						<case value="1">
+							<field type="fixed" name="nwip_does_not_exist" longname="NWIP_DOES_NOT_EXIST" description="The responding DHCP server does not have any NetWare/IP information configured" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" description="Must be 0" size="1" showtemplate="FieldDec"/>
+						</case>
+						<case value="2">
+							<field type="fixed" name="nwip_exist_in_options_area" longname="NWIP_EXIST_IN_OPTIONS_AREA" description="All NetWare/IP information is present in the 'options' area of the DHCP response packet" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" description="Must be 0" size="1" showtemplate="FieldDec"/>
+						</case>
+						<case value="3">
+							<field type="fixed" name="nwip_exist_in_sname_file" longname="NWIP_EXIST_IN_SNAME_FILE" description="All NetWare/IP information is present in the 'sname' and, if necessary, 'file' fields of the DHCP response packet" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" description="Must be 0" size="1" showtemplate="FieldDec"/>
+						</case>
+						<case value="4">
+							<field type="fixed" name="nwip_exist_but_too_big" longname="NWIP_EXIST_BUT_TOO_BIG" description="Neither 'options' area nor 'sname' field can accommodate the NetWare/IP information" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" description="Must be 0" size="1" showtemplate="FieldDec"/>
+						</case>
+						<case value="5">
+							<field type="fixed" name="nsq_broadcast" longname="NSQ_BROADCAST" description="If the value is 1, the client SHOULD perform a NetWare Nearest Server Query to find out its nearest NetWare/IP server" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" description="Must be 1" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="value" longname="Value" description="Must be 0 or 1" size="1" showtemplate="FieldDec"/>
+						</case>
+						<case value="6">
+							<field type="fixed" name="preferred_dss" longname="PREFERRED_DSS" description="The list contains the addresses of N NetWare Domain SAP/RIP Server (DSS)" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+							<loop type="times2repeat" expr="buf2int(len) div 4">
+								<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+							</loop>
+						</case>
+						<case value="7">
+							<field type="fixed" name="nearest_nwip_server" longname="NEAREST_NWIP_SERVER" description="The list contains the addresses of n Nearest NetWare/IP servers" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+							<loop type="times2repeat" expr="buf2int(len) div 4">
+								<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+							</loop>
+						</case>
+						<case value="8">
+							<field type="fixed" name="autoretries" longname="AUTORETRIES" description="The value is a one byte integer value indicating the number of times a NetWare/IP client should attempt to communicate with a given DSS server at startup" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="value" longname="Value" size="1" showtemplate="FieldDec"/>
+						</case>
+						<case value="9">
+							<field type="fixed" name="autoretry_secs" longname="AUTORETRY_SECS" description="The value is a one byte integer value indicating the amount of delay in seconds in between each NetWare/IP client attempt to communicate with a given DSS server at startup" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="value" longname="Value" size="1" showtemplate="FieldDec"/>
+						</case>
+						<case value="10">
+							<field type="fixed" name="nwip_1_1" longname="NWIP_1_1" description="If the value is 1, the NetWare/IP client SHOULD support NetWare/IP Version 1.1 compatibility" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="value" longname="Value" size="1" showtemplate="FieldDec"/>
+						</case>
+						<case value="11">
+							<field type="fixed" name="primary_dss" longname="PRIMARY_DSS" description="This field identifies the Primary Domain SAP/RIP Service server (DSS) for this NetWare/IP domain" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+						</case>
+						<default>
+							<field type="fixed" name="unknown" longname="UNKNOWN" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+							<field type="variable" name="value" longname="Value" expr="buf2int(len)" showtemplate="Field4BytesHex"/>
+						</default>
+					</switch>
+				</loop>
+			</block>
+		</block>
+
+		<block name="user_class_option" longname="User Class option" description="This option is used by a DHCP client to optionally identify the type or category of user or applications it represents">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<block name="uc_option_list" longname="User Class Option List">
+				<loop type="size" expr="buf2int(len)">
+					<field type="fixed" name="uc_len" longname="User Class Data Length" size="1" showtemplate="FieldDec"/>
+					<field type="variable" name="user_class_data" longname="User Class Data" expr="buf2int(uc_len)" showtemplate="Field4BytesHex"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="slp_directory_agent_option" longname="SLP Directory Agent Option" description="This option specifies the location of one or more SLP Directory Agents">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be a multiple of 4 + 1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="mandatory" longname="Mandatory" size="1" showtemplate="FieldDec"/>
+			<block name="address_list" longname="Address List">
+				<loop type="times2repeat" expr="(buf2int(len) - 1) div 4">
+					<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="slp_service_scope_option" longname="SLP Service Scope Option" description="The scope list is a comma delimited list which indicates the scopes that a SLP Agent is configured to use">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 2" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="mandatory" longname="Mandatory" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="scopelist" longname="Scope List" expr="buf2int(len) - 1" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="client_fqdn_option" longname="The Client FQDN Option" description="To update the IP address to FQDN mapping a DHCP server needs to know the FQDN of the client to which the server leases the address">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 4" size="1" showtemplate="FieldDec"/>
+			<block name="flags" longname="Flags" description="Flags">
+				<field type="bit" name="MBZ" longname="Must be zero" description="MUST BE ZERO (reserved for future use)" mask="0xF0" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="N" longname="N" mask="0x08" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="E" longname="E" mask="0x04" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="O" longname="O" mask="0x02" size="1" showtemplate="FieldBin"/>
+				<field type="bit" name="S" longname="S" mask="0x01" size="1" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="rcode1" longname="rcode1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="rcode2" longname="rcode2" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="domain_name" longname="Domain Name" expr="buf2int(len) - 3" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="relay_agent_information_option" longname="Relay Agent Information Option" description="It is a 'container' option for specific agent=supplied sub=options">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+
+			<block name="agent_information_field" longname="Agent Information Field">
+				<loop type="size" expr="buf2int(len)">
+					<switch expr="buf2int($packet[$currentoffset:1])">
+						<case value="1">
+							<field type="fixed" name="agent_circuit_id_sub_option" longname="Agent Circuit ID Sub-option" description="It encodes an agent-local identifier of the circuit from which a DHCP client-to-server packet was received" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+							<field type="variable" name="circuit_id" longname="Circuit Id" expr="buf2int(len)" showtemplate="Field4BytesHex"/>
+						</case>
+						<case value="2">
+							<field type="fixed" name="agent_remote_id_sub_option" longname="Agent Remote ID Sub-option" description="This sub-option MAY be added by DHCP relay agents which terminate switched or permanent circuits and have mechanisms to identify the remote host end of the circuit" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+							<field type="variable" name="agent_remote_id" longname="Agent Remote ID" expr="buf2int(len)" showtemplate="Field4BytesHex"/>
+						</case>
+						<case value="4">
+							<field type="fixed" name="docsis_device_class_sub_option" longname="DOCSIS Device Class Sub-option" description="The DOCSIS RFI specification specifies the Device Class encoding within the payload of the Device Class Identification Request (DCI-REQ) message" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" description="Must be 4" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="device_class" longname="Device Class" description="Device Class" size="4" showtemplate="FieldDec"/>
+						</case>
+						<default>
+							<field type="fixed" name="unknown_sub_option" longname="Unknown Sub Option" size="1" showtemplate="FieldDec"/>
+							<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+							<field type="variable" name="data" longname="Data" expr="buf2int(len)" showtemplate="Field4BytesHex"/>
+						</default>
+					</switch>
+				</loop>
+			</block>
+		</block>
+
+		<block name="name_service_search_option" longname="Name Service Search Option" description="A DHCP server SHOULD return, in its preferred order, the 16-bit, network byte order (big-endian) integer option code for the name services (the earlier in the list, the more preferred the name service)">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Must be a multiple of 4 + 1" size="1" showtemplate="FieldDec"/>
+			<block name="name_service_search_list" longname="Name Service Search Order in Sequence">
+				<loop type="times2repeat" expr="buf2int(len) div 2">
+					<field type="fixed" name="ns" longname="Name Service" size="2" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="sip_server_dhcp_option" longname="SIP Server DHCP Option" description="The SIP server DHCP option carries either a 32-bit (binary) IPv4 address or, preferably, a DNS (RFC 1035) fully-qualified domain name to be used by the SIP client to locate a SIP server">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="enc" longname="Encoding" size="1" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(enc)">
+				<case value="0">
+					<field type="variable" name="dns_name_of_sip_server" longname="DNS name of SIP server" expr="buf2int(len) - 1" showtemplate="FieldAscii"/>
+				</case>
+				<case value="1">
+					<block name="address_list" longname="IPv4 Address List">
+						<loop type="times2repeat" expr="(buf2int(len) - 1) div 4">
+							<field type="fixed" name="address" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+						</loop>
+					</block>
+				</case>
+			</switch>
+		</block>
+
+		<block name="authentication_option" longname="Authentication Option" description="The code for the authentication option is 90, and the length field contains the length of the protocol, RDM, algorithm, Replay Detection fields and authentication information fields in octets">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="protocol" longname="Protocol" description="The protocol field defines the particular technique for authentication used in the option" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="algorithm" longname="Algorithm" description="The algorithm field defines the specific algorithm within the technique identified by the protocol field" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="rdm" longname="Replay Detection Method" description="The Replay Detection Method (RDM) field determines the type of replay detection used in the Replay Detection field" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="rd" longname="Replay Detection" description="The Replay Detection field is per the RDM, and the authentication information field is per the protocol in use" size="8" showtemplate="Field4BytesHex"/>
+			<field type="variable" name="authentication_information" longname="Authentication Information" expr="buf2int(len) - 1" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="naming_authority_extension_option" longname="Naming Authority Extension Option" description="This extension indicates a naming authority (which specifies the syntax for schemes that may be used in URLs) for use by entities with the Service Location Protocol">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="naming_authority" longname="Naming Authority" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="ieee_1003_1_posix_timezone_specifier_option" longname="IEEE 1003.1 POSIX Timezone specifier Option" description="This NVT ASCII string represents the IEEE 1003.1 POSIX Timezone specification that a client is to use to set its timezone">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="posix_timezone_string" longname="POSIX Timezone string" expr="buf2int(len)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="agent_remote_id_option" longname="Agent Remote ID Option" description="This option MAY be added by DHCP relay agents which terminate switched or permanent circuits and have mechanisms to identify the remote host end of the circuit">
+			<field type="fixed" name="opcode" longname="Option Code" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Length" description="Minimum length is 1" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="agent_remote_id" longname="Agent Remote ID" expr="buf2int(len)" showtemplate="Field4BytesHex"/>
+		</block>
+	</format>
+
+
+	<visualization>
+		<showsumtemplate name="dhcp">
+			<section name="next"/>
+			<text value="DHCP "/>
+			<protofield name="code" showdata="showmap"/>
+			<text value=": Transaction ID "/>
+			<protofield name="xid" showdata="showvalue"/>
+		</showsumtemplate>
+
+		<showsumtemplate name="dhcp.MessTypeOpt">
+			<text value=" "/>
+			<protofield name="type" showdata="showmap"/>
+		</showsumtemplate>
+ 
+		<showtemplate name="dhcp.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="DHCP Discovery"/>
+					<case value="2" show="DHCP Offer"/>
+					<case value="3" show="DHCP Request"/>
+					<case value="4" show="DHCP Decline"/>
+					<case value="5" show="DHCP Acknowledgement"/>
+					<case value="6" show="DHCP Negative Acknowledgement"/>
+					<case value="7" show="DHCP Release"/>
+					<case value="8" show="DHCP Inform"/>
+					<default show="Error in DHCP type lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="dhcp.option" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Pad"/>
+					<case value="1" show="Subnet Mask"/>
+					<case value="2" show="Time Offset in seconds from UTC"/>
+					<case value="3" show="Router addresses"/>
+					<case value="4" show="Timeserver addresses"/>
+					<case value="5" show="IEN-116 Server addresses"/>
+					<case value="6" show="DNS Server addresses"/>
+					<case value="7" show="Logging Server addresses"/>
+					<case value="8" show="Quotes Server addresses"/>
+					<case value="9" show="Printer Server addresses"/>
+					<case value="10" show="Impress Server addresses"/>
+					<case value="11" show="RLP Server addresses"/>
+					<case value="12" show="Hostname string"/>
+					<case value="13" show="Size of boot file in 512 byte chunks"/>
+					<case value="14" show="Client to dump and name the file to dump it to"/>
+					<case value="15" show="The DNS domain name of the client"/>
+					<case value="16" show="Swap Server addeess"/>
+					<case value="17" show="Path name for root disk"/>
+					<case value="18" show="Path name for more BOOTP info"/>
+					<case value="19" show="Enable/Disable IP Forwarding"/>
+					<case value="20" show="Enable/Disable Source Routing"/>
+					<case value="21" show="Routing Policy Filters"/>
+					<case value="22" show="Max Datagram Reassembly Size"/>
+					<case value="23" show="Default IP Time to Live"/>
+					<case value="24" show="Path MTU Aging Timeout"/>
+					<case value="25" show="Path MTU Plateau Table"/>
+					<case value="26" show="Interface MTU Size"/>
+					<case value="27" show="All Subnets are Local"/>
+					<case value="28" show="Broadcast Address"/>
+					<case value="29" show="Perform Mask Discovery"/>
+					<case value="30" show="Provide Mask to Others"/>
+					<case value="31" show="Perform Router Discovery"/>
+					<case value="32" show="Router Solicitation Address"/>
+					<case value="33" show="Static Routing Table"/>
+					<case value="34" show="Trailer Encapsulation"/>
+					<case value="35" show="ARP Cache Timeout"/>
+					<case value="36" show="Ethernet Encapsulation"/>
+					<case value="37" show="Default TCP Time to Live"/>
+					<case value="38" show="TCP Keepalive Interval"/>
+					<case value="39" show="TCP Keepalive Garbage"/>
+					<case value="40" show="NIS Domain Name"/>
+					<case value="41" show="NIS Server Addresses"/>
+					<case value="42" show="NTP Server Addresses"/>
+					<case value="43" show="Vendor Specific Information"/>
+					<case value="44" show="NETBIOS Name Servers"/>
+					<case value="45" show="NETBIOS Datagram Distribution"/>
+					<case value="46" show="NETBIOS Node Type"/>
+					<case value="47" show="NETBIOS Scope"/>
+					<case value="48" show="X Window Font Server"/>
+					<case value="49" show="X Window Display Manager"/>
+					<case value="50" show="Requested IP Address"/>
+					<case value="51" show="IP Address Lease Time"/>
+					<case value="52" show="Overload 'sname' or 'file'"/>
+					<case value="53" show="DHCP Message Type"/>
+					<case value="54" show="DHCP Server Identification"/>
+					<case value="55" show="Parameter Request List"/>
+					<case value="56" show="DHCP Error Message"/>
+					<case value="57" show="DHCP Maximum Message Size"/>
+					<case value="58" show="DHCP Renewal (T1) Time"/>
+					<case value="59" show="DHCP Rebinding (T2) Time"/>
+					<case value="60" show="Class Identifier"/>
+					<case value="61" show="Client Identifier"/>
+					<case value="62" show="Netware/IP Domain Name"/>
+					<case value="63" show="Netware/IP sub Options"/>
+					<case value="64" show="NIS+ v3 Client Domain Name"/>
+					<case value="65" show="NIS+ v3 Server Addresses"/>
+					<case value="66" show="TFTP Server Name"/>
+					<case value="67" show="Boot File Name"/>
+					<case value="68" show="Home Agent Addresses"/>
+					<case value="69" show="Simple Mail Server Addresses"/>
+					<case value="70" show="Post Office Server Addresses"/>
+					<case value="71" show="Network News Server Addresses"/>
+					<case value="72" show="WWW Server Addresses"/>
+					<case value="73" show="Finger Server Addresses"/>
+					<case value="74" show="Chat Server Addresses"/>
+					<case value="75" show="StreetTalk Server Addresses"/>
+					<case value="76" show="ST Directory Assist Addresses"/>
+					<case value="77" show="User Class Information"/>
+					<case value="78" show="Directory Agent Information"/>
+					<case value="79" show="Service Location Agent Scope"/>
+					<case value="80" show="Naming Authority"/>
+					<case value="81" show="Fully Qualified Domain Name"/>
+					<case value="82" show="Relay Agent Information"/>
+					<case value="83" show="Agent Remote ID"/>
+					<case value="84" show="Agent Subnet Mask"/>
+					<case value="85" show="Novell Directory Services"/>
+					<case value="86" show="Novell Directory Services"/>
+					<case value="87" show="Novell Directory Services"/>
+					<case value="88" show="IEEE 1003.1 POSIX Timezone"/>
+					<case value="89" show="Fully Qualified Domain Name"/>
+					<case value="90" show="Authentication"/>
+					<case value="91" show="Vines TCP/IP Server Option"/>
+					<case value="92" show="Server Selection Option"/>
+					<case value="93" show="Client System Architecture"/>
+					<case value="94" show="Client Network Device Interface"/>
+					<case value="95" show="Lightweight Directory Access Protocol"/>
+					<case value="96" show="IPv6 Transitions"/>
+					<case value="97" show="UUID/GUID-based Client Identifier"/>
+					<case value="98" show="Open Group's User Authentication"/>
+					<case value="99" show="Printer Name"/>
+					<case value="100" show="DHCP multicast address"/>
+					<case value="108" show="Swap Path Option"/>
+					<case value="110" show="IPX Compatability"/>
+					<case value="112" show="NetInfo Parent Server Address"/>
+					<case value="113" show="NetInfo Parent Server Tag"/>
+					<case value="114" show="URL"/>
+					<case value="115" show="DHCP Failover Protocol"/>
+					<case value="116" show="DHCP Auto-Configuration"/>
+					<case value="117" show="Name Service Search"/>
+					<case value="118" show="Subnet Selection Option"/>
+					<case value="119" show="DNS domain search list"/>
+					<case value="120" show="SIP Servers DHCP Option"/>
+					<case value="121" show="Classless Static Route Option"/>
+					<case value="126" show="Extension"/>
+					<case value="127" show="Extension"/>
+					<case value="255" show="None"/>
+					<case value="128" maxvalue="254" show="Private Use"/> 
+					<default show="Error in DHCP parameter lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+
+</protocol>

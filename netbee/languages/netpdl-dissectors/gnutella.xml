@@ -1,0 +1,141 @@
+<protocol name="gnutella" longname="Gnutella" showsumtemplate="gnutella"> 
+	<execute-code>
+		<verify>
+		<!-- Description at http://www9.limewire.com/developer/gnutella_protocol_0.4.pdf -->
+		<!-- in questo modo se il messaggio contiene bearshare viene classificato come gnutella -->
+		<!-- The message must contain "GNUTELLA CONNECT or "GNUTELLA OK" or "GET", with the "user-agent" associated to a known value -->
+			<if expr="hasstring($packet[$currentoffset:0],'connect back|gnutella conne|gnutella/0\.[0-9] [1-5][0-9][0-9]|(user-agent: (bearshare|gnutella|limewire|frostwire|foxy|mxie|360share))',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+			<if expr="hasstring($packet[$currentoffset:0], '^.{16}[\0\x01\x31\x80\x81]',0) and (($packetlength - $currentoffset - 23) == buf2int(changebyteorder($packet[$currentoffset+19:4]))) "> 
+				<if-true>
+						<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		        <if expr="hasstring($packet[$currentoffset:0], '^gnd[\0\x01\x02]',0)"> 
+				<if-true>
+						<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+		
+			<if expr="checklookuptable ($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<if expr="$packet[$currentoffset : 3] == 'GET'">
+					<if-true>
+							<assign-lookuptable name="$tcpsessiontable.flag" value="1"/>
+					</if-true>					
+					</if> 
+				</if-true>
+				
+				<if-false>
+					<assign-variable name="$session_hit" value="1"/>
+					<if expr="$packet[$currentoffset : 3] == 'GET'">
+						<if-true>
+							<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$firstip"/>
+								<lookupkey value="$secondip"/>
+								<lookupkey value="$firstport"/>
+								<lookupkey value="$secondport"/>
+								<lookupdata value="#gnutella"/>
+								<lookupdata value="1"/>
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$firstip"/>
+								<lookupkey value="$secondip"/>
+								<lookupkey value="$firstport"/>
+								<lookupkey value="$secondport"/>
+								<lookupdata value="#gnutella"/>
+								<lookupdata value="0"/>
+							</update-lookuptable>
+						</if-false>
+					</if>
+				</if-false>
+			</if>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="checklookuptable($CandidateServersTable, $ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#gnutella"/>
+							</update-lookuptable>
+							<!-- delete entry from CandidateServersTable -->
+							<update-lookuptable name="$CandidateServersTable" action="purge">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>											
+							</update-lookuptable>
+						</if-true>
+						<if-false>
+							<if expr="checklookuptable($CandidateServersTable, $ipdst, $portdst)">
+								<if-true>
+									<update-lookuptable name="$KnownServerTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>
+										<lookupdata value="#gnutella"/>
+									</update-lookuptable>
+									<update-lookuptable name="$CandidateServersTable" action="purge">
+										<lookupkey value="$ipdst"/>
+										<lookupkey value="$portdst"/>											
+									</update-lookuptable>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+
+	<format>
+		<fields>
+			<if expr="$packet[$currentoffset : 3] == 'GET'">
+				<if-true>
+					<field type="tokenended" name="method" longname="Method" endtoken=" " showtemplate="FieldAscii"/>
+					<field type="tokenended" name="resource" longname="Resource" endtoken=" " showtemplate="FieldAscii"/>
+					<field type="line" name="version" longname="Version" showtemplate="FieldAscii"/>
+					
+					<field type="tokenended" name="headers" longname="Headers" endtoken="\x0D\x0A\x0D\x0A" showtemplate="FieldAscii"/>
+					
+				</if-true>
+			</if>
+			
+			<if expr="hasstring($packet[$currentoffset:0],'gnutella',0)">
+				<if-true>
+					<field type="tokenended" name="connection" longname="Connection" endtoken="\x0D\x0A" showtemplate="FieldAscii"/>
+					<field type="tokenended" name="headers" longname="Headers" endtoken="\x0D\x0A\x0D\x0A" showtemplate="FieldAscii"/>					
+				</if-true>
+			</if>
+			
+			<field type="variable" name="message" longname="Message" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+			<!--<field type="variable" name="bearshData" longname="BearShare Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>-->
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="gnutella">
+			<section name="next"/>
+			<text value="Gnutella"/>
+	
+			<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<!--<text expr="$tcpsessiontable.flag"/>-->
+					<if expr="$tcpsessiontable.flag == 1">
+						<if-true>
+							<text value=" download"/>
+						</if-true>
+					</if>
+				</if-true>
+			</if>			
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

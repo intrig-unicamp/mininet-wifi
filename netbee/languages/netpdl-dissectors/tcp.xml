@@ -1,0 +1,418 @@
+<protocol name="tcp" longname="TCP (Transmission Control Protocol)" showsumtemplate="tcp">
+	<execute-code>
+		<after>
+			<assign-variable name="$L4proto" value="#tcp"/>
+			<!-- Stores tcp src and dst port in a couple of variables for the sake of speed -->
+			<!-- By the way, the same method can be used to hide differences between IPv4 and IPv6 -->
+			<assign-variable name="$portsrc" value="sport"/>
+			<assign-variable name="$portdst" value="dport"/>
+
+			<assign-variable name="$payloadlength" value="$packetlength - $currentoffset"/>
+
+			<if expr="$ipsrc lt $ipdst" >
+				<if-true>
+					<assign-variable name="$firstport" value="sport"/>
+					<assign-variable name="$secondport" value="dport"/>
+				</if-true>
+				<if-false>
+					<assign-variable name="$firstport" value="dport"/>
+					<assign-variable name="$secondport" value="sport"/>
+				</if-false>
+			</if>
+		</after>
+
+		<!-- This section is enabled when we have to do application-layer full check -->
+		<after>
+			<!-- Let's update the 'timestamp' of current seervice so that it does not expire -->
+			<if expr="$enable_servertable">
+				<!-- Server is active so we need to update KnownServer entry-->
+				<if-true>
+					<if expr="updatelookuptable($KnownServerTable, $firstip, $firstport)"><if-true></if-true></if>
+					<if expr="updatelookuptable($KnownServerTable, $secondip,$secondport)"><if-true></if-true></if>
+				</if-true>
+			</if>
+
+			<!-- Let's update the 'timestamp' of current session so that it does not expire -->
+			<!-- due to the lifetime (the current packet confirms that the session is still active) -->
+			<if expr="updatelookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+
+					<!-- This code is pretty simple and it does not take into account any TCP state -->
+					<!-- Please be careful if you want to to replace "obsolete" with "purge": -->
+					<!--  (a) packets following this one (e.g. ACK packets, after the FIN) -->
+					<!--  (b) the payload of the current packet (if one) -->
+					<!-- won't be recognized as belonging to the correct protocol, since the entry is deleted from the session table -->
+					<if expr="buf2int(fin) == 1">
+						<if-true>
+							<update-lookuptable name="$tcpsessiontable" action="obsolete">
+								<lookupkey value="$firstip"/>
+								<lookupkey value="$secondip"/>
+								<lookupkey value="$firstport"/>
+								<lookupkey value="$secondport"/>
+							</update-lookuptable>						
+						</if-true>
+					</if>
+
+					<!-- If case of RST, let's make obsolete both sides of the session -->
+					<if expr="buf2int(rst) == 1">
+						<if-true>
+							<update-lookuptable name="$tcpsessiontable" action="obsolete">
+								<lookupkey value="$firstip"/>
+								<lookupkey value="$secondip"/>
+								<lookupkey value="$firstport"/>
+								<lookupkey value="$secondport"/>						
+							</update-lookuptable>
+						</if-true>
+					</if>
+
+				</if-true>
+			</if>
+		</after>
+
+		<!-- Let's check if this connection belongs to a well-known server. If not, we have to update the server list -->
+		<!-- with the data related to the the server itself (this is contained in the CandidateServersTable). -->
+		<!-- The CandidateServersTable contains only the info related to the server, but it does not know the protocol associated to it. -->
+		<!-- This data is moved into the KnownServerTable when we finally know the protocol associated to this server. -->
+		<!-- Please note that we may have also the infortunate case in which this packet is lost. -->
+		<after when="(buf2int(syn) == 1) and (buf2int(ackf) == 0) and ($enable_servertable)">
+			<if expr="not checklookuptable ($KnownServerTable, $ipdst, $portdst)">
+				<if-true>
+					<if expr="not checklookuptable ($CandidateServersTable, $ipdst, $portdst)">
+						<if-true>
+							<update-lookuptable name="$CandidateServersTable" action="add" validity="updateonhit" keeptime="10" hittime="10">
+								<lookupkey value="$ipdst"/>
+								<lookupkey value="$portdst"/>
+							</update-lookuptable>		
+						</if-true>
+					</if>
+				</if-true>
+				<if-false>
+					<if expr="updatelookuptable($KnownServerTable, $ipdst, $portdst)"><if-true></if-true></if>
+				</if-false>
+			</if>
+		</after>
+
+	</execute-code>
+	<format>
+		<fields>
+			<field type="fixed" name="sport" longname="Source port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="dport" longname="Destination port" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="seq" longname="Sequence number" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="ack" longname="Acknowledgement Number" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="hlen" longname="Header length" mask="0xF000" size="2" comment="This field is in multiple of 4 bytes" showtemplate="FieldMul4Dec"/>
+			<field type="bit" name="res" longname="Reserved (must be zero)" mask="0x0FC0" size="2" showtemplate="FieldHex"/>
+			<field type="bit" name="flags" longname="Flags" mask="0x003F" size="2" showtemplate="FieldHex">
+				<field type="bit" name="urg" longname="Urgent pointer" mask="0x0020" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="ackf" longname="Ack valid" mask="0x0010" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="push" longname="Push requested" mask="0x0008" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="rst" longname="Reset requested" mask="0x0004" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="syn" longname="Syn requested" mask="0x0002" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="fin" longname="Fin requested" mask="0x0001" size="2" showtemplate="FieldBin"/>
+			</field>
+			<field type="fixed" name="win" longname="Window size" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="crc" longname="Checksum" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="urg" longname="Urgent Pointer" size="2" showtemplate="FieldHex"/>
+
+			<!-- TCP Options -->
+			<block name="options" longname="TCP Options">
+				<loop type="size" expr="(buf2int(hlen) * 4) - 20">
+
+					<switch expr="buf2int($packet[$currentoffset:1])">
+						<case value="0">
+							<includeblk name="eol"/>
+							<field type="padding" name="padf" longname="Padding" description="Field used to re-align the PDU to a word" align="4" showtemplate="FieldDec"/>
+						</case>
+						<case value="1"> <includeblk name="noperation"/> </case>
+						<case value="2"> <includeblk name="mss"/> </case>
+						<case value="3"> <includeblk name="winscale"/> </case>
+						<case value="4"> <includeblk name="sackpermitted"/> </case>
+						<case value="5"> <includeblk name="sackformat"/> </case>
+						<case value="8"> <includeblk name="timestamp"/> </case>
+						<case value="19"> <includeblk name="md5signature"/> </case>
+						<default> <includeblk name="unknown"/> </default>
+					</switch>
+				</loop>
+			</block>
+		</fields>
+
+		<block name="eol" longname="End of Option List">
+			<field type="fixed" name="endopt" longname="End of Option" size="1" description="Indicates the end of the option list" showtemplate="FieldDec"/>
+		</block>
+			
+		<block name="noperation" longname="No Operation">
+			<field type="fixed" name="type" longname="Type" description="This option code may be used between options" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="mss" longname="Maximum Segment Size">
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Option length" description="must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="maxssize" longname="Maximum Segment Size" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="winscale" longname="TCP Windows Scale Option">
+			<field type="fixed" name="type" longname="Type" description="Used to enable window scaling" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Option Length" description="must be 3" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="shift_cnt" longname="Shift Count" description="If window scaling is enabled the sender will right-shift its receive window values by 'shift_cnt'" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="sackpermitted" longname="Sack-Permitted Option">
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Option Length" description="must be 2" size="1" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="sackformat" longname="Sack Option Format">
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Option Length" description="(8 x n_blocks) + 2" size="1" showtemplate="FieldDec"/>
+			<block name="Blocks Received" longname="Blocks Received">
+				<loop type="times2repeat" expr="(buf2int(length) - 2) div 8">
+					<field type="fixed" name="leftedge" longname="Left Edge of Block" size="4" showtemplate="FieldDec"/>
+					<field type="fixed" name="rightedge" longname="Right Edge of Block" size="4" showtemplate="FieldDec"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="timestamp" longname="TCP Timestamp Option">
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Option length" description="must be 10" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="tsval" longname="Timestamp Value" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="tsechoreply" longname="Timestamp Echo Reply" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="md5signature" longname="MD5 Signature Option">
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Option length" comment="must be 18" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="md5digest" longname="MD5 Digest" size="16" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="unknown" longname="Unknown TCP Option">
+			<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="length" longname="Option length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="value" longname="Value" expr="buf2int(length)" showtemplate="Field4BytesHex"/>
+		</block>
+	</format>
+
+	<encapsulation>
+		<if expr="$enable_servertable">
+			<if-true>
+				<if expr="checklookuptable($KnownServerTable, $ipsrc, $portsrc) or checklookuptable($KnownServerTable, $ipdst, $portdst)">
+					<if-true>
+						<!-- Take care: we're classifying the session, but this session is not in the $tcpsessiontable -->
+						<assign-variable name="$ks_table_hit" value="1"/>
+
+						<!--
+							Uncomment the following line if you want to add the flow
+							to the tcpsessiontable upon detection with "known service algorithm"
+						-->
+						<!--<assign-variable name="$protoverify_result" value="%FOUND"/>-->
+						<nextproto proto="$KnownServerTable.nextproto"/>
+					</if-true>
+				</if>
+
+				<!-- to identify Skype pkts over TCP -->
+				<if expr="checklookuptable($SkypeClientTable, $ipsrc, $portsrc) or checklookuptable($SkypeClientTable, $ipdst, $portdst)">
+					<if-true>
+						<!-- Take care: we're classifying the session, but this session is not in the $tcpsessiontable -->
+						<assign-variable name="$ks_table_hit" value="1"/>
+
+						<!--
+							Uncomment the following line if you want to add the flow
+							to the tcpsessiontable upon detection with "known service algorithm"
+						-->
+						<!--<assign-variable name="$protoverify_result" value="%FOUND"/>-->
+						<nextproto proto="$SkypeClientTable.nextproto"/>
+					</if-true>
+				</if>
+			</if-true>
+		</if>
+
+		<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+			<if-true>
+				<assign-variable name="$sess_table_hit" value="1"/>
+				<nextproto proto="$tcpsessiontable.nextproto"/>
+			</if-true>
+		</if>
+		<!-- 
+			Let's check well-known ports < 1024 first (otherwise, a connection from port 1214 to 80 appears to be 
+			"FastTrack" instead of HTTP, while probably it's just a client who chose randomly that port
+		-->
+		<switch expr="buf2int(sport)">
+			<case value="20"> <nextproto proto="#ftpdata" preferred="true"/> </case>
+			<case value="21"> <nextproto-candidate proto="#ftp" preferred="true"/> </case>
+			<case value="22"> <nextproto-candidate proto="#ssh" preferred="true"/> </case>
+			<case value="23"> <nextproto-candidate proto="#telnet" preferred="true"/> </case>
+			<case value="25"> <nextproto-candidate proto="#smtp"/> </case>
+			<case value="42"> <nextproto-candidate proto="#wins"/> </case>
+			<case value="53"> <nextproto-candidate proto="#dns_tcp" preferred="true"/> </case>
+			<case value="80"> <nextproto-candidate proto="#http" preferred="true"/> </case>
+			<case value="88"> <nextproto-candidate proto="#kerberos"/> </case>
+			<case value="110"> <nextproto-candidate proto="#pop3"/> </case>
+			<case value="113"> <nextproto-candidate proto="#auth"/> </case>
+			<case value="118"> <nextproto-candidate proto="#sql"/> </case>
+			<case value="139"> <nextproto-candidate proto="#netbiosssn"/> </case>
+			<case value="143"> <nextproto-candidate proto="#imap"/> </case>
+			<case value="161"> <nextproto-candidate proto="#snmp"/> </case>
+			<case value="162"> <nextproto-candidate proto="#snmp"/> </case>
+			<case value="179"> <nextproto-candidate proto="#bgp"/> </case>
+			<case value="389"> <nextproto-candidate proto="#ldap"/> </case>
+			<case value="411"> <nextproto-candidate proto="#dcpp"/> </case>
+			<case value="443"> <nextproto-candidate proto="#ssl"/> </case>
+			<case value="445"> <nextproto-candidate proto="#samba"/> </case>
+			<case value="465"> <nextproto-candidate proto="#ssmtp"/> </case>
+			<case value="554"> <nextproto-candidate proto="#rtsp"/> </case>
+			<case value="993"> <nextproto-candidate proto="#simap4"/> </case>
+			<case value="995"> <nextproto-candidate proto="#spop3"/> </case>
+		</switch>
+		<switch expr="buf2int(dport)">
+			<case value="20"> <nextproto proto="#ftpdata" preferred="true"/> </case>
+			<case value="21"> <nextproto-candidate proto="#ftp" preferred="true"/> </case>
+			<case value="22"> <nextproto-candidate proto="#ssh" preferred="true"/> </case>
+			<case value="23"> <nextproto-candidate proto="#telnet" preferred="true"/> </case>
+			<case value="25"> <nextproto-candidate proto="#smtp"/> </case>
+			<case value="42"> <nextproto-candidate proto="#wins"/> </case>
+			<case value="53"> <nextproto-candidate proto="#dns_tcp" preferred="true"/> </case>
+			<case value="80"> <nextproto-candidate proto="#http" preferred="true"/> </case>
+			<case value="80"><nextproto-candidate proto="#edonk"/></case> <!--It can be emule on port 80-->
+			<case value="88"> <nextproto-candidate proto="#kerberos"/> </case>
+			<case value="110"> <nextproto-candidate proto="#pop3"/> </case>
+			<case value="113"> <nextproto-candidate proto="#auth"/> </case>
+			<case value="118"> <nextproto-candidate proto="#sql"/> </case>
+			<case value="139"> <nextproto-candidate proto="#netbiosssn"/> </case>
+			<case value="143"> <nextproto-candidate proto="#imap"/> </case>
+			<case value="161"> <nextproto-candidate proto="#snmp"/> </case>
+			<case value="162"> <nextproto-candidate proto="#snmp"/> </case>
+			<case value="179"> <nextproto-candidate proto="#bgp"/> </case>
+			<case value="389"> <nextproto-candidate proto="#ldap"/> </case>
+			<case value="411"> <nextproto-candidate proto="#dcpp"/> </case>
+			<case value="443"> <nextproto-candidate proto="#ssl"/> </case>
+			<case value="445"> <nextproto-candidate proto="#samba"/> </case>
+			<case value="465"> <nextproto-candidate proto="#ssmtp"/> </case>
+			<case value="554"> <nextproto-candidate proto="#rtsp"/> </case>
+			<case value="993"> <nextproto-candidate proto="#simap4"/> </case>
+			<case value="995"> <nextproto-candidate proto="#spop3"/> </case>
+		</switch>
+
+		<switch expr="buf2int(sport)">
+			<case value="1214"> <nextproto-candidate proto="#fasttrack"/></case>
+			<case value="1433"> <nextproto-candidate proto="#ms_sql_server"/></case>
+			<case value="1526"> <nextproto-candidate proto="#oracle_sql"/> </case>
+			<case value="1723"> <nextproto-candidate proto="#pptp"/> </case>
+			<case value="1863"> <nextproto-candidate proto="#msnmsg"/> </case>
+			<case value="2002"> <nextproto-candidate proto="#rpcap"/> </case>
+			<case value="2240"> <nextproto-candidate proto="#slsk"/> </case>
+			<case value="2401"> <nextproto-candidate proto="#cvs"/> </case>
+			<case value="3389"> <nextproto-candidate proto="#rdp"/> </case>
+			<case value="5060"> <nextproto-candidate proto="#sip"/> </case>
+			<case value="5061"> <nextproto-candidate proto="#sip"/> </case>
+			<!-- edonkey uses 4661 to connect to server and 4662 to connect another client -->
+			<case value="4661"> <nextproto-candidate proto="#edonk"/> </case>
+			<case value="4662"> <nextproto-candidate proto="#edonk"/> </case>
+			<case value="5222"> <nextproto-candidate proto="#xmpp"/></case>
+			<case value="5269"> <nextproto-candidate proto="#xmpp"/></case>
+			<case value="5631"> <nextproto-candidate proto="#pcanywhere"/></case>
+			<case value="5900"> <nextproto-candidate proto="#rfb"/> </case>
+			<!--<case value="6633"> <nextproto proto="#openflow"/></case>-->
+			<case value="6667"> <nextproto-candidate proto="#irc"/></case>
+		</switch>
+		<switch expr="buf2int(dport)">
+			<case value="1214"> <nextproto-candidate proto="#fasttrack"/></case>
+			<case value="1433"> <nextproto-candidate proto="#ms_sql_server"/></case>
+			<case value="1526"> <nextproto-candidate proto="#oracle_sql"/> </case>
+			<case value="1723"> <nextproto-candidate proto="#pptp"/> </case>
+			<case value="1863"> <nextproto-candidate proto="#msnmsg"/> </case>
+			<case value="2002"> <nextproto-candidate proto="#rpcap"/> </case>
+			<case value="2240"> <nextproto-candidate proto="#slsk"/> </case>			
+			<case value="2401"> <nextproto-candidate proto="#cvs"/> </case>
+			<case value="3389"> <nextproto-candidate proto="#rdp"/> </case>
+			<!-- edonkey uses 4661 to connect to server and 4662 to connect another client -->
+			<case value="4661"> <nextproto-candidate proto="#edonk"/> </case>
+			<case value="4662"> <nextproto-candidate proto="#edonk"/> </case>
+			<case value="5060"> <nextproto-candidate proto="#sip"/> </case>
+			<case value="5061"> <nextproto-candidate proto="#sip"/> </case>
+			<case value="5222"> <nextproto-candidate proto="#xmpp"/></case>
+			<case value="5269"> <nextproto-candidate proto="#xmpp"/></case>
+			<case value="5631"> <nextproto-candidate proto="#pcanywhere"/></case>
+			<case value="5900"> <nextproto-candidate proto="#rfb"/> </case>
+			<case value="1214"> <nextproto-candidate proto="#fasttrack"/></case>
+			<!--<case value="6633"> <nextproto proto="#openflow"/></case>-->
+			<case value="6667"> <nextproto-candidate proto="#irc"/></case>
+		</switch>
+
+
+		<!-- Try and See section -->
+		<nextproto-candidate proto="#dce_rpc_tcp"/>
+		<nextproto-candidate proto="#onc_rpc_udp"/>
+		<nextproto-candidate proto="#jrmi"/>
+		<nextproto-candidate proto="#yahoomsg"/>
+		<nextproto-candidate proto="#telnet" preferred="true"/>
+		<nextproto-candidate proto="#ssl"/>
+		<nextproto-candidate proto="#oracle_sql"/>                                
+		<nextproto-candidate proto="#irc"/>
+		<nextproto-candidate proto="#smtp"/>
+		<nextproto-candidate proto="#dcpp"/>
+		<!--<nextproto-candidate proto="#msnmsg"/>-->
+		<!--<nextproto-candidate proto="#winmx"/>-->
+		<nextproto-candidate proto="#edonk"/>
+		<nextproto-candidate proto="#gnutella"/>
+		<nextproto-candidate proto="#bittorrent"/>
+		<nextproto-candidate proto="#ares"/>
+		<nextproto-candidate proto="#skype"/>
+		<nextproto-candidate proto="#fasttrack"/>
+		<nextproto-candidate proto="#http" preferred="true"/>
+  	  	<if expr="buf2int(dport)==8080">
+			<if-true>
+				<nextproto-candidate proto="#msnmsg"/>
+			</if-true>
+        </if>	
+	</encapsulation>
+
+
+	<visualization>
+		<showsumtemplate name="tcp">
+			<section name="next"/>
+			<text value="TCP: port "/>
+			<protofield name="sport" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dport" showdata="showvalue"/>
+			<text value=" ("/>
+			<if expr="buf2int(syn) == 1">
+				<if-true>
+					<text value="SYN "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(fin) == 1">
+				<if-true>
+					<text value="FIN "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(ackf) == 1">
+				<if-true>
+					<text value="ACK "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(rst) == 1">
+				<if-true>
+					<text value="RST "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(push) == 1">
+				<if-true>
+					<text value="PUSH "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(urg) == 1">
+				<if-true>
+					<text value="URG "/>
+				</if-true>
+			</if>
+			<text value=")"/>
+			<text value=" Seq "/>
+			<protofield name="seq" showdata="showvalue"/>
+			<text value=", Ack "/>
+			<protofield name="ack" showdata="showvalue"/>
+			<text value=", Win "/>
+			<protofield name="win" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+

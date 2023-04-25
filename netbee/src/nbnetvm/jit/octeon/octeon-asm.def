@@ -1,0 +1,141 @@
+// File OCTEON-ASM.DEF
+// This file contains the definitions of the most common OCTEON Assembly Instructions
+
+// The Definition is in the format:
+// OCTEON_ASM(code, mnemonic, flags, operands, description)
+
+// code: Canonical Name 
+// mnemonic: string for the instruction name
+// flags: bit vector with some details of the instruction
+// operands: number of operands
+// description: string with a textual description of the operation
+
+OCTEON_ASM(OCTEON_SNDPKT,	"sndpkt",	0,					0,	0,		"Send Packet")
+OCTEON_ASM(OCTEON_RET,		"ret",		0,					0,	0,		"return and release exbuf")
+OCTEON_ASM(OCTEON_COMMENT,	"#",		0,					0,	0,		"Comment")
+OCTEON_ASM(OCTEON_INVALID,	"invalid",	0,					0,	0,		"invalid instruction")
+
+//mips load store instructions
+
+OCTEON_ASM(OCTEON_LD,		"ld",		DEF_OP,				1,	1,		"Load Doubleword")
+OCTEON_ASM(OCTEON_LDL,		"ldl",		DEF_OP,				1,	1,		"Load Doubleword Left")
+OCTEON_ASM(OCTEON_LDR,		"ldr",		DEF_OP,				1,	1,		"Load Doubleword Right")
+OCTEON_ASM(OCTEON_LW,		"lw",		DEF_OP,				1,	1,		"Load Word")
+OCTEON_ASM(OCTEON_LWL,		"lwl",		DEF_OP,				1,	1,		"Load Word Left")
+OCTEON_ASM(OCTEON_LWR,		"lwr",		DEF_OP,				1,	1,		"Load Word Rigth")
+OCTEON_ASM(OCTEON_LWU,		"lwu",		DEF_OP,				1,	1,		"Load Word unsigned")
+OCTEON_ASM(OCTEON_LH,		"lh",		DEF_OP,				1,	1,		"Load Halfword")
+OCTEON_ASM(OCTEON_LHU,		"lhu",		DEF_OP,				1,	1,		"Load Halfword unsigned")
+OCTEON_ASM(OCTEON_LB,		"lb",		DEF_OP,				1,	1,		"Load Byte")
+OCTEON_ASM(OCTEON_LBU,		"lbu",		DEF_OP,				1,	1,		"Load Byte Unsigned")
+
+OCTEON_ASM(OCTEON_SW,		"sw",		0,					0,	2,		"Store word")
+OCTEON_ASM(OCTEON_SWL,		"swl",		0,					0,	2,		"Store word left")
+OCTEON_ASM(OCTEON_SWR,		"swr",		0,					0,	2,		"Store word right")
+OCTEON_ASM(OCTEON_SB,		"sb",		0,					0,	2,		"Store byte")
+OCTEON_ASM(OCTEON_SD,		"sd",		0,					0,	2,		"Store doubleword")
+OCTEON_ASM(OCTEON_SDL,		"sdl",		0,					0,	2,		"Store doubleword left")
+OCTEON_ASM(OCTEON_SDR,		"sdr",		0,					0,	2,		"Store doubleword right")
+OCTEON_ASM(OCTEON_SH,		"sh",		0,					0,	2,		"Store halfword")
+
+//mips alu instructions 3 operands
+
+OCTEON_ASM(OCTEON_ADDI,		"addi",		DEF_OP|IMM,			1,	2,		"Add immediate word")
+OCTEON_ASM(OCTEON_ADDIU,	"addiu",	DEF_OP|IMM,			1,	2,		"Add unsigned immediate")
+OCTEON_ASM(OCTEON_ANDI,		"andi",		DEF_OP|IMM,			1,	2,		"Logical And with immediate")
+OCTEON_ASM(OCTEON_DADDI,	"daddi",	DEF_OP|IMM,			1,	2,		"Doubleword Add immediate")		
+OCTEON_ASM(OCTEON_DADDIU,	"daddiu",	DEF_OP|IMM,			1,	2,		"Doubleword Add immediate unsigned")
+OCTEON_ASM(OCTEON_LUI,		"lui",		DEF_OP|IMM,			1,	1,		"Load Upper Immediate")
+OCTEON_ASM(OCTEON_ORI,		"ori",		DEF_OP|IMM,			1,	2,		"Logical Or immediate")
+OCTEON_ASM(OCTEON_XORI,		"xori",		DEF_OP|IMM,			1,	2,		"Logical xor immediate")
+OCTEON_ASM(OCTEON_SLTI,		"slti",		DEF_OP|IMM,			1,	2,		"Set on less than immediate")
+OCTEON_ASM(OCTEON_SLTIU,	"sltiu",	DEF_OP|IMM,			1,	2,		"Set on less than immediate unsigned")
+
+OCTEON_ASM(OCTEON_ADD,		"add",		DEF_OP,				1,	2,		"Add word")
+OCTEON_ASM(OCTEON_ADDU,		"addu",		DEF_OP,				1,	2,		"Add unsigned word")
+OCTEON_ASM(OCTEON_AND,		"and",		DEF_OP,				1,	2,		"Logical And")
+OCTEON_ASM(OCTEON_DADD,		"dadd",		DEF_OP,				1,	2,		"Doubleword Add")		
+OCTEON_ASM(OCTEON_DADDU,	"daddu",	DEF_OP,				1,	2,		"Doubleword Add unsigned")		
+OCTEON_ASM(OCTEON_DSUB,		"dsub",		DEF_OP,				1,	2,		"Doubleword subtract")
+OCTEON_ASM(OCTEON_DSUBU,	"dsubu",	DEF_OP,				1,	2,		"Doubleword subtract unsigned")
+OCTEON_ASM(OCTEON_NOR,		"nor",		DEF_OP,				1,	2,		"Not Or")
+OCTEON_ASM(OCTEON_OR,		"or",		DEF_OP,				1,	2,		"Logical Or")
+OCTEON_ASM(OCTEON_SLT,		"slt",		DEF_OP,				1,	2,		"Set on less than")
+OCTEON_ASM(OCTEON_SLTU,		"sltu",		DEF_OP,				1,	2,		"Set on less than unsigned")
+OCTEON_ASM(OCTEON_SUB,		"sub",		DEF_OP,				1,	2,		"Subtract word")
+OCTEON_ASM(OCTEON_SUBU,		"subu",		DEF_OP,				1,	2,		"Subtract unsigned  word")
+OCTEON_ASM(OCTEON_XOR,		"xor",		DEF_OP,				1,	2,		"Logical Exclusive Or")
+
+//mips64 alu 2 operands
+OCTEON_ASM(OCTEON_CLO,		"clo",		DEF_OP,				1,	1,		"Count leading ones in word")
+OCTEON_ASM(OCTEON_CLZ,		"clz",		DEF_OP,				1,	1,		"Count leading zeros in word")
+OCTEON_ASM(OCTEON_DCLO,		"dclo",		DEF_OP,				1,	1,		"Count leading ones in dword")
+OCTEON_ASM(OCTEON_DCLZ,		"dclz",		DEF_OP,				1,	1,		"Count leading zeros in dword")
+
+//mips64 shift instruction
+OCTEON_ASM(OCTEON_DROTR,	"drotr",	DEF_OP|IMM,			1,	2,		"Doubleword rotate rigth")
+OCTEON_ASM(OCTEON_DROTR32,	"drotr32",	DEF_OP|IMM,			1,	2,		"Doubleword rotate rigth plus 32")
+OCTEON_ASM(OCTEON_DROTRV,	"drotrv",	DEF_OP,				1,	2,		"Doubleword rotate variable")
+OCTEON_ASM(OCTEON_DSLL,		"dsll",		DEF_OP|IMM,			1,	2,		"Doubleword shift left logical")
+OCTEON_ASM(OCTEON_DSLL32,	"dsll32",	DEF_OP|IMM,			1,	2,		"Doubleword shift left logical + 32")
+OCTEON_ASM(OCTEON_DSLLV,	"dsllv",	DEF_OP,				1,	2,		"Doubleword shift left variable")
+OCTEON_ASM(OCTEON_DSRA,		"dsra",		DEF_OP|IMM,			1,	2,		"Doubleword shift right arith")
+OCTEON_ASM(OCTEON_DSRA32,	"dsra32",	DEF_OP|IMM,			1,	2,		"Doubleword shift right arith + 32")
+OCTEON_ASM(OCTEON_DSRAV,	"dsrav",	DEF_OP,				1,	2,		"Doubleword shift right arith variable")
+OCTEON_ASM(OCTEON_DSRL,		"dsrl",		DEF_OP|IMM,			1,	2,		"Doubleword shift right logical")
+OCTEON_ASM(OCTEON_DSRL32,	"dsrl32",	DEF_OP|IMM,			1,	2,		"Doubleword shift right logical + 32")
+OCTEON_ASM(OCTEON_DSRLV,	"dsrlv",	DEF_OP,				1,	2,		"Doubleword shift right logical var")
+OCTEON_ASM(OCTEON_ROTR,		"rotr",		DEF_OP|IMM,			1,	2,		"Rotate word right")
+OCTEON_ASM(OCTEON_ROTRV,	"rotrv",	DEF_OP,				1,	2,		"Rotate word right variable")
+OCTEON_ASM(OCTEON_SLL,		"sll",		DEF_OP|IMM,			1,	2,		"Shift word left logical")
+OCTEON_ASM(OCTEON_SLLV,		"sllv",		DEF_OP,				1,	2,		"Shift word left logical var")
+OCTEON_ASM(OCTEON_SRA,		"sra",		DEF_OP|IMM,			1,	2,		"Shift word right arithmetic")
+OCTEON_ASM(OCTEON_SRAV,		"srav",		DEF_OP,				1,	2,		"Shift word right arithmetic var")
+OCTEON_ASM(OCTEON_SRL,		"srl",		DEF_OP|IMM,			1,	2,		"Shift word right logical")
+OCTEON_ASM(OCTEON_SRLV,		"srlv",		DEF_OP,				1,	2,		"Shift word right logical var")
+
+//mips multiply instruction
+OCTEON_ASM(OCTEON_DDIV,		"ddiv",		DEF_H|DEF_L,		2,	2,		"Divide Double Word")
+OCTEON_ASM(OCTEON_DDIVU,	"ddivu",	DEF_H|DEF_L,		2,	2,		"Divide Unsigned Double Word")
+OCTEON_ASM(OCTEON_DIV,		"div",		DEF_H|DEF_L,		2,	2,		"Divide Word")
+OCTEON_ASM(OCTEON_DIVU,		"divu",		DEF_H|DEF_L,		2,	2,		"Divide Unsigned Word")
+OCTEON_ASM(OCTEON_DMULT,	"dmult",	DEF_H|DEF_L,		2,	2,		"Doubleword Multiply")
+OCTEON_ASM(OCTEON_DMULTU,	"dmultu",	DEF_H|DEF_L,		2,	2,		"Doubleword Multiply unsigned")
+OCTEON_ASM(OCTEON_MADD,		"madd",		DEF_H|DEF_L|USE_H|USE_L,		2,	2,		"Word Multiply add ")
+OCTEON_ASM(OCTEON_MADDU,	"maddu",	DEF_H|DEF_L|USE_H|USE_L,		2,	2,		"Word Multiply add unsigned")
+OCTEON_ASM(OCTEON_MFHI,		"mfhi",		USE_H,				1,	1,		"Move from HI register")
+OCTEON_ASM(OCTEON_MFLO,		"mflo",		USE_L,				1,	1,		"Move from LO register")
+OCTEON_ASM(OCTEON_MSUB,		"msub",		DEF_H|DEF_L|USE_H|USE_L,		2,	2,		"Word Multiply sub ")
+OCTEON_ASM(OCTEON_MSUBU,	"msubu",	DEF_H|DEF_L|USE_H|USE_L,		2,	2,		"Word Multiply sub unsigned")
+OCTEON_ASM(OCTEON_MTHI,		"mthi",		DEF_H,				1,	1,		"Move to HI register")
+OCTEON_ASM(OCTEON_MTLO,		"mtlo",		DEF_L,				1,	1,		"Move to LO register")
+OCTEON_ASM(OCTEON_MUL,		"mul",		DEF_OP,				1,	2,		"Multiply Word to reg")
+OCTEON_ASM(OCTEON_MULT,		"mult",		DEF_H|DEF_L,		2,	2,		"Multiply Word")
+OCTEON_ASM(OCTEON_MULTU,	"multu",	DEF_H|DEF_L,		2,	2,		"Multiply Unsigned Word")
+
+//mips jump instructions
+//unconditional
+
+OCTEON_ASM(OCTEON_J,		"j",		LBL,				0,	1,		"Jump to address")
+OCTEON_ASM(OCTEON_JAL,		"jal",		DEF_RA|LBL,			0,	1,		"Jump and link")
+OCTEON_ASM(OCTEON_JALR,		"jalr",		DEF_OP,				1,	1,		"Jump and link register")
+OCTEON_ASM(OCTEON_JR,		"jr",		0,					0,	1,		"Jump register")
+OCTEON_ASM(OCTEON_BEQ,		"beq",		LBL,				0,	2,		"Branch on Equal")
+OCTEON_ASM(OCTEON_BNE,		"bne",		LBL,				0,	2,		"Branch on not equal")
+OCTEON_ASM(OCTEON_BGEZ,		"bgez",		LBL,				0,	1,		"Branch on Greather or Equal to Zero")
+OCTEON_ASM(OCTEON_BGEZAL,	"bgezal",	DEF_RA|LBL,			0,	1,		"Branch on Greather or Eq to 0 and link")
+OCTEON_ASM(OCTEON_BGTZ,		"bgtz",		LBL,				0,	1,		"Branch on Greather than Zero")
+OCTEON_ASM(OCTEON_BLEZ,		"blez",		LBL,				0,	1,		"Branch on Less Than or Equal to Zero")
+OCTEON_ASM(OCTEON_BLTZ,		"bltz",		LBL,				0,	1,		"Branch on Less Than Zero")
+OCTEON_ASM(OCTEON_BLTZAL,	"bltzal",	DEF_RA|LBL,			0,	1,		"Branch on Less Than Zero and link")
+
+//miscellaneous
+OCTEON_ASM(OCTEON_NOP,		"nop",		DEF_OP,				0,	0,		"No Operation")
+OCTEON_ASM(OCTEON_MOVE,		"move",		DEF_OP,				1,	1,		"Move Data")
+OCTEON_ASM(OCTEON_MOVN,		"movn",		DEF_OP,				1,	2,		"Move Conditional on Not Zero")
+OCTEON_ASM(OCTEON_MOVZ,		"movz",		DEF_OP,				1,	2,		"Move Conditional on Zero")
+OCTEON_ASM(OCTEON_RDHWR,	"rdhwr",	DEF_OP,				1,	1,		"Read hw register")
+OCTEON_ASM(OCTEON_SYNC,		"sync",		0,					0,	0,		"Synchronize shared memory")
+OCTEON_ASM(OCTEON_TLBR,		"tlbr",		0,					0,	0,		"Read indexed TLB entry")
+OCTEON_ASM(OCTEON_TLBWI,	"tlbwi",	0,					0,	0,		"Write indexed TLB entry")
+OCTEON_ASM(OCTEON_WAIT,		"wait",		0,					0,	0,		"ENter Standby Mode")

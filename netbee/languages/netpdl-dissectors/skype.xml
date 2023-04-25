@@ -1,0 +1,234 @@
+<protocol name="skype" longname="Skype" showsumtemplate="skype"> 
+	<execute-code>
+		<verify>
+			<if expr="($L4proto == #udp) and hasstring($packet[$currentoffset:0],'^..[\x02\x03\x07\x0f\x0d\x63\x77].............',0)">
+				<if-true>	
+					<if expr="checklookuptable($skypetempsessiontable,$ipsrc, $portsrc)">
+						<if-true>
+							<if expr="(buf2int($skypetempsessiontable.id)) lt (buf2int($packet[$currentoffset : 2]))">
+								<if-true>						
+									<if expr="$skypetempsessiontable.cnt == 3">
+										<if-true>
+											<assign-variable name="$protoverify_result" value="%FOUND"/>	
+										</if-true>
+										<if-false>
+											<assign-variable name="$protoverify_result" value="%DEFERRED"/>
+										</if-false>
+									</if>	
+								</if-true>
+								
+								<if-false>
+									<assign-variable name="$protoverify_result" value="%NOTFOUND"/>				 
+								</if-false>
+							</if>
+						</if-true>
+
+						<if-false>
+							<assign-variable name="$protoverify_result" value="%DEFERRED"/>
+						</if-false>
+					</if>
+				</if-true>
+				<if-false>
+					<assign-variable name="$protoverify_result" value="%NOTFOUND"/>
+				</if-false>
+			</if>		
+			
+			<!-- login fase -->
+			<if expr="($L4proto == #tcp) and hasstring($packet[$currentoffset : 0],'get .*getlatestversion',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<!-- notfound -->
+		<before when="($protoverify_result == %NOTFOUND) and ($L4proto == #udp)">
+			<update-lookuptable name="$skypetempsessiontable" action="purge">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portsrc"/>											
+			</update-lookuptable>
+		</before>
+
+		<!-- found -->
+		<before when="($protoverify_result == %FOUND) and ($L4proto == #udp)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#skype"/>
+			</update-lookuptable>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#skype"/>
+			</update-lookuptable>
+
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="not checklookuptable($SkypeClientTable,$ipsrc, $portsrc)">
+						<if-true>
+							<update-lookuptable name="$SkypeClientTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+								<lookupkey value="$ipsrc"/>
+								<lookupkey value="$portsrc"/>
+								<lookupdata value="#skype"/>				
+							</update-lookuptable>			
+						</if-true>
+					</if>
+				</if-true>
+			</if>
+			
+			<update-lookuptable name="$skypetempsessiontable" action="purge">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portsrc"/>											
+			</update-lookuptable>
+		</before>
+
+
+		<!-- deferred -->
+		<before when="($protoverify_result == %DEFERRED) and ($L4proto == #udp)">	
+			<if expr="checklookuptable($skypetempsessiontable,$ipsrc, $portsrc)">
+				<if-true>
+					<assign-lookuptable name="$skypetempsessiontable.cnt" value="$skypetempsessiontable.cnt + 1"/>
+					<assign-lookuptable name="$skypetempsessiontable.id" value="$packet[$currentoffset : 2]"/>
+				</if-true>
+				<if-false>
+					<if expr="checklookuptable($skypetempsessiontable,$ipdst,$portdst)">
+						<if-true></if-true>
+						<if-false>
+							<assign-variable name="$session_hit" value="1"/>
+						</if-false>
+					</if>
+					<update-lookuptable name="$skypetempsessiontable" action="add" validity="updateonhit" keeptime="10" hittime="10">
+						<lookupkey value="$ipsrc"/>
+						<lookupkey value="$portsrc"/>
+						<lookupdata value="1"/>  
+						<lookupdata value="$packet[$currentoffset : 2]"/> 
+					</update-lookuptable>
+				</if-false>
+			</if>
+		</before>
+
+		<!-- fast identification -->
+		<before when="($enable_servertable) and ($L4proto == #udp)">
+			<if expr="checklookuptable($SkypeClientTable, $ipsrc, $portsrc) and (not checklookuptable($SkypeClientTable, $ipdst, $portdst))">
+				<if-true>
+					<update-lookuptable name="$SkypeClientTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$ipdst"/>
+						<lookupkey value="$portdst"/>
+						<lookupdata value="#skype"/>				
+					</update-lookuptable>			
+				</if-true>
+			</if>
+			<if expr="checklookuptable($SkypeClientTable, $ipdst, $portdst) and (not checklookuptable($SkypeClientTable, $ipsrc, $portsrc))">
+				<if-true>
+					<update-lookuptable name="$SkypeClientTable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$ipsrc"/>
+						<lookupkey value="$portsrc"/>
+						<lookupdata value="#skype"/>				
+					</update-lookuptable>
+				</if-true>
+			</if>
+		</before>
+
+		<before when="($L4proto == #tcp) and ($protoverify_result == %FOUND)">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$tcpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$firstip"/>
+				<lookupkey value="$secondip"/>
+				<lookupkey value="$firstport"/>
+				<lookupkey value="$secondport"/>
+				<lookupdata value="#skype"/>
+				<lookupdata value="0"/>
+			</update-lookuptable>
+		</before>	
+
+		<!-- Update timestamp in the SkypeClientTable -->
+		<before>
+			<if expr="$enable_servertable">
+				<if-true>
+					<if expr="updatelookuptable($SkypeClientTable, $ipsrc, $portsrc)"><if-true></if-true></if>
+					<if expr="updatelookuptable($SkypeClientTable, $ipdst, $portdst)"><if-true></if-true></if>
+				</if-true>
+			</if>
+
+			<!-- Probably this is required only if we're in UDP -->
+			<if expr="($L4proto == #udp) and updatelookuptable($skypetempsessiontable, $ipsrc, $portsrc)"><if-true></if-true></if>
+		</before>
+	</execute-code>
+
+	<format>
+		<fields>
+			<if expr="$L4proto == #udp">
+				<if-true>
+					<field type="fixed" name="id" longname="ID" size="2" showtemplate="FieldHex"/>
+					<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldHex"/>
+				</if-true>
+			</if>
+			<field type="variable" name="skypeData" longname="skypeData" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="skype">
+			<section name="next"/>
+			<text value="Skype"/>
+			<if expr="$L4proto == #udp">
+				<if-true>
+					<text value=", ID 0x"/>
+					<protofield name="id" showdata="value"/>	
+					<text value=" ["/>	<text expr="buf2int(id)"/> <text value="]"/>
+
+					<if expr="$protoverify_result == %DEFERRED">
+						<if-true>
+							<text value=" ("/>
+							<text expr="buf2int($ipsrc[0:1])"/> <text value="."/> 
+							<text expr="buf2int($ipsrc[1:1])"/> <text value="."/> 
+							<text expr="buf2int($ipsrc[2:1])"/> <text value="."/> 
+							<text expr="buf2int($ipsrc[3:1])"/>
+							<text value=" is Candidate, pkt "/>
+							
+							<if expr="checklookuptable($skypetempsessiontable, $ipsrc, $portsrc)">
+								<if-true>
+									<text expr="$skypetempsessiontable.cnt"/>
+								</if-true>
+							</if>
+							<text value=")"/>
+						</if-true>
+					</if>
+					
+					<if expr="$protoverify_result == %FOUND">
+						<if-true>
+							<text value=" (Found) "/>
+						</if-true>
+					</if>
+				</if-true>
+				
+				
+				<if-false>
+					<if expr="checklookuptable($tcpsessiontable, $firstip, $secondip, $firstport, $secondport)">
+						<if-true>
+							<text value=" Login"/>
+						</if-true>
+						<if-false>
+							<text value=" over TCP "/>
+						</if-false>
+					</if>
+				
+				<!--	<if expr="checklookuptable($tcpsessiontable, $ipsrc, $ipdst, $portsrc, $portdst) and ($tcpsessiontable.flag == 1)">
+						<if-true>
+							<text value=" Login"/>
+						</if-true>
+						<if-false>
+							<text value=" over TCP "/>
+						</if-false>
+					</if>-->
+				</if-false>
+			</if>					
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

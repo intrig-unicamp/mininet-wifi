@@ -1,0 +1,37 @@
+<protocol name="netbeui" longname="NetBios Extended User Interface" showsumtemplate="netbeui">
+	<format>
+		<fields>
+			<field type="fixed" name="length" longname="Length" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="delimitator" longname="Delimitator" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="command" longname="Command" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="data1" longname="Data1" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="data2" longname="Data2" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="XMIT_Cor" longname="Xmit Correlator" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="RSP_Cor" longname="Response Correlator" size="2" showtemplate="FieldDec"/>
+			<block name="recv_name" longname="Receiver's Name">
+				<!--<field type="plugin" name="name" longname="Name" plugin="DomainName" showtemplate="netbios-name"/>-->
+				
+				<field type="fixed" name="name" longname="Receiver's Name" size="15" showtemplate="FieldAscii"/>
+				<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldHex"/>
+			</block>
+			
+			<block name="send_name" longname="Sender's Name">
+				<field type="fixed" name="name" longname="Sender's Name" size="15" showtemplate="FieldAscii"/>
+				<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldHex"/>
+				
+			</block>
+		</fields>
+	</format>
+	
+	<encapsulation>
+		<nextproto proto="#smb"/>
+	</encapsulation>
+	
+	<visualization>
+		<showsumtemplate name="netbeui">
+			<section name="next"/>
+			<text value="NetBEUI"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

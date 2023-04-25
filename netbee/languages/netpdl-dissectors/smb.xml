@@ -1,0 +1,342 @@
+<protocol name="smb" longname="Server Message Block">
+	<format>
+		<fields>
+			<block name="header" longname="SMB Header">
+				<field type="fixed" name="type" longname="Type" size="1" showtemplate="FieldHex"/>
+				<field type="fixed" name="proto" longname="Server Component" size="3" showtemplate="FieldAscii"/>
+				<field type="fixed" name="command" longname="SMB Command" size="1" showtemplate="smb.command_flag"/>
+				<block name="status" longname="SMB status">
+					<field type="fixed" name="error_class" longname="Error Class" size="1" showtemplate="smb.err_class"/>
+					<field type="fixed" name="reserved" longname="Reserved" size="1" showtemplate="FieldHex"/>
+					<field type="fixed" name="error_code" longname="Error Code" size="2" showtemplate="smb.err_code"/>
+				</block> 
+				
+				<block name="flag1" longname="Flag 1">
+					<field type="bit" name="flag_req" longname="Requeste/Response" mask="0x80" size="1" showtemplate="smb.rr_status"/>
+					<field type="bit" name="flag_batch" longname="Request Batch Oplock" mask="0x40" size="1" showtemplate="smb.batch_status"/>
+					<field type="bit" name="flag_oplock" longname="OpLock Request" mask="0x20" size="1" showtemplate="smb.oplock_status"/>
+					<field type="bit" name="flag_canpath" longname="Canonical Pathnames" mask="0x10" size="1" showtemplate="smb.path_status"/>
+					<field type="bit" name="flag_case" longname="Case Sensitivity" mask="0x04" size="1" showtemplate="smb.case_status"/>
+					<field type="bit" name="flag_rbuffer" longname="Receive Buffer Posted" mask="0x02" size="1" showtemplate="smb.buf_status"/>
+					<field type="bit" name="flag_lockread" longname="Support Lock Read" mask="0x01" size="1" showtemplate="smb.lr_status"/>
+				</block>
+				
+				<block name="flag2" longname="Flags 2">
+					<field type="bit" name="flag_unicoe" longname="Unicode Strings" mask="0x8000" size="2" showtemplate="smb.string_flag"/>
+					<field type="bit" name="flag_errcode" longname="Error Code Types" mask="0x4000" size="2" showtemplate="smb.err_flag"/>
+					<field type="bit" name="flag_exonly" longname="Execute-only Reads" mask="0x2000" size="2" showtemplate="smb.read_flag"/>
+					<field type="bit" name="flag_pathname" longname="Pathname" mask="0x1000" size="2" showtemplate="smb.path_flag"/>
+					<field type="bit" name="flag_security" longname="Security" mask="0x0800" size="2" showtemplate="smb.sec_flag"/>
+					<field type="bit" name="flag_pathlen" longname="Pathname Length" mask="0x0040" size="2" showtemplate="smb.length_flag"/>
+					<field type="bit" name="flag_secsign" longname="Security Signature" mask="0x0004" size="2" showtemplate="smb.sign_flag"/>
+					<field type="bit" name="flag_extattr" longname="Extended Attributes" mask="0x0002" size="2" showtemplate="smb.ea_flag"/>
+					<field type="bit" name="flag_plenreq" longname="Pathname Length Request" mask="0x0001" size="2" showtemplate="smb.req_flag"/>
+				</block>
+				
+				<field type="fixed" name="pid_h" longname="Process ID High" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="signature" longname="Signature" size="8" showtemplate="Field4BytesHex"/>
+				<field type="fixed" name="rsv" longname="Reserved" size="2" showtemplate="FieldBin"/>
+				<field type="fixed" name="tid" longname="Tree ID" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="pid" longname="Process ID" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="uid" longname="User ID" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="mid" longname="Multiplex ID" size="2" showtemplate="FieldDec"/>
+			</block>
+			
+			<block name="t_req" longname="Trans Request">
+				<field type="fixed" name="wct" longname="Word Count" size="1" showtemplate="FieldDec"/>
+				<field type="fixed" name="tpc" longname="Total Parameter Count" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="tdc" longname="Total Data Count" size="2" bigendian="yes" showtemplate="FieldDec"/>
+				<field type="fixed" name="mpc" longname="Max Parameter Count" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="mdc" longname="Max Data Count" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="msc" longname="Max Setup Count" size="1" showtemplate="FieldDec"/>
+				<field type="fixed" name="rsv" longname="Reserved" size="1" showtemplate="FieldDec"/>
+				<block name="flag" longname="Flags">
+					<field type="bit" name="transaction" longname="One Way Transaction" mask="0x2" size="2" showtemplate="smb.trans_flag"/>
+					<field type="bit" name="disc_tid" longname="Disconnect TID" mask="0x1" size="2" showtemplate="smb.tid_flag"/>
+				</block>
+				<!--non so in che formato mettere il timeout: in wireshark il timeout e' di 1 sec, mentre NetPDL fornisce un valore altissimo-->
+				<field type="fixed" name="timeout" longname="Timeout" size="4" showtemplate="FieldDec"/>
+				<field type="fixed" name="rsv" longname="Reserved" size="2" showtemplate="FieldBin"/>
+				<field type="fixed" name="param_count" longname="Parameter Count" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="param_offset" longname="Parametere Offset" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="d_count" longname="Data Count" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="d_offset" longname="Data Offset" size="2" showtemplate="FieldDec"/>
+				<field type="fixed" name="s_count" longname="Setup Count" size="1" showtemplate="FieldDec"/>
+				<field type="fixed" name="rsv1" longname="Reserved" size="1" showtemplate="FieldBin"/>
+				<field type="fixed" name="rsv2" longname="Reserved2" size="6"  showtemplate="FieldHex"/>
+				<field type="fixed" name="b_count" longname="Byte Count" size="2" showtemplate="FieldDec"/>
+				<field type="variable" name="t_name" longname="Transaction Name" expr="buf2int(wct)" showtemplate="FieldAscii"/>
+			</block>
+		</fields>
+	</format>
+	
+	<encapsulation>
+		<nextproto proto="#cifs_browser"/>
+	</encapsulation>
+	
+	<visualization>
+		<showtemplate name="smb.tid_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Don't disconnect TID"/>
+					<case value="1" show="TID disconnection is possible"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.command_flag" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<!--Field name-->
+					<case value="0x00" show="Create directory"/>
+					<case value="0x01" show="Delete directory"/>
+					<case value="0x02" show="Open file"/>
+					<case value="0x03" show="Create file"/>
+					<case value="0x04" show="Close file"/>
+					<case value="0x05" show="Commit all files"/>
+					<case value="0x06" show="Delete file"/>
+					<case value="0x07" show="Rename file"/>
+					<case value="0x08" show="Get file attribute"/>
+					<case value="0x09" show="Set file attribute"/>
+					<case value="0x0a" show="Read byte block"/>
+					<case value="0x0b" show="Write byte block"/>
+					<case value="0x0c" show="Lock byte block"/>
+					<case value="0x0d" show="Unlock byte block"/>
+					<case value="0x0f" show="Create new file"/>
+					<case value="0x10" show="Check directory"/>
+					<case value="0x11" show="End of process"/>
+					<case value="0x12" show="LSEEK"/>
+					<case value="0x70" show="Start connection"/>
+					<case value="0x71" show="End connection"/>
+					<case value="0x72" show="Verify dialect"/>
+					<case value="0x80" show="Get disk attributes"/>
+					<case value="0x81" show="Search multiple files"/>
+					<case value="0xc0" show="Create spool file"/>
+					<case value="0xc1" show="Spool byte block"/>
+					<case value="0xc2" show="Close spool file"/>
+					<case value="0xc3" show="Return print queue"/>
+					<case value="0xd0" show="Send message"/>
+					<case value="0xd1" show="Send broadcast"/>
+					<case value="0xd2" show="Forward user name"/>
+					<case value="0xd3" show="Cancel forward"/>
+					<case value="0xd4" show="Get machine name"/>
+					<case value="0xd5" show="Start multi-block message"/>
+					<case value="0xd6" show="End multi-block message"/>
+					<case value="0xd7" show="Multi-block message text"/>
+					<case value="0xfe" show="Invalid"/>
+					<case value="0xff" show="Implementation-dependant"/>
+					<!--Core plus commands-->
+					<case value="0x13" show="Lock then read data"/>
+					<case value="0x14" show="Write then unlock data"/>
+					<case value="0x1a" show="Read block raw"/>
+					<case value="0x1d" show="Write block raw"/>
+					<!--LANMAN 1.0 SMB commands-->
+					<case value="0x1b" show="Read block multiplexed"/>
+					<case value="0x1c" show="Read block (secondary response)"/>
+					<case value="0x1e" show="Write block multiplexed"/>
+					<case value="0x1f" show="Write block (secondary response)"/>
+					<case value="0x20" show="Write complete response"/>
+					<case value="0x22" show="Set file attributes expanded"/>
+					<case value="0x23" show="Get file attributes expanded"/>
+					<case value="0x24" show="Lock/unlock byte ranges and X"/>
+					<case value="0x25" show="Transaction (name, bytes in/out)"/>
+					<case value="0x26" show="Transaction (secondary request/response)"/>
+					<case value="0x27" show="Passes the IOCTL to the server"/>
+					<case value="0x28" show="IOCTL (secondary request/response)"/>
+					<case value="0x29" show="Copy"/>
+					<case value="0x2a" show="Move"/>
+					<case value="0x2b" show="Echo"/>
+					<case value="0x2c" show="Write and Close"/>
+					<case value="0x2d" show="Open and X"/>
+					<case value="0x2e" show="Read and X"/>
+					<case value="0x2f" show="Write and X"/>
+					<case value="0x73" show="Session Set Up and X (including User Logon)"/>
+					<case value="0x75" show="Tree connect and X"/>
+					<case value="0x82" show="Find first"/>
+					<case value="0x83" show="Find unique"/>
+					<case value="0x84" show="Find close"/>
+					<case value="0xfe" show="Invalid command"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.trans_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Only Two Way Transaction is possible"/>
+					<case value="1" show="One Way Transaction is possible"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.req_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Client wants 8.3 Format Pathnames"/>
+					<case value="1" show="Client wants Longnames path"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.ea_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="No Extended Attributes are supported"/>
+					<case value="1" show="Extended Attributes are supported"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+	
+		<showtemplate name="smb.length_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="8.3 Format"/>
+					<case value="1" show="Longnames"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.sign_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="No Signature"/>
+					<case value="1" show="Message Authentication Codes"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.sec_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Normal Security"/>
+					<case value="1" show="Extended Security"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.path_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Normal Pathname"/>
+					<case value="1" show="DFS (Distributed File System) Pathname"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.read_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Don't permit reads if execute only"/>
+					<case value="1" show="Permit reads if execute only"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.err_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="DOS Error Code"/>
+					<case value="1" show="NT_STATUS Code"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.string_flag" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Strings are ASCII"/>
+					<case value="1" show="Strings are Unicode"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.rr_status" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Message is a Request to Server"/>
+					<case value="1" show="Message is a Response to Server"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.batch_status" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Exclusive OpLock"/>
+					<case value="1" show="Batch OpLock"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.oplock_status" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="No OpLock requested/granted"/>
+					<case value="1" show="OpLock requested/granted"/>
+				</switch>
+			</showmap>
+		</showtemplate>	
+
+		<showtemplate name="smb.path_status" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Pathname has a host format"/>
+					<case value="1" show="Pathname has a canonical format"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.case_status" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Pathnames are case sensitive"/>
+					<case value="1" show="Pathnames are not case sensitive"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.lr_status" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="The Read and Write Lock is not supported"/>
+					<case value="1" show="The Read and Write Lock is supported"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.buf_status" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Receive Buffer has not been posted"/>
+					<case value="1" show="Receive Buffer has been posted"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="smb.err_class" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00" show="SUCCESS"/>
+					<case value="0x02" show="ERRSRV"/>
+					<default show="Error in Error Class Flag"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="smb.err_code" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x00" show="No Error"/>
+					<case value="0x54" show="The Message was buffered"/>
+					<case value="0x55" show="The Message was logged"/>
+					<case value="0x56" show="The Message was displayed"/>
+					<case value="0x01" show="Non-specific error code"/>
+					<case value="0x02" show="Bad password"/>
+					<case value="0x03" show="Reserved"/>
+					<default show="Error in Error Code Flag"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+	</visualization>
+</protocol>
+

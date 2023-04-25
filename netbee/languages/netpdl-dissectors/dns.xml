@@ -1,0 +1,334 @@
+<protocol name="dns" longname="DNS (Domain Name System)" showsumtemplate="dns">
+	<format>
+		<fields>
+			<field type="fixed" name="ID" size="2" longname="Identifier" showtemplate="FieldDec"/>
+			<block name="flags" longname="Flags">
+				<field type="bit" name="Query" mask="0x8000" size="2" longname="Message type" showtemplate="dns.query"/>
+				<field type="bit" name="Opcode" mask="0x7800" size="2" longname="Type of query" showtemplate="dns.opcode"/>
+				<field type="bit" name="AuthAnsw" mask="0x0400" size="2" longname="Authoritative answer" showtemplate="FieldBin"/>
+				<field type="bit" name="Truncation" mask="0x0200" size="2" longname="Truncation" showtemplate="FieldBin"/>
+				<field type="bit" name="Recursive" mask="0x0100" size="2" longname="Recursion desired" showtemplate="FieldBin"/>
+				<field type="bit" name="AvlRecur" mask="0x0080" size="2" longname="Recursion available" showtemplate="FieldBin"/>
+				<field type="bit" name="checking" mask="0x0070" size="2" longname="Checking disabled" showtemplate="FieldBin"/>
+				<field type="bit" name="RCode" mask="0x000F" size="2" longname="Response code" showtemplate="dns.rcode"/>
+			</block>		
+			
+			<field type="fixed" name="QuestionCount" size="2" longname="Number of questions" showtemplate="FieldDec"/>
+			<field type="fixed" name="AnswerCount" size="2" longname="Number of answers" showtemplate="FieldDec"/>
+			<field type="fixed" name="NameServerCount" size="2" longname="Number of name server resource records" showtemplate="FieldDec"/>
+			<field type="fixed" name="AdditionalCount" size="2" longname="Number of additional resource records" showtemplate="FieldDec"/>
+
+			<block name="QuestionsLoop" longname="Question Records">
+				<loop type="times2repeat" expr="buf2int(QuestionCount)">
+					<includeblk name="Question"/>
+				</loop>
+			</block>
+
+			<block name="AnswersLoop" longname="Answer Records">
+				<loop type="times2repeat" expr="buf2int(AnswerCount)">
+					<includeblk name="Answer"/>
+				</loop>
+			</block>
+
+			<block name="NSRRLoop" longname="Name Server Resource Records">
+				<loop type="times2repeat" expr="buf2int(NameServerCount)">
+					<includeblk name="NameServerResourceRecord"/>
+				</loop>
+			</block>
+
+			<block name="ARRLoop" longname="Additional Resource Records">
+				<loop type="times2repeat" expr="buf2int(AdditionalCount)">
+					<includeblk name="AdditionalResourceRecord"/>
+				</loop>
+			</block>
+		</fields>
+
+		<block name="Question" longname="Question">
+			<field type="plugin" name="dname" longname="Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+			<field type="fixed" name="qtype" size="2" longname="Question type" showtemplate="dns.type"/>
+			<field type="fixed" name="qclass" size="2" longname="Question class" showtemplate="dns.class"/>
+		</block>
+
+		<block name="Answer" longname="Answer">
+			<field type="plugin" name="dname" longname="Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+		 	<field type="fixed" name="type" size="2" longname="Answer type" showtemplate="dns.type"/>
+			<field type="fixed" name="class" size="2" longname="Answer class" showtemplate="dns.class"/>
+			<field type="fixed" name="ttl" size="4" longname="Time to live" showtemplate="FieldDec"/>
+			<field type="fixed" name="rdlength" size="2" longname="Resource data length" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(type)">
+				<case value="1"> <field type="fixed" name="ip4addr" longname="IPv4 address" size="4" showtemplate="ip4addr-noplg"/> </case>	
+				<case value="2"> <field type="variable" name="nameserver" longname="Name server" expr="buf2int(rdlength)" showtemplate="dns.dname"/> </case>	
+				<case value="3"> <includeblk name="MD"/> </case>	
+				<case value="4"> <includeblk name="MF"/> </case>	
+				<case value="5"> <field type="variable" name="cname" longname="Canonical name" expr="buf2int(rdlength)" showtemplate="dns.dname"/> </case>
+				<case value="6"> <includeblk name="SOA"/> </case>	
+				<case value="7"> <includeblk name="MB"/> </case>	
+				<case value="8"> <includeblk name="MG"/> </case>	
+				<case value="9"> <includeblk name="MR"/> </case>	
+				<case value="10"> <field type="variable" name="null" longname="NULL" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/> </case>
+				<case value="11"> <includeblk name="WKS"/> </case>
+				<case value="12"> <field type="variable" name="ptrname" longname="Domain name" expr="buf2int(rdlength)" showtemplate="dns.dname"/> </case>
+				<case value="13"> <includeblk name="HINFO"/> </case>	
+				<case value="14"> <includeblk name="MINFO"/> </case>	
+				<case value="15"> <includeblk name="MX"/> </case>	
+				<case value="16"> <includeblk name="TXT"/> </case>
+				<case value="28"> <field type="fixed" name="ip6addr" longname="IPv6 address" size="16" showtemplate="ip6addr"/> </case>	
+				<case value="33"> <includeblk name="SRV"/> </case>
+				<case value="35"> <includeblk name="NAPTR"/> </case>
+				<case value="38"> <includeblk name="A6"/> </case>
+				<default> <field type="variable" name="rddata" longname="Resource Data" expr="buf2int(rdlength)" showtemplate="Field4BytesHex"/> </default>
+			</switch>			
+		</block>
+
+		<block name="NameServerResourceRecord" longname="NS Resource Record">
+			<field type="plugin" name="dname" longname="Domain Name" plugin="DomainName" showtemplate="dns.dname"/>		
+		 	<field type="fixed" name="type" size="2" longname="Answer type" showtemplate="dns.type"/>
+			<field type="fixed" name="class" size="2" longname="Answer class" showtemplate="dns.class"/>
+			<field type="fixed" name="ttl" size="4" longname="Time to live" showtemplate="FieldDec"/>
+			<field type="fixed" name="rdlength" size="2" longname="Resource data length" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(type)">
+				<case value="1"> <field type="fixed" name="ip4addr" longname="IPv4 address" size="4" showtemplate="ip4addr-noplg"/> </case>	
+				<case value="2"> <field type="variable" name="nameserver" longname="Name server" expr="buf2int(rdlength)" showtemplate="dns.dname"/> </case>	
+				<case value="3"> <includeblk name="MD"/> </case>	
+				<case value="4"> <includeblk name="MF"/> </case>	
+				<case value="5"> <field type="variable" name="cname" longname="Canonical name" expr="buf2int(rdlength)" showtemplate="dns.dname"/> </case>
+				<case value="6"> <includeblk name="SOA"/> </case>	
+				<case value="7"> <includeblk name="MB"/> </case>	
+				<case value="8"> <includeblk name="MG"/> </case>	
+				<case value="9"> <includeblk name="MR"/> </case>	
+				<case value="10"> <field type="variable" name="null" longname="NULL" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/> </case>
+				<case value="11"> <includeblk name="WKS"/> </case>
+				<case value="12"> <field type="variable" name="ptrname" longname="Domain name" expr="buf2int(rdlength)" showtemplate="dns.dname"/> </case>
+				<case value="13"> <includeblk name="HINFO"/> </case>	
+				<case value="14"> <includeblk name="MINFO"/> </case>	
+				<case value="15"> <includeblk name="MX"/> </case>	
+				<case value="16"> <includeblk name="TXT"/> </case>	
+				<case value="28"> <field type="fixed" name="ip6addr" longname="IPv6 address" size="16" showtemplate="ip6addr"/> </case>	
+				<case value="33"> <includeblk name="SRV"/> </case>
+				<case value="35"> <includeblk name="NAPTR"/> </case>
+				<case value="38"> <includeblk name="A6"/> </case>
+				<default> <field type="variable" name="rddata" longname="Resource Data" expr="buf2int(rdlength)" showtemplate="Field4BytesHex"/> </default>
+			</switch>			
+		</block>	
+
+		<block name="AdditionalResourceRecord" longname="Additional Resource Records">
+			<field type="plugin" name="dname" longname="Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+		 	<field type="fixed" name="type" size="2" longname="Answer type" showtemplate="dns.type"/>
+			<field type="fixed" name="class" size="2" longname="Answer class" showtemplate="dns.class"/>
+			<field type="fixed" name="ttl" size="4" longname="Time to live" showtemplate="FieldDec"/>
+			<field type="fixed" name="rdlength" size="2" longname="Resource data length" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(type)">
+				<!-- For a ,ist of types, check http://www.networksorcery.com/enp/protocol/dns.htm#Answer%20RRs -->
+				<case value="1"> <field type="fixed" name="ip4addr" longname="IPv4 address" size="4" showtemplate="ip4addr-noplg"/> </case>	
+				<case value="2"> <field type="variable" name="nameserver" longname="Name server" expr="buf2int(rdlength)" showtemplate="dns.dname"/> </case>	
+				<case value="3"> <includeblk name="MD"/> </case>	
+				<case value="4"> <includeblk name="MF"/> </case>	
+				<case value="5"> <field type="variable" name="cname" longname="Canonical name" expr="buf2int(rdlength)" showtemplate="dns.dname"/> </case>
+				<case value="6"> <includeblk name="SOA"/> </case>	
+				<case value="7"> <includeblk name="MB"/> </case>	
+				<case value="8"> <includeblk name="MG"/> </case>	
+				<case value="9"> <includeblk name="MR"/> </case>	
+				<case value="10"> <field type="variable" name="null" longname="NULL" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/> </case>
+				<case value="11"> <includeblk name="WKS"/> </case>
+				<case value="12"> <field type="variable" name="ptrname" longname="Domain name" expr="buf2int(rdlength)" showtemplate="dns.dname"/> </case>
+				<case value="13"> <includeblk name="HINFO"/> </case>	
+				<case value="14"> <includeblk name="MINFO"/> </case>	
+				<case value="15"> <includeblk name="MX"/> </case>	
+				<case value="16"> <includeblk name="TXT"/> </case>	
+				<case value="28"> <field type="fixed" name="ip6addr" longname="IPv6 address" size="16" showtemplate="ip6addr"/> </case>	
+				<case value="33"> <includeblk name="SRV"/> </case>
+				<case value="35"> <includeblk name="NAPTR"/> </case>
+				<case value="38"> <includeblk name="A6"/> </case>
+				<default> <field type="variable" name="rddata" longname="Resource Data" expr="buf2int(rdlength)" showtemplate="Field4BytesHex"/> </default>
+			</switch>			
+		</block>
+
+		<block name="A6" longname="A6 Resource Record">
+			<field type="fixed" name="prefixlen" size="1" longname="Prefix length" showtemplate="FieldDec"/>
+			<field type="variable" name="suffix" longname="Address suffix" expr="(buf2int(prefixlen) + 7) div 8" showtemplate="FieldAscii"/>
+			
+			<if expr="(buf2int(prefixlen) != 0) and (buf2int(prefixlen) != 128)">
+				<if-true>
+					<field type="plugin" name="dname" longname="Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+				</if-true>
+			</if>
+		</block>
+
+		<block name="HINFO" longname="HINFO Resource Record">
+			<field type="fixed" name="cpulen" longname="CPU string length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="CPU" description="CPU type" longname="CPU type" expr="buf2int(cpulen)" showtemplate="FieldAscii"/>
+			<field type="fixed" name="oslen" longname="OS string length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="OS" description="Operating System" longname="Operating system" expr="buf2int(oslen)" showtemplate="FieldAscii"/>			
+		</block>
+
+		<block name="MB" longname="MB Resource Record">
+			<field type="plugin" name="dname" longname="Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+		</block>
+
+		<block name="MD" longname="MD Resource Record">
+			<field type="plugin" name="dname" longname="Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+		</block>
+
+		<block name="MF" longname="MF Resource Record">
+			<field type="plugin" name="dname" longname="Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+		</block>
+
+		<block name="MG" longname="MG Resource Record">
+			<field type="plugin" name="dname" longname="Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+		</block>
+
+		<block name="MINFO" longname="MINFO Resource Record">
+			<field type="plugin" name="RMAILBX" longname="RMAILBX Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+			<field type="plugin" name="EMAILBX" longname="EMAILBX Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+		</block>
+
+		<block name="MR" longname="MR Resource Record">
+			<field type="plugin" name="dname" longname="Domain Name" plugin="DomainName" showtemplate="dns.dname"/>
+		</block>
+
+		<block name="MX" longname="MX Resource Record">
+			<field type="fixed" name="preference" size="2" longname="Preference" showtemplate="FieldDec"/>
+			<field type="plugin" name="exchange" longname="Mail Exchanger (SMTP)" plugin="DomainName" showtemplate="dns.dname"/>
+		</block>
+
+		<block name="SOA" longname="SOA Resource Record">
+			<field type="plugin" name="mname" longname="Primary name server" plugin="DomainName" showtemplate="dns.dname"/>
+			<field type="plugin" name="rname" longname="Responsible autority's mailbox" description="Mailbox of the person responsible for this zone" plugin="DomainName" showtemplate="dns.dname"/>
+			<field type="fixed" name="SERIAL" size="4" longname="Serial" showtemplate="FieldDec"/>
+			<field type="fixed" name="REFRESH" size="4" longname="Refresh" showtemplate="FieldDec"/>
+			<field type="fixed" name="RETRY" size="4" longname="Retry" showtemplate="FieldDec"/>
+			<field type="fixed" name="EXPIRE" size="4" longname="Expire" showtemplate="FieldDec"/>
+			<field type="fixed" name="MINIMUM" size="4" longname="Minimum" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="TXT" longname="TXT Resource Record">
+			<field type="fixed" name="txtlen" longname="TXT-DATA string length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="txtdata" description="TXT-DATA" longname="TXT-DATA" expr="buf2int(txtlen)" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="WKS" longname="WKS Resource Record">
+			<field type="fixed" name="wks_address" longname="Internet address" size="4" showtemplate="ip4addr-noplg"/>
+			<field type="fixed" name="wks_protocol" longname="IP Protocol Number" size="1" showtemplate="FieldDec"/>
+			<!-- TODO: what about that hell of bitmasks????? -->
+		</block>
+
+		<block name="SRV" longname="SRV Resource Record">
+			<field type="fixed" name="priority" longname="Priority" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="weight" longname="Weight" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="port" longname="Port" size="2" showtemplate="FieldDec"/>
+			<field type="plugin" name="tname" longname="Target Name" plugin="DomainName" showtemplate="dns.dname"/>
+		</block>
+
+		<block name="NAPTR" longname="NAPTR Resource Record">
+			<field type="fixed" name="order" longname="Order" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="preference" longname="Preference" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="flagslen" longname="Flags Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="flags" longname="Flags" expr="buf2int(flagslen)" showtemplate="FieldAscii"/>
+			<field type="fixed" name="servicelen" longname="Service Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="service" longname="Service" expr="buf2int(servicelen)" showtemplate="FieldAscii"/>
+			<field type="fixed" name="regexplen" longname="RegExp Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="regexp" longname="Regular Expression" expr="buf2int(regexplen)" showtemplate="FieldAscii"/>
+			<field type="plugin" name="rname" longname="Replacement Name" plugin="DomainName" showtemplate="dns.dname"/>
+		</block>
+	</format>
+
+
+	<visualization>
+		<showtemplate name="dns.query" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Query"/>
+					<default show="Response"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="dns.opcode" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Standard query"/>
+					<case value="1" show="Inverse query"/>
+					<case value="2" show="Service status request"/>
+					<default show="Reserved"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+
+		<showtemplate name="dns.rcode" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="No error"/>
+					<case value="1" show="Format error"/>
+					<case value="2" show="Server failure"/>
+					<case value="3" show="Name error"/>
+					<case value="4" show="Not implemented"/>
+					<case value="5" show="Refused"/>
+					<default show="Reserved"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="dns.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<!-- http://www.iana.org/assignments/dns-parameters -->
+					<case value="0" show="Reserved (should not be used)"/>
+					<case value="1" show="A - IPv4 host address"/>
+					<case value="2" show="NS - Authoritative name server"/>
+					<case value="3" show="MD - Mail destination; obsolete"/>
+					<case value="4" show="MF - Mail forwarder; obsolete"/>
+					<case value="5" show="CNAME - Canonical name for an alias"/>
+					<case value="6" show="SOA - Start of a zone of authority"/>
+					<case value="7" show="MB - Mailbox domain name; experimental"/>
+					<case value="8" show="MG - Mail group member; experimental"/>
+					<case value="9" show="MR - Mail rename domain name; experimental"/>
+					<case value="10" show="NULL - Null RR; experimental"/>
+					<case value="11" show="WKS - Well known service description"/>
+					<case value="12" show="PTR - Domain name pointer"/>
+					<case value="13" show="HINFO - Host information"/>
+					<case value="14" show="MINFO - Mailbox or mail list information"/>
+					<case value="15" show="MX - Mail exchange"/>
+					<case value="16" show="TXT - Text strings"/>
+					<case value="28" show="AAAA - IPv6 host address"/>
+					<case value="33" show="SRV - Service location"/>
+					<case value="35" show="NAPTR - Naming authority pointer"/>
+					<case value="38" show="A6 - IPv6 host address"/>
+					<case value="41" show="OPT"/>
+					<case value="252" show="AFXR - Request for a transfer of an entire zone"/>
+					<case value="253" show="MAILB - Request for mailbox-related records"/>
+					<case value="254" show="MAILA - Request for mail agent RRs;obsolete"/>
+					<case value="255" show="* - Request for all records"/>
+					<default show="DNS Query type not recognized"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="dns.class" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Reserved IANA"/>
+					<case value="1" show="IN - Internet"/>
+					<case value="2" show="CS - CSNET class - obsolete"/>
+					<case value="3" show="CH - CHAOS class"/>
+					<case value="4" show="HS - Hesiod"/>
+					<case value="255" show="* - Any class"/>
+					<default show="DNS class not recognized"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="dns.dname" showtype="hex" showplg="DomainName"/>
+
+		<showsumtemplate name="dns">
+			<section name="next"/>
+			<text value="DNS "/>
+			<protofield name="Query" showdata="showmap"/>
+		</showsumtemplate>
+
+	</visualization>
+
+</protocol>

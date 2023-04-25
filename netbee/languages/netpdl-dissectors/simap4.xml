@@ -1,0 +1,14 @@
+<protocol name="simap4" longname="Secure IMAP" showsumtemplate="simap4">
+	<format>
+		<fields>
+			<field type="variable" name="simap4data" longname="Secure IMAP Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="simap4">
+			<section name="next"/>
+			<text value="Secure IMAP4"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

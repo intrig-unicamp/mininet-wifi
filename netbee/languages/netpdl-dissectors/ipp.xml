@@ -1,0 +1,14 @@
+<protocol name="ipp" longname="Internet Printing Protocol" showsumtemplate="ipp">
+	<format>
+		<fields>
+			<field type="variable" name="ippdata" longname="IPP Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+	
+	<visualization>	
+		<showsumtemplate name="ipp">
+			<section name="next"/>
+			<text value="IPP"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

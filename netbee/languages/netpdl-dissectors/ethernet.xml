@@ -1,0 +1,62 @@
+<protocol name="ethernet" longname="Ethernet 802.3" comment="Ethernet DIX has been included in 802.3" showsumtemplate="ethernet">
+	<execute-code>
+		<!-- If we're on Ethernet IEEE 802.3, update the packet length -->
+		<after when="buf2int(type) le 1500">
+			<assign-variable name="$packetlength" value="buf2int(type) + 14"/> <!-- 14 is the size of the ethernet header -->
+		</after>
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="fixed" name="dst" longname="MAC Destination" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="src" longname="MAC Source" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="type" longname="Ethertype - Length" size="2" showtemplate="eth.typelength"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<!--
+		We have four possible incapsulations for IPX:
+		  - Ethernet version II
+		    ==> type= 0x8137
+		  - Novell-specific framing (raw 802.3)
+		    ==> directly in Ethernet; we have to check that the IPX checksum is == 0xFFFF
+		  - Ethernet 802.3/802.2 without SNAP
+		    ==> directly in SNAP; we have to check that the IPX checksum is == 0xFFFF (after the SNAP header)
+		  - Ethernet 802.3/802.2 with SNAP
+		    ==> type= 0x8137 (in SNAP)
+		See the "IPX Ethernet and FDDI Encapsulation Methods" Cisco doc, at:
+		  http://www.cisco.com/en/US/tech/tk389/tk224/technologies_q_and_a_item09186a0080093d2e.shtml
+		-->
+
+		<if expr="buf2int($packet[$currentoffset:2]) == 0xFFFF">
+			<if-true>
+				<nextproto proto="#ipx"/>
+			</if-true>	
+		</if>
+
+		<switch expr="buf2int(type)">
+			<case value="0" maxvalue="1500"> <nextproto proto="#llc" preferred="true"/> </case>
+			<case value="0x800"> <nextproto proto="#ip" preferred="true"/> </case>
+			<case value="0x806"> <nextproto proto="#arp" preferred="true"/> </case>
+			<case value="0x8863"> <nextproto proto="#pppoed"/> </case>
+			<case value="0x8864"> <nextproto proto="#pppoe"/> </case>
+			<case value="0x86DD"> <nextproto proto="#ipv6" preferred="true"/> </case>
+			<case value="0x8100"> <nextproto proto="#vlan" preferred="true"/> </case>
+			<case value="0x8137"> <nextproto proto="#ipx"/> </case>
+			<case value="0x81FD"> <nextproto proto="#ismp"/> </case>
+			<case value="0x8847" comment="mpls-unicast"> <nextproto proto="#mpls"/> </case>
+			<case value="0x8848" comment="mpls-multicast"> <nextproto proto="#mpls"/> </case>
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="ethernet">
+			<section name="next"/>
+			<text value="Eth: "/>
+			<protofield name="src" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dst" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>

@@ -1,0 +1,99 @@
+<protocol name="netbiosdgm" longname="Netbios Datagram Service" showsumtemplate="netbiosdgm">
+	<execute-code>
+		<verify>
+			<!-- check value of type message and flag -->
+			<!--       1 2 3 4 5 6 7 8  -->
+			<!-- flag [0|0|0|0|SNT|F|M] some packet have fourth byte equals to 1 !!!! -->
+			<if expr="hasstring($packet[$currentoffset : 0], '^[\x10-\x16]',0) and (buf2int($portsrc)== buf2int($packet[$currentoffset+8:2]) )">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+		
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#netbiosdgm"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#netbiosdgm"/>
+			</update-lookuptable>
+		</before>
+	</execute-code>
+	<format>
+		<fields>
+			<field type="fixed" name="msgtype" longname="Message Type" size="1" showtemplate="netbiosdgm.type"/>
+			<field type="fixed" name="flags" longname="Flags" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="dmgid" longname="Datagram ID" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="sourceip" longname="Source IP" size="4" showtemplate="ip4addr"/>
+			<field type="fixed" name="sourceport" longname="Source Port" size="2" showtemplate="FieldDec"/>
+			<if expr="buf2int(msgtype) == 0x10 or buf2int(msgtype) == 0x11 or buf2int(msgtype) == 0x12">
+				<if-true>
+					<field type="fixed" name="dmglegth" longname="Datagram Length" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="packetoffset" longname="Packet Offset" size="2" showtemplate="FieldDec"/>
+									
+					<field type="fixed" name="source_name_len" longname="Name Length" size="1" showtemplate="FieldDec"/>
+					<field type="variable" name="source_name" longname="Source Name" expr="buf2int(source_name_len) + 1" showtemplate="netbios-name"/>
+					
+					<!--<field type="tokenended" name="destinantionname" longname="Destination Name" endtoken="\x00" showtemplate="FieldAscii"/>	-->
+					<field type="fixed" name="destination_name_len" longname="Name Length" size="1" showtemplate="FieldDec"/>
+					<field type="variable" name="destination_name" longname="Destination Name" expr="buf2int(destination_name_len) + 1" showtemplate="netbios-name"/>
+					<field type="variable" name="userdata" longname="User Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+				</if-true>
+				
+				<if-false>
+					<if expr="buf2int(msgtype) == 0x13">
+						<if-true>
+							<field type="fixed" name="errorcode" longname="Error Code" size="1" showtemplate="FieldHex"/>
+						</if-true>
+						
+						<if-false>
+							<if expr="buf2int(msgtype) == 0x14 or buf2int(msgtype) == 0x15 or buf2int(msgtype) == 0x16">
+								<if-true>
+									<field type="variable" name="destinationname" longname="Destination Name" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-false>
+			</if>
+			<field type="variable" name="netbiosddata" longname="NetBios Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+	
+	
+	
+	<visualization>
+		<showtemplate name="netbiosdgm.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this[0:1])">
+					<case value="0x10" show="Direct Unique Datagram"></case>
+					<case value="0x11" show="Direct Group Datagram"></case>
+					<case value="0x12" show="Broadcast Datagram"></case>
+					<case value="0x13" show="Datagram Error"></case>
+					<case value="0x14" show="Datagram Query Request"></case>
+					<case value="0x15" show="Datagram Positive Query Response"></case>
+					<case value="0x16" show="Datagram Negative Query Response"></case>
+					<default show="Unkown Messagge Type"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="netbiosdgm">
+			<section name="next"/>
+			<text value="NetBios Datagram Service "/>
+			<protofield name="msgtype" showdata="showmap"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+

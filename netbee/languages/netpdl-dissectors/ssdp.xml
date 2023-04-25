@@ -1,0 +1,46 @@
+<protocol name="ssdp" longname="SSDP" showsumtemplate="ssdp">
+	<execute-code>
+		<verify>
+			<!-- header has fixed length (20 bytes)-->
+			<if expr="hasstring($packet[$currentoffset:0],'^notify[\x09-\x0d ]\*[\x09-\x0d ]|http/1\.1[\x09-\x0d -~]*ssdp:(alive|byebye)|^m-search[\x09-\x0d ]\*[\x09-\x0d ]http/1\.1[\x09-\x0d -~]*ssdp:discover',0)">
+				<if-true>
+					<assign-variable name="$protoverify_result" value="%FOUND"/>
+				</if-true>
+			</if>
+		</verify>
+
+		<before when="$protoverify_result == %FOUND">
+			<assign-variable name="$session_hit" value="1"/>
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupdata value="#ssdp"/>
+			</update-lookuptable>
+
+			<update-lookuptable name="$udpsessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+				<lookupkey value="$ipdst"/>
+				<lookupkey value="$ipsrc"/>
+				<lookupkey value="$portdst"/>
+				<lookupkey value="$portsrc"/>
+				<lookupdata value="#ssdp"/>
+			</update-lookuptable>
+		</before>
+	</execute-code>
+	
+	<format>
+		<fields>
+			<field type="variable" name="ssdpdata" longname="SSDP Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</fields>
+	</format>
+	
+	<visualization>	
+		<showsumtemplate name="ssdp">
+			<section name="next"/>
+			<text value="SSDP"/>
+		</showsumtemplate>
+	</visualization>
+	
+</protocol>
+
