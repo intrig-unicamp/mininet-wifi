@@ -1077,7 +1077,6 @@ class _4address(Link, IntfWireless):
         else:
             node2.cwds = 0
 
-        print(node2.cwds)
         intfName2 = '{}.wds{}'.format(node2.name, node2.cwds)
 
         if not hasattr(node1, 'position'): self.setPos(node1)
@@ -1120,7 +1119,7 @@ class _4address(Link, IntfWireless):
             self.bring4addrIfaceDown(node2.cwds)
             self.setMAC(node2.wintfs[node2_intf_index], node2.cwds)
             self.bring4addrIfaceUP(node2.cwds)
-            self.iwdev_cmd('{} connect {} {}'.format(
+            self.iwdev_cmd('{} connect -w {} {}'.format(
                 node2.params['wlan'][node2_intf_index], ap_intf.ssid, ap_intf.mac))
 
             # All we are is dust in the wind, and our two interfaces
