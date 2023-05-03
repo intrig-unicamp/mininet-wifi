@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index a9eab4d..6f27c67 100644
+index a9eab4d9c..6f27c67ba 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -115,11 +115,11 @@ CONFIG_EAP_TTLS=y
@@ -120,21 +120,8 @@ index a9eab4d..6f27c67 100644
  
  # Remove all TKIP functionality
  # TKIP is an old cryptographic data confidentiality algorithm that is not
-diff --git wpa_supplicant/bgscan_learn.c wpa_supplicant/bgscan_learn.c
-index 75bdec1..da963f7 100644
---- wpa_supplicant/bgscan_learn.c
-+++ wpa_supplicant/bgscan_learn.c
-@@ -544,7 +544,7 @@ static int bgscan_learn_notify_scan(void *priv,
- 	 * done inside the bgscan module.
- 	 */
- 
--	return 0;
-+	return 1;
- }
- 
- 
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index a4f20d4..0981598 100644
+index a4f20d439..098159897 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
 @@ -172,12 +172,12 @@ CONFIG_EAP_TNC=y
@@ -199,7 +186,7 @@ index a4f20d4..0981598 100644
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
 diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
-index aa4ce09..4bc78d5 100644
+index aa4ce0964..4bc78d523 100644
 --- wpa_supplicant/p2p_supplicant.c
 +++ wpa_supplicant/p2p_supplicant.c
 @@ -96,7 +96,7 @@
