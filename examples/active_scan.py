@@ -3,14 +3,13 @@
 'This example shows how to work with active scan'
 
 from mininet.log import setLogLevel, info
-from mn_wifi.node import UserAP
 from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 
 
 def topology():
     "Create a network."
-    net = Mininet_wifi(accessPoint=UserAP)
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
     net.addStation('sta1', passwd='123456789a,123456789a', encrypt='wpa2,wpa2',
@@ -21,10 +20,10 @@ def topology():
                    position='45,10,0')
     ap1 = net.addAccessPoint('ap1', ssid="ssid-1", mode="g", channel="1",
                              passwd='123456789a', encrypt='wpa2',
-                             position='10,10,0')
+                             position='10,10,0', datapath='user')
     ap2 = net.addAccessPoint('ap2', ssid="ssid-1", mode="g", channel="6",
                              passwd='123456789a', encrypt='wpa2',
-                             position='40,10,0')
+                             position='40,10,0', datapath='user')
     c0 = net.addController('c0')
 
     info("*** Configuring nodes\n")
