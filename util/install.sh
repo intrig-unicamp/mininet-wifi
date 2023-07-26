@@ -187,7 +187,7 @@ function wifi_deps {
     else
         pf=pyflakes
         if [ $PYTHON_VERSION == 3 ]; then
-            $install python-is-python3
+            ln -sf python3 /usr/bin/python
         fi
         # Starting around 20.04, installing pyflakes instead of pyflakes3
         # causes Python 2 to be installed, which is exactly NOT what we want.
