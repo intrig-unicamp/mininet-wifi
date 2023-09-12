@@ -7,7 +7,7 @@ inserted in a 100x100 grid in random locations. Users will be able to specify
 the MANET Protocol used to communicate between stations.
 
 To run the demo use:
-sudo python manet_demo.py
+sudo python scalable_manet_demo.py
 
 If stations are unable to ping one another, exit out of the CLI, then
 please use the following commands:
