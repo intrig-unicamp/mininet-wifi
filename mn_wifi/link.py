@@ -433,7 +433,7 @@ class IntfWireless(Intf):
 
             if self.config:
                 config = self.config
-                if config is not []:
+                if config != []:
                     config = self.config.split(',')
                     self.node.params.pop("config", None)
                     for conf in config:
@@ -820,7 +820,7 @@ class HostapdConfig(IntfWireless):
         if intf.client_isolation: cmd += '\nap_isolate=1'
         if 'config' in intf.node.params:
             config = intf.node.params['config']
-            if config is not []:
+            if config != []:
                 config = config.split(',')
                 # ap.params.pop("config", None)
                 for conf in config: cmd += "\n" + conf
