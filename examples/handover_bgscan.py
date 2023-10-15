@@ -17,7 +17,6 @@ import sys
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mn_wifi.node import UserAP
 from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.link import wmediumd
@@ -26,7 +25,7 @@ from mn_wifi.wmediumdConnector import interference
 
 def topology(args):
     "Create a network."
-    net = Mininet_wifi(controller=Controller, accessPoint=UserAP,
+    net = Mininet_wifi(controller=Controller,
                        link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
@@ -34,13 +33,13 @@ def topology(args):
                    s_inverval=5, l_interval=10, bgscan_module="simple")
     ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="handover",
                              mode="g", channel="1", passwd='123456789a',
-                             encrypt='wpa2', position='10,30,0')
+                             encrypt='wpa2', position='10,30,0', datapath='user')
     ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:02', ssid="handover",
                              mode="g", channel="6", passwd='123456789a',
-                             encrypt='wpa2', position='60,30,0')
+                             encrypt='wpa2', position='60,30,0', datapath='user')
     ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', ssid="handover",
                              mode="g", channel="1", passwd='123456789a',
-                             encrypt='wpa2', position='120,100,0')
+                             encrypt='wpa2', position='120,100,0', datapath='user')
     c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")

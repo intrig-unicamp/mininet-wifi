@@ -4,11 +4,11 @@
    @Contributor: Joaquin Alvarez (j.alvarez@uah.es)
 """
 
-from os import system as sh, getpid, path
+from os import system as sh, getpid
 import re
-import glob
 import subprocess
 from time import sleep
+from glob import glob
 from subprocess import check_output as co, CalledProcessError
 
 from mininet.link import Intf, TCIntf, Link
@@ -87,7 +87,7 @@ class IntfWireless(Intf):
         cmd = 'tc qdisc replace dev {} root handle 2: netem '.format(iface)
         cmd += 'rate {:.4f}mbit '.format(bw)
         if latency > 0.1: cmd += 'latency {:.2f}ms '.format(latency)
-        if loss > 0.1: cmd += 'loss {:.1f}%% '.format(loss)
+        if loss > 0.1: cmd += 'loss {:.1f}% '.format(loss)
         self.node.pexec(cmd)
 
     def get_default_gw(self):
@@ -411,7 +411,7 @@ class IntfWireless(Intf):
 
     def check_if_wpafile_exist(self):
         file = '{}_{}.staconf'.format(self.name, self.id)
-        return glob.glob(file)
+        return glob(file)
 
     def wpaFile(self, ap_intf):
         cmd = ''
@@ -433,7 +433,7 @@ class IntfWireless(Intf):
 
             if self.config:
                 config = self.config
-                if config is not []:
+                if config != []:
                     config = self.config.split(',')
                     self.node.params.pop("config", None)
                     for conf in config:
@@ -683,12 +683,10 @@ class IntfWireless(Intf):
 
 
 class HostapdConfig(IntfWireless):
-    write_mac = False
-    nm_conf_file = '/etc/NetworkManager/conf.d/unmanaged.conf'
 
     def __init__(self, intf):
         'configure hostapd'
-        self.check_nm(intf)
+        self.check_vssid(intf)
         self.configure(intf)
         self.set_mac_viface(intf)
 
@@ -699,9 +697,7 @@ class HostapdConfig(IntfWireless):
                 vintf.node.params['wlan'].append(vintf.name)
                 vintf.mac = vintf.getMAC()
 
-    def check_nm(self, intf):
-        self.checkNetworkManager(intf)
-
+    def check_vssid(self, intf):
         if 'vssids' in intf.node.params:
             if isinstance(intf.node.params['vssids'], list):
                 vssids = intf.node.params['vssids'][intf.id].split(',')
@@ -712,7 +708,7 @@ class HostapdConfig(IntfWireless):
                 intf.vifaces.append(iface)
                 intf.vssid.append(vssid)
                 if not wmediumd_mode.mode:
-                    TCLinkWireless(intf.node, intfName=iface)
+                    TCWirelessLink(intf.node, intfName=iface)
                     VirtualMaster(intf.node, intf.id, intf=iface)
 
     def configure(self, intf):
@@ -771,6 +767,7 @@ class HostapdConfig(IntfWireless):
         if intf.mode == 'ax':
             intf.country_code = 'DE'
         if 'n' in intf.mode:
+            cmd += "\ncountry_code={}".format(intf.country_code)
             cmd += "\nhw_mode=g" if intf.mode == 'n2' else "\nhw_mode=a"
         elif intf.mode == 'a':
             cmd += "\ncountry_code={}".format(intf.country_code)
@@ -823,7 +820,7 @@ class HostapdConfig(IntfWireless):
         if intf.client_isolation: cmd += '\nap_isolate=1'
         if 'config' in intf.node.params:
             config = intf.node.params['config']
-            if config is not []:
+            if config != []:
                 config = config.split(',')
                 # ap.params.pop("config", None)
                 for conf in config: cmd += "\n" + conf
@@ -914,52 +911,6 @@ class HostapdConfig(IntfWireless):
 
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
 
-    @classmethod
-    def restartNetworkManager(cls):
-        """Restart network manager if the mac address of the AP
-        is not included at /etc/NetworkManager/conf.d/unmanaged.conf"""
-        nms = 'network-manager'
-        nm_is_running = sh('service {} status 2>&1 | grep '
-                           '-ic running >/dev/null 2>&1'.format(nms))
-        if nm_is_running != 256:
-            info('Mac address(es) added into {}\n'.format(cls.nm_conf_file))
-            info('Restarting {}...\n'.format(nms))
-            sh('sudo service network-manager restart')
-            # sh('nmcli general reload')
-            sleep(2)
-
-    def checkNetworkManager(self, intf):
-        "add mac address into /etc/NetworkManager/conf.d/unmanaged.conf"
-        unmanaged = 'unmanaged-devices'
-        nmdir = '/etc/NetworkManager'
-        old_content = ''
-
-        if path.isdir(nmdir) and not path.isfile(self.nm_conf_file):
-            open(self.nm_conf_file, 'w').close()
-
-        if path.isdir(nmdir):
-            file = open(self.nm_conf_file, 'rt')
-            data = file.read()
-            isNew = True
-            for content in data.split('\n'):
-                if unmanaged in content:
-                    old_content = content
-                    new_content = old_content
-                    isNew = False
-            if isNew:
-                sh('echo \'#\' >> {}'.format(self.nm_conf_file))
-                new_content = "[keyfile]\n{}=".format(unmanaged)
-
-            name = intf.node.name + '*'
-            if name not in old_content:
-                new_content += "interface-name:{};".format(name)
-                data = data.replace(old_content, new_content)
-                file.close()
-                file = open(self.nm_conf_file, "wt")
-                file.write(data)
-                file.close()
-                HostapdConfig.write_mac = True
-
     def ap_config_file(self, cmd, intf):
         "run an Access Point and create the config file"
         if 'phywlan' in intf.node.params:
@@ -972,6 +923,8 @@ class HostapdConfig(IntfWireless):
         cmd = self.get_hostapd_cmd(intf)
         try:
             intf.cmd(cmd)
+            if intf.country_code == 'US':
+                sleep(0.5)
             if int(intf.channel) == 0 or intf.channel == 'acs_survey':
                 info("*** Waiting for ACS... It takes 10 seconds.\n")
                 sleep(10)
@@ -1116,15 +1069,20 @@ class _4address(Link, IntfWireless):
            node1: ap
            node2: client
            port1/port2: port id"""
-        intfName2 = '{}.wds'.format(node2.name)
+        wlan = port2 if port2 else 0
+        apwlan = port1 if port1 else 0
+
+        if hasattr(node2, 'cwds'):
+            node2.cwds += 1
+        else:
+            node2.cwds = 0
+
+        intfName2 = '{}.wds{}'.format(node2.name, node2.cwds)
 
         if not hasattr(node1, 'position'): self.setPos(node1)
         if not hasattr(node2, 'position'): self.setPos(node2)
 
         if intfName2 not in node2.params['wlan']:
-            wlan = node2.params['wlan'].index(port1) if port1 else 0
-            apwlan = node1.params['wlan'].index(port2) if port2 else 0
-
             intf = node2.wintfs[wlan]
             ap_intf = node1.wintfs[apwlan]
 
@@ -1157,11 +1115,11 @@ class _4address(Link, IntfWireless):
             _4addrAP(node1, node1_intf_index)
             _4addrClient(node2, node2_intf_index)
 
-            node2.wintfs[node2_intf_index].mac = intf.mac[:3] + '09' + intf.mac[5:]
-            self.bring4addrIfaceDown()
-            self.setMAC(node2.wintfs[node2_intf_index])
-            self.bring4addrIfaceUP()
-            self.iwdev_cmd('{} connect {} {}'.format(
+            node2.wintfs[node2_intf_index].mac = intf.mac[:3] + '09' + ':0' + str(node2.cwds) + intf.mac[8:]
+            self.bring4addrIfaceDown(node2.cwds)
+            self.setMAC(node2.wintfs[node2_intf_index], node2.cwds)
+            self.bring4addrIfaceUP(node2.cwds)
+            self.iwdev_cmd('{} connect -w {} {}'.format(
                 node2.params['wlan'][node2_intf_index], ap_intf.ssid, ap_intf.mac))
 
             # All we are is dust in the wind, and our two interfaces
@@ -1173,14 +1131,14 @@ class _4address(Link, IntfWireless):
             id = int(hex(int(nums[0]))[2:])
             node.position = (10, round(id, 2), 0)
 
-    def bring4addrIfaceDown(self):
-        self.cmd('ip link set dev {}.wds down'.format(self.node))
+    def bring4addrIfaceDown(self, wlan):
+        self.cmd('ip link set dev {}.wds{} down'.format(self.node, wlan))
 
-    def bring4addrIfaceUP(self):
-        self.cmd('ip link set dev {}.wds up'.format(self.node))
+    def bring4addrIfaceUP(self, wlan):
+        self.cmd('ip link set dev {}.wds{} up'.format(self.node, wlan))
 
-    def setMAC(self, intf):
-        self.cmd('ip link set dev {}.wds addr {}'.format(intf.node, intf.mac))
+    def setMAC(self, intf, wlan):
+        self.cmd('ip link set dev {}.wds{} addr {}'.format(intf.node, wlan, intf.mac))
 
     def add4addrIface(self, intf, intfName):
         self.iwdev_cmd('{} interface add {} type managed 4addr on'.format(
@@ -1250,11 +1208,13 @@ class WirelessIntf(object):
         return '{}<->{}'.format(self.intf1, self.intf2)
 
 
-class TCLinkWireless(WirelessIntf):
+class TCWirelessLink(WirelessIntf):
     "Link with symmetric TC interfaces configured via opts"
 
     def __init__(self, node, port=None, intfName=None,
                  addr=None, cls=WirelessLink, **params):
+        if cls == TCWirelessLink:
+            cls = WirelessLink
         WirelessIntf.__init__(self, node=node, port=port,
                               intfName=intfName, cls=cls,
                               addr=addr, **params)
@@ -1502,7 +1462,7 @@ class wmediumd(object):
                         vssids = node.params['vssids'].split(',')
                     for id, vif in enumerate(range(len(vssids))):
                         iface = '{}-{}'.format(intf.name, id)
-                        TCLinkWireless(intf.node, intfName=iface)
+                        TCWirelessLink(intf.node, intfName=iface)
                         VirtualMaster(intf.node, intf.id, intf=iface)
 
             for id, intf in enumerate(node.wintfs.values()):

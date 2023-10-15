@@ -34,8 +34,8 @@ def topology(args):
     info("*** Configuring nodes\n")
     net.configureNodes()
 
-    ap1.setMasterMode(intf='ap1-wlan0', ssid='ap1-ssid', channel='1', mode='n')
-    ap2.setMasterMode(intf='ap2-wlan0', ssid='ap2-ssid', channel='6', mode='n')
+    ap1.setMasterMode(intf='ap1-wlan0', ssid='ap1-ssid', channel='1', mode='n2')
+    ap2.setMasterMode(intf='ap2-wlan0', ssid='ap2-ssid', channel='6', mode='n2')
 
     info("*** Adding Link\n")
     net.addLink(ap1, ap2)  # wired connection

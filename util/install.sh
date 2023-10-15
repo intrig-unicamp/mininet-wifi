@@ -187,7 +187,7 @@ function wifi_deps {
     else
         pf=pyflakes
         if [ $PYTHON_VERSION == 3 ]; then
-            $install python-is-python3
+            ln -sf python3 /usr/bin/python
         fi
         # Starting around 20.04, installing pyflakes instead of pyflakes3
         # causes Python 2 to be installed, which is exactly NOT what we want.
@@ -563,6 +563,7 @@ function of13 {
     # Resume the install:
     cd $BUILD_DIR/ofsoftswitch13
     ./boot.sh
+    sed -i 's/^AM_CFLAGS = -Wstrict-prototypes -Werror$/AM_CFLAGS = -Wstrict-prototypes -Werror -Wno-error=stringop-truncation -Wno-error=format-truncation=/g' Makefile.am
     ./configure
     make
     sudo make install
