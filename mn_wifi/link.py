@@ -297,7 +297,7 @@ class IntfWireless(Intf):
 
     def getTxPowerGivenRange(self):
         self.txpower = GetPowerGivenRange(self).txpower
-        self.setTxPower(txpower)
+        self.setTxPower(self.txpower)
         if self.txpower == 1:
             min_range = int(SetSignalRange(self).range)
             if self.range < min_range:
