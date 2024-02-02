@@ -45,7 +45,7 @@ class IntfWireless(Intf):
         self.link = link
         self.port = port
         self.mac = mac
-         self.txpower = 0
+        self.txpower = 0
         self.ip, self.ip6, self.prefixLen, self.prefixLen6 = None, None, None, None
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ip link/addr command per node
@@ -297,6 +297,7 @@ class IntfWireless(Intf):
 
     def getTxPowerGivenRange(self):
         self.txpower = GetPowerGivenRange(self).txpower
+        
         self.setTxPower(self.txpower)
         if self.txpower == 1:
             min_range = int(SetSignalRange(self).range)
@@ -307,7 +308,7 @@ class IntfWireless(Intf):
                      'for more information\n')
         else:
             info('*** {}: signal range of {}m requires tx power equals '
-                 'to {}dBm.\n'.format(self.name, self.range, (int(txpower) + 1)))
+                 'to {}dBm.\n'.format(self.name, self.range, (int(self.txpower) + 1)))
 
     def setDefaultRange(self):
         if not self.static_range:
