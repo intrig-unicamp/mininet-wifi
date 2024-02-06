@@ -301,14 +301,17 @@ class SetSignalRange(object):
 
 class GetPowerGivenRange(object):
     "Get tx power when the signal range is set"
-    txpower = 0
+    txpower = 2
         
 
     def __init__(self, intf):
         "Calculate txpower given the signal range"
         if ppm.model in dir(self):
             self.__getattribute__(ppm.model)(intf)
-        self.txpower = 0
+        self.txpower = self.logDistance(intf)
+        txpower = self.logDistance(intf)
+        print(txpower)
+
 
     def friis(self, intf):
         """Path Loss Model:

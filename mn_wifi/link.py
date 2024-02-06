@@ -307,7 +307,7 @@ class IntfWireless(Intf):
                 info('*** >>> See https://mininet-wifi.github.io/faq/#q7 '
                      'for more information\n')
         else:
-            info('*** {}: signal range of {}m requires tx power equals '
+            info('*** {}: balrog signal range of {}m requires tx power equals '
                  'to {}dBm.\n'.format(self.name, self.range, (int(self.txpower) + 1)))
 
     def setDefaultRange(self):
