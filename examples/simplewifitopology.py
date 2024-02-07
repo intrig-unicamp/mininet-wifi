@@ -26,8 +26,8 @@ def topology():
 
     ap1 = net.addAccessPoint('ap1', ssid="simpletopo", mode="g",
                              channel="5", **ap_arg)
-    sta1 = net.addStation('sta1', range= 50, **sta_arg)
-    sta2 = net.addStation('sta2', range=50)
+    sta1 = net.addStation('sta1', range= 400, **sta_arg)
+    sta2 = net.addStation('sta2', range=400)
     c0 = net.addController('c0')
 
     info("*** Configuring nodes\n")

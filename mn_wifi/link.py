@@ -296,7 +296,7 @@ class IntfWireless(Intf):
         self.mode = mode
 
     def getTxPowerGivenRange(self):
-        self.txpower = GetPowerGivenRange(self).txpower
+        self.txpower = GetPowerGivenRange(self).txpower + 1
         
         self.setTxPower(self.txpower)
         if self.txpower == 1:
@@ -306,10 +306,7 @@ class IntfWireless(Intf):
                      'changed to (at least) {}m\n'.format(self.name, min_range))
                 info('*** >>> See https://mininet-wifi.github.io/faq/#q7 '
                      'for more information\n')
-        else:
-            info('*** {}: balrog signal range of {}m requires tx power equals '
-                 'to {}dBm.\n'.format(self.name, self.range, (int(self.txpower) + 1)))
-
+        
     def setDefaultRange(self):
         if not self.static_range:
             self.range = SetSignalRange(self).range
