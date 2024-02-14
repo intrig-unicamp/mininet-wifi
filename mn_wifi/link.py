@@ -10,7 +10,7 @@ import subprocess
 from time import sleep
 from glob import glob
 from subprocess import check_output as co, CalledProcessError
-
+import math
 from mininet.link import Intf, TCIntf, Link
 from mininet.log import error, debug, info
 
@@ -296,7 +296,7 @@ class IntfWireless(Intf):
         self.mode = mode
 
     def getTxPowerGivenRange(self):
-        self.txpower = GetPowerGivenRange(self).txpower + 1
+        self.txpower = GetPowerGivenRange(self).txpower
         
         self.setTxPower(self.txpower)
         if self.txpower == 1:
@@ -306,7 +306,11 @@ class IntfWireless(Intf):
                      'changed to (at least) {}m\n'.format(self.name, min_range))
                 info('*** >>> See https://mininet-wifi.github.io/faq/#q7 '
                      'for more information\n')
-        
+        else:
+            
+            info('*** {}: for signal range of {}m txpower changed '
+                 'to {}dBm.\n'.format(self.name, self.range, (str(round(self.txpower, 2)))))
+
     def setDefaultRange(self):
         if not self.static_range:
             self.range = SetSignalRange(self).range

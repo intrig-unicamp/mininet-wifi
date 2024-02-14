@@ -307,10 +307,11 @@ class GetPowerGivenRange(object):
     def __init__(self, intf):
         "Calculate txpower given the signal range"
         if ppm.model in dir(self):
-            self.__getattribute__(ppm.model)(intf)
-        self.txpower = self.logDistance(intf)
-        txpower = self.logDistance(intf)
-        print(txpower)
+            
+            self.txpower = max(1, self.__getattribute__(ppm.model)(intf))
+            print(ppm.model, self.txpower)
+        
+        
 
 
     def friis(self, intf):
@@ -383,7 +384,6 @@ class GetPowerGivenRange(object):
 
         self.txpower = int(math.ceil(math.log10(numerator / denominator) - g_fixed))
         if self.txpower < 0: self.txpower = 1
-        txpower = self.txpower
         return self.txpower
 
     def logNormalShadowing(self, intf):
