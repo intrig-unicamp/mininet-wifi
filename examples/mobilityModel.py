@@ -13,9 +13,9 @@ def topology(args):
     net = Mininet_wifi()
 
     info("*** Creating nodes\n")
-    net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8',
+    net.addStation('sta1', range=30, mac='00:00:00:00:00:02', ip='10.0.0.2/8',
                    min_x=10, max_x=30, min_y=50, max_y=70, min_v=5, max_v=10)
-    net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8',
+    net.addStation('sta2', range=30, mac='00:00:00:00:00:03', ip='10.0.0.3/8',
                    min_x=60, max_x=70, min_y=10, max_y=20, min_v=1, max_v=5)
     if '-m' in args:
         ap1 = net.addAccessPoint('ap1', wlans=2, ssid='ssid1,ssid2', mode='g',

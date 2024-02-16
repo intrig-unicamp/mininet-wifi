@@ -301,7 +301,6 @@ class SetSignalRange(object):
 
 class GetPowerGivenRange(object):
     "Get tx power when the signal range is set"
-    txpower = 2
         
 
     def __init__(self, intf):
@@ -309,7 +308,6 @@ class GetPowerGivenRange(object):
         if ppm.model in dir(self):
             
             self.txpower = max(1, self.__getattribute__(ppm.model)(intf))
-            print(ppm.model, self.txpower)
         
         
 
@@ -382,7 +380,7 @@ class GetPowerGivenRange(object):
         numerator = math.pow(dist / ref_d, 10 * ppm.exp) * 10 ** pl
         denominator = 10 ** - ppm.noise_th
 
-        self.txpower = int(math.ceil(math.log10(numerator / denominator) - g_fixed))
+        self.txpower = math.ceil(math.log10(numerator / denominator) - g_fixed)
         if self.txpower < 0: self.txpower = 1
         return self.txpower
 

@@ -336,7 +336,7 @@ class IntfWireless(Intf):
         self.node.configLinks()
 
     def setTxPower(self, txpower):
-        self.txpower = int(txpower)
+        self.txpower = txpower
         self.iwdev_cmd('{} set txpower fixed {}'.format(self.name, self.txpower * 100))
         self.setDefaultRange()
         self.setTXPowerWmediumd()
