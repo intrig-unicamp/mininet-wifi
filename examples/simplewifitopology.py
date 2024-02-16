@@ -23,12 +23,11 @@ def topology():
         # By default, this bridging is allowed.
         # OpenFlow rules are required to allow communication among nodes
         ap_arg = {'client_isolation': True}
-    #net.setPropagationModel(model="friis", sL = 3)
-    net.setPropagationModel(model="logNormalShadowing", sL=4, exp=5, variance=0)
+
     ap1 = net.addAccessPoint('ap1', ssid="simpletopo", mode="g",
                              channel="5", **ap_arg)
-    sta1 = net.addStation('sta1', range= 1000, **sta_arg)
-    sta2 = net.addStation('sta2', range=1000)
+    sta1 = net.addStation('sta1', **sta_arg)
+    sta2 = net.addStation('sta2')
     c0 = net.addController('c0')
 
     info("*** Configuring nodes\n")
