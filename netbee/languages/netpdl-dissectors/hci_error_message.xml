@@ -1,7 +1,0 @@
-<protocol name="hci_error_message" longname="HCI Error Code">
-	<format>
-		<fields>
-			<field type="fixed" name="dummy" longname="Dummy Field" size="1" showtemplate="FieldDec"/>
-		</fields>
-	</format>
-</protocol>

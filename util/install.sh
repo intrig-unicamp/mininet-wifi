@@ -539,9 +539,7 @@ function of13 {
 
     # Install netbee
     NBEEDIR="netbee"
-    # Old version already included in the repo, otherwise command listed below
-    # wget https://web.archive.org/web/20160525025757/http://www.nbee.org/download/nbeesrc-feb-24-2015.zip
-    # unzip nbeesrc-feb-24-2015.zip && rm nbeesrc-feb-24-2015.zip
+    git clone https://github.com/netgroup-polito/netbee.git
     cd ${NBEEDIR}/src
     cmake .
     make
