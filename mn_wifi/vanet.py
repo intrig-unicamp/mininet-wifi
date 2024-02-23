@@ -7,6 +7,7 @@ from __future__ import division
 
 import warnings
 import matplotlib.cbook
+import math
 
 from sys import exit
 from math import atan2
@@ -14,7 +15,7 @@ from random import randint
 from time import sleep
 from threading import Thread as thread
 from random import randrange
-from pylab import ginput as ginp, math, cos, sin, np
+from pylab import ginput as ginp, cos, sin, np
 
 from mininet.log import info
 

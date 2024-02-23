@@ -6,7 +6,9 @@
 from time import time, sleep
 from threading import Thread as thread
 import random
-from pylab import math, cos, sin
+import math
+
+from pylab import cos, sin
 from mininet.log import info
 from mn_wifi.plot import PlotGraph
 from mn_wifi.mobility import Mobility, ConfigMobLinks

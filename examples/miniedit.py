@@ -25,7 +25,8 @@ from subprocess import call
 
 import re
 import json
-from distutils.version import StrictVersion
+from packaging import version
+#from distutils.version import StrictVersion
 import os
 import sys
 from functools import partial
@@ -560,13 +561,13 @@ class PrefsDialog(simpledialog.Dialog):
         self.ovsOk = True
         if ovsOf11 == "1":
             ovsVer = self.getOvsVersion()
-            if StrictVersion(ovsVer) < StrictVersion('2.0'):
+            if version.parse(ovsVer) < version.parse('2.0'):
                 self.ovsOk = False
                 messagebox.showerror(title="Error",
                           message='Open vSwitch version 2.0+ required. You have '+ovsVer+'.')
         if ovsOf12 == "1" or ovsOf13 == "1":
             ovsVer = self.getOvsVersion()
-            if StrictVersion(ovsVer) < StrictVersion('1.10'):
+            if version.parse(ovsVer) < version.parse('1.10'):
                 self.ovsOk = False
                 messagebox.showerror(title="Error",
                           message='Open vSwitch version 1.10+ required. You have '+ovsVer+'.')
@@ -4977,7 +4978,7 @@ class MiniEdit(Frame):
         if name not in self.net.nameToNode:
             return
         term = makeTerm( self.net.nameToNode[ name ], 'Host', term=self.appPrefs['terminalType'] )
-        if StrictVersion(MININET_VERSION) > StrictVersion('2.0'):
+        if version.parse(MININET_VERSION) > version.parse('2.0'):
             self.net.terms += term
         else:
             self.net.terms.append(term)
