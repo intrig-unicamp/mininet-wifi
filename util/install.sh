@@ -227,7 +227,7 @@ function wifi_deps {
       echo "Removing iw..."
       rm -r iw
     fi
-    git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/jberg/iw.git
+    git clone --depth=1 https://kernel.googlesource.com/pub/scm/linux/kernel/git/jberg/iw.git
     pushd $MININET_DIR/mininet-wifi/iw
     sudo make && make install
     cd $BUILD_DIR
@@ -471,7 +471,7 @@ function iproute2 {
       echo "Removing iproute2 dir..."
       rm -r iproute2
     fi
-    git clone --depth=1 https://git.kernel.org/pub/scm/network/iproute2/iproute2.git
+    git clone --depth=1 https://kernel.googlesource.com/pub/scm/network/iproute2/iproute2.git
     cd iproute2
     make
     sudo make install
