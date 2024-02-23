@@ -10,7 +10,7 @@ import subprocess
 from time import sleep
 from glob import glob
 from subprocess import check_output as co, CalledProcessError
-
+import math
 from mininet.link import Intf, TCIntf, Link
 from mininet.log import error, debug, info
 
@@ -45,6 +45,7 @@ class IntfWireless(Intf):
         self.link = link
         self.port = port
         self.mac = mac
+        self.txpower = 0
         self.ip, self.ip6, self.prefixLen, self.prefixLen6 = None, None, None, None
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ip link/addr command per node
@@ -295,8 +296,9 @@ class IntfWireless(Intf):
         self.mode = mode
 
     def getTxPowerGivenRange(self):
-        txpower = GetPowerGivenRange(self).txpower
-        self.setTxPower(txpower)
+        self.txpower = GetPowerGivenRange(self).txpower
+        
+        self.setTxPower(self.txpower)
         if self.txpower == 1:
             min_range = int(SetSignalRange(self).range)
             if self.range < min_range:
@@ -305,8 +307,9 @@ class IntfWireless(Intf):
                 info('*** >>> See https://mininet-wifi.github.io/faq/#q7 '
                      'for more information\n')
         else:
-            info('*** {}: signal range of {}m requires tx power equals '
-                 'to {}dBm.\n'.format(self.name, self.range, (int(txpower) + 1)))
+            
+            info('*** {}: for signal range of {}m txpower changed '
+                 'to {}dBm.\n'.format(self.name, self.range, (str(round(self.txpower, 2)))))
 
     def setDefaultRange(self):
         if not self.static_range:
@@ -333,7 +336,7 @@ class IntfWireless(Intf):
         self.node.configLinks()
 
     def setTxPower(self, txpower):
-        self.txpower = int(txpower)
+        self.txpower = txpower
         self.iwdev_cmd('{} set txpower fixed {}'.format(self.name, self.txpower * 100))
         self.setDefaultRange()
         self.setTXPowerWmediumd()
