@@ -157,7 +157,7 @@ class vanet(Mobility):
 
     def display_cars(self, cars):
         car_lines = []
-
+        
         for _ in range(len(cars)):
             n = randint(0, len(self.roads)-1)
             car_lines.append(self.roads[n])
@@ -237,12 +237,11 @@ class vanet(Mobility):
         return ang
 
     def carProp(self, point, ang, x_min, x_max, y_min, y_max):
-        temp = [point[0], point[1], ang, x_min, x_max, y_min, y_max]
-        return temp
+
+        return [point[0], point[1], ang, x_min, x_max, y_min, y_max]
 
     def carPoint(self, point):
-        temp = [point[0], point[1]]
-        return temp
+        return [point[0], point[1]]
 
     def line_prop(self, line, car):
         line_data = line.get_data()  # Get the x and y values of the points in the line

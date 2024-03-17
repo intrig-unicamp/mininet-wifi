@@ -36,7 +36,7 @@ class Mobility(object):
         node.position = init_pos
         pos_x = float(fin_pos[0]) - float(init_pos[0])
         pos_y = float(fin_pos[1]) - float(init_pos[1])
-        pos_z = float(fin_pos[2]) - float(init_pos[2])
+        pos_z = float(fin_pos[2]) - float(init_pos[2]) if len(fin_pos) == 3 else float(0)
 
         pos = round(pos_x/diff_time*0.1, 2),\
               round(pos_y/diff_time*0.1, 2),\
@@ -45,7 +45,10 @@ class Mobility(object):
 
     @staticmethod
     def get_position(pos):
-        return float('%s' % pos[0]), float('%s' % pos[1]), float('%s' % pos[2])
+        x = float('%s' % pos[0])
+        y = float('%s' % pos[1])
+        z = float('%s' % pos[2]) if len(pos) == 3 else float('%s' % 0)
+        return x, y, z
 
     @staticmethod
     def speed(node, pos_x, pos_y, pos_z, mob_time):
