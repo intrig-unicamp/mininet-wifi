@@ -441,7 +441,7 @@ class Tracked(Mobility):
             for _ in range((node.endTime - node.startTime) * 10):
                 x = round(pos[0], 2) + round(node.moveFac[0], 2)
                 y = round(pos[1], 2) + round(node.moveFac[1], 2)
-                z = round(pos[2], 2) + round(node.moveFac[2], 2)
+                z = round(pos[2], 2) + round(node.moveFac[2], 2) if len(pos)==3 else 0
                 pos = (x, y, z)
                 coord.append((x, y, z))
         else:
