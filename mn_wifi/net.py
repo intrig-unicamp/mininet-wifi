@@ -305,6 +305,10 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         pos = node.params['position']
         if isinstance(pos, string_types):
             pos = pos.split(',')
+        #adds a dummy z-axis to avoid out of boundary errors
+        if len(pos) == 2:
+            pos.append(0)
+            
         node.position = [float(pos[0]), float(pos[1]), float(pos[2])]
         node.params.pop('position', None)
 
