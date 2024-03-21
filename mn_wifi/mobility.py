@@ -463,8 +463,11 @@ class Tracked(Mobility):
         return t
 
     def get_points(self, node, a0, a1, total):
-        x1, y1, z1 = float(a0[0]), float(a0[1]), float(a0[2])
-        x2, y2, z2 = float(a1[0]), float(a1[1]), float(a1[2])
+        x1, y1 = float(a0[0]), float(a0[1])
+        z1 = float(a0[2]) if len(a0) > 2 else float(0)
+       
+        x2, y2 = float(a1[0]), float(a1[1])
+        z2 = float(a1[2]) if len(a1) > 2 else float(0)
         points = []
         perc_dif = []
         ldelta = [0, 0, 0]
