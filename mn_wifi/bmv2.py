@@ -132,7 +132,7 @@ class P4Switch(Switch):
                  elogger=False, grpcport=None, cpuport=255, notifications=False,
                  thriftport=None, netcfg=False, dryrun=False, inNamespace=False,
                  inband=False, pipeconf=DEFAULT_PIPECONF, pktdump=False, valgrind=False,
-                 gnmi=False, portcfg=True, onosdevid=None, stratum=False,
+                 gnmi=False, portcfg=True, onosdevid=None, adminstate=True, stratum=False,
                  switch_config=None, timeout=SWITCH_START_TIMEOUT, **kwargs):
         Switch.__init__(self, name, inNamespace=inNamespace, **kwargs)
         self.grpcPort = grpcport
@@ -174,6 +174,7 @@ class P4Switch(Switch):
         # In case of exceptions, mininet removes *.out files from /tmp. We use
         # this as a signal to terminate the switch instance (if active).
         self.keepaliveFile = '/tmp/bmv2-%s-watchdog.out' % self.name
+        self.adminState = "ENABLED" if adminstate else "DISABLED"
         self.targetName = STRATUM_BMV2 if self.useStratum else SIMPLE_SWITCH_GRPC
         self.controllers = None
         self.switch_config = switch_config
@@ -256,11 +257,11 @@ nodes {{
   channel: 1
   speed_bps: 10000000000
   config_params {{
-    admin_state: ADMIN_STATE_ENABLED
+    admin_state: ADMIN_STATE_{adminState}
   }}
   node: {nodeId}
 }}\n""".format(intfName=intfName, intfNumber=intfNumber,
-               nodeId=self.p4DeviceId)
+               nodeId=self.p4DeviceId, adminState=self.adminState)
             intfNumber += 1
 
         return config
