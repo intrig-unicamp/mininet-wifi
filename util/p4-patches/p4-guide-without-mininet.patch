@@ -54,21 +54,21 @@ index 01fdc57..2b19899 100755
 -# recommended using 1.17.1.  So far, it has worked well when doing
 -# _basic_ P4Runtime API testing on a system on which this install
 -# script was run.
--sudo pip install grpcio==1.17.1
+-sudo pip install grpcio==1.17.1 --break-system-packages
 -set -x
 -pip list
 -set +x
 -
 -# Installing the version of grpcio above does not automatically
 -# install a Python protobuf package, so install one.
--sudo pip install protobuf==3.6.1
+-sudo pip install protobuf==3.6.1 --break-system-packages
 -set -x
 -pip list
 -set +x
 -
 -# Things needed for `cd tutorials/exercises/basic ; make run` to work:
 -sudo apt-get --yes install python-psutil libgflags-dev net-tools
--sudo pip install crcmod
+-sudo pip install crcmod --break-system-packages
 -set -x
 -pip list
 -set +x
