@@ -301,12 +301,16 @@ class SetSignalRange(object):
 
 class GetPowerGivenRange(object):
     "Get tx power when the signal range is set"
-    txpower = 0
+        
 
     def __init__(self, intf):
         "Calculate txpower given the signal range"
         if ppm.model in dir(self):
-            self.__getattribute__(ppm.model)(intf)
+            
+            self.txpower = max(1, self.__getattribute__(ppm.model)(intf))
+        
+        
+
 
     def friis(self, intf):
         """Path Loss Model:
@@ -376,9 +380,8 @@ class GetPowerGivenRange(object):
         numerator = math.pow(dist / ref_d, 10 * ppm.exp) * 10 ** pl
         denominator = 10 ** - ppm.noise_th
 
-        self.txpower = int(math.ceil(math.log10(numerator / denominator) - g_fixed))
+        self.txpower = math.ceil(math.log10(numerator / denominator) - g_fixed)
         if self.txpower < 0: self.txpower = 1
-
         return self.txpower
 
     def logNormalShadowing(self, intf):
