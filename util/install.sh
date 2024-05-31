@@ -510,7 +510,7 @@ function of {
     else
         $install git-core autotools-dev pkg-config libc6-dev
     fi
-    git clone --depth=1 https://github.com/mininet/openflow
+    git clone --depth=1 https://github.com/JsphByd/openflow
     cd $BUILD_DIR/openflow
 
     # Patch controller to handle more than 16 switches
