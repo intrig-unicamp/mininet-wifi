@@ -185,14 +185,14 @@ function wifi_deps {
           ethtool help2man ${PYPKG}-pyflakes python3-pylint \
                             python-pep8 ${PYPKG}-pexpect ${PYPKG}-tk
     else
-        pf=pyflakes
+        pf=python3-pyflakes
         if [ $PYTHON_VERSION == 3 ]; then
             ln -sf python3 /usr/bin/python
         fi
         # Starting around 20.04, installing pyflakes instead of pyflakes3
         # causes Python 2 to be installed, which is exactly NOT what we want.
         if [ "$DIST" = "Ubuntu" ] &&  [ `expr $RELEASE '>=' 20.04` = "1" ]; then
-                pf=pyflakes3
+                pf=python3-pyflakes3
         fi
         $install gcc make socat psmisc xterm ssh iperf telnet \
                  ethtool help2man $pf pylint python3-pep8 \
