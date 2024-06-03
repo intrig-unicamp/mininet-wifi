@@ -74,7 +74,7 @@ fi
 KERNEL_NAME=`uname -r`
 KERNEL_HEADERS=kernel-headers-${KERNEL_NAME}
 
-if ! echo $DIST | egrep 'Ubuntu|Debian|Fedora|RedHatEnterpriseServer|CentOS'; then
+if ! echo $DIST | egrep 'Kali|Ubuntu|Debian|Fedora|RedHatEnterpriseServer|CentOS'; then
     echo "Install.sh currently only supports Ubuntu, Debian and Fedora."
     exit 1
 fi
@@ -177,7 +177,7 @@ function wifi_deps {
     if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "CentOS" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf libnl3-devel \
             iproute telnet python-setuptools libcgroup-tools openssl-devel \
-            ethtool help2man pyflakes pylint python-pep8 python-pexpect libevent-devel \
+            ethtool help2man python3-pyflakes pylint python-pep8 python-pexpect libevent-devel \
             dbus-devel libconfig-devel epel-release ${PYPKG}-six
     elif [ "$DIST" = "SUSE LINUX"  ]; then
         $install gcc make socat psmisc xterm openssh iperf \
