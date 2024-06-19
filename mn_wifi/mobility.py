@@ -1,2003 +1,1669 @@
 """
    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-   @author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-   @Contributor: Joaquin Alvarez (j.alvarez@uah.es)
+   author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
+from threading import Thread as thread
+from time import sleep, time
 from os import system as sh, getpid
-import re
-import subprocess
-from time import sleep
 from glob import glob
-from subprocess import check_output as co, CalledProcessError
-import math
-from mininet.link import Intf, TCIntf, Link
-from mininet.log import error, debug, info
+import numpy as np
+from numpy.random import rand
 
-from mn_wifi.devices import DeviceRate
-from mn_wifi.manetRoutingProtocols import manetProtocols
-from mn_wifi.propagationModels import SetSignalRange, GetPowerGivenRange
-from mn_wifi.wmediumdConnector import DynamicIntfRef, \
-    WStarter, SNRLink, w_pos, w_cst, w_server, ERRPROBLink, \
-    wmediumd_mode, w_txpower, w_gain, w_height, w_medium
-from mn_wifi.frequency import Frequency as Getfreq
+from mininet.log import debug
+from mn_wifi.link import mesh, adhoc, ITSLink, master
+from mn_wifi.associationControl import AssociationControl as AssCtrl
+from mn_wifi.plot import PlotGraph
+from mn_wifi.wmediumdConnector import w_cst, wmediumd_mode
 
 
-class IntfWireless(Intf):
-    "Basic interface object that can configure itself."
+class Mobility(object):
+    aps = []
+    stations = []
+    mobileNodes = []
+    ac = None  # association control method
+    pause_simulation = False
+    allAutoAssociation = True
+    thread_ = ''
 
-    dist = 0
-    noise = 0
-    medium_id = 0
-    eqLoss = '(dist * 2) / 1000'
-    eqDelay = '(dist / 10) + 1'
-    eqLatency = '(dist / 10)/2'
-    eqBw = ' * (1.01 ** -dist)'
+    def move_factor(self, node, diff_time):
+        """:param node: node
+        :param diff_time: difference between initial and final time.
+        Useful for calculating the speed"""
+        diff_time += 1
+        init_pos = (node.params['initPos'])
+        fin_pos = (node.params['finPos'])
+        node.position = init_pos
+        pos_x = float(fin_pos[0]) - float(init_pos[0])
+        pos_y = float(fin_pos[1]) - float(init_pos[1])
+        pos_z = float(fin_pos[2]) - float(init_pos[2]) if len(fin_pos) == 3 else float(0)
 
-    def __init__(self, name, node=None, port=None, link=None,
-                 mac=None, **params):
-        """name: interface name (e.g. sta1-wlan0)
-           node: owning node (where this intf most likely lives)
-           link: parent link if we're part of a link
-           other arguments are passed to config()"""
-        self.node = node
-        self.name = name
-        self.link = link
-        self.port = port
-        self.mac = mac
-        self.txpower = 0
-        self.ip, self.ip6, self.prefixLen, self.prefixLen6 = None, None, None, None
-        # if interface is lo, we know the ip is 127.0.0.1.
-        # This saves an ip link/addr command per node
-        if self.name == 'lo':
-            self.ip = '127.0.0.1'
+        pos = round(pos_x/diff_time*0.1, 2),\
+              round(pos_y/diff_time*0.1, 2),\
+              round(pos_z/diff_time*0.1, 2)
+        return pos
 
-        node.addWIntf(self, port=port)
-        # Save params for future reference
-        self.params = params
-        self.config(**params)
+    @staticmethod
+    def get_position(pos):
+        x = float('%s' % pos[0])
+        y = float('%s' % pos[1])
+        z = float('%s' % pos[2]) if len(pos) == 3 else float('%s' % 0)
+        return x, y, z
 
-    def configWLink(self, dist=0):
-        bw = self.get_bw(dist)
-        loss = self.get_loss(dist)
-        latency = self.get_latency(dist)
-        self.config_tc(bw=bw, loss=loss, latency=latency)
+    @staticmethod
+    def speed(node, pos_x, pos_y, pos_z, mob_time):
+        node.params['speed'] = round(abs((pos_x + pos_y + pos_z) / mob_time), 2)
 
-    def getDelay(self, dist):
-        "Based on RandomPropagationDelayModel"
-        return eval(self.eqDelay)
+    def calculate_diff_time(self, node, time=0):
+        if time != 0:
+            node.endTime = time
+            node.endT = time
+        diff_time = node.endTime - node.startTime - 1
+        node.moveFac = self.move_factor(node, diff_time)
 
-    def get_latency(self, dist):
-        return eval(self.eqLatency)
+    def set_pos(self, node, pos):
+        node.position = pos
+        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE and self.thread_._keep_alive:
+            node.set_pos_wmediumd(pos)
 
-    def get_loss(self, dist):
-        return eval(self.eqLoss)
+    def set_wifi_params(self):
+        "Opens a thread for wifi parameters"
+        if self.allAutoAssociation:
+            thread_ = thread(name='wifiParameters', target=self.parameters)
+            thread_.daemon = True
+            thread_.start()
 
-    def get_bw(self, dist):
-        # dist is used by eval
-        custombw = self.getCustomRate()
-        rate = eval(str(custombw) + self.eqBw)
-        if rate <= 0.0: rate = 0.1
-        return rate
+    def remove_staconf(self, intf):
+        sh('rm %s_%s.staconf >/dev/null 2>&1' % (intf.node, intf.id))
 
-    def config_tc(self, **args):
-        if self.ifb: self.set_tc(self.ifb, **args)
-        self.set_tc(self.name, **args)
+    def get_pidfile(self, intf):
+        pid = "mn%d_%s_%s_wpa.pid" % (getpid(), intf.node, intf.id)
+        return pid
 
-    def set_tc(self, iface, bw=0, loss=0, latency=0):
-        cmd = 'tc qdisc replace dev {} root handle 2: netem '.format(iface)
-        cmd += 'rate {:.4f}mbit '.format(bw)
-        if latency > 0.1: cmd += 'latency {:.2f}ms '.format(latency)
-        if loss > 0.1: cmd += 'loss {:.1f}% '.format(loss)
-        self.node.pexec(cmd)
+    def kill_wpasupprocess(self, intf):
+        pid = self.get_pidfile(intf)
+        sh('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pid, intf.name))
 
-    def get_default_gw(self):
-        return DeviceRate(self).rate if 'model' in self.node.params \
-            else self.getRate()
+    def check_if_wpafile_exist(self, intf):
+        file = '%s_%s.staconf' % (intf.name, intf.id)
+        if glob(file):
+            self.remove_staconf(intf)
 
-    def get_bw_ap(self):
-        return self.params['bw'][self.id] if 'bw' in self.params \
-            else self.get_default_gw()
+    @staticmethod
+    def remove_node_in_range(intf, ap_intf):
+        if ap_intf.node in intf.apsInRange:
+            intf.apsInRange.pop(ap_intf.node, None)
+            ap_intf.stationsInRange.pop(intf.node, None)
 
-    def set_tc_reorder(self):
-        # Reordering packets
-        self.cmd('tc qdisc add dev {} parent 2:1 handle 10: '
-                 'pfifo limit 1000'.format(self.name))
+    def ap_out_of_range(self, intf, ap_intf):
+        "When ap is out of range"
+        if ap_intf == intf.associatedTo:
+            if ap_intf.encrypt and not ap_intf.ieee80211r:
+                if ap_intf.encrypt == 'wpa' and not ap_intf.ieee80211r:
+                    self.kill_wpasupprocess(intf)
+                    self.check_if_wpafile_exist(intf)
+            elif wmediumd_mode.mode == w_cst.SNR_MODE:
+                intf.setSNRWmediumd(ap_intf, -10)
+            if not ap_intf.ieee80211r:
+                intf.disconnect(ap_intf)
+            self.remove_node_in_range(intf, ap_intf)
+        elif not intf.associatedTo:
+            intf.rssi = 0
 
-    def set_tc_ap(self):
-        if not wmediumd_mode.mode:
-            bw = self.get_bw_ap()
-            self.config_tc(bw=bw, latency=1)
-            self.set_tc_reorder()
+    def ap_in_range(self, intf, ap, dist):
+        for ap_intf in ap.wintfs.values():
+            if isinstance(ap_intf, master):
+                rssi = intf.get_rssi(ap_intf, dist)
+                intf.apsInRange[ap_intf.node] = rssi
+                ap_intf.stationsInRange[intf.node] = rssi
+                if ap_intf == intf.associatedTo:
+                    if intf not in ap_intf.associatedStations:
+                        ap_intf.associatedStations.append(intf)
+                    if dist >= 0.01:
+                        if intf.bgscan_module or (intf.active_scan
+                                                  and intf.encrypt == 'wpa'):
+                            pass
+                        else:
+                            intf.rssi = rssi
+                            # send rssi to hwsim
+                            if hasattr(intf.node, 'phyid'):
+                                intf.rec_rssi()
+                            if wmediumd_mode.mode != w_cst.WRONG_MODE:
+                                if wmediumd_mode.mode == w_cst.SNR_MODE:
+                                    intf.setSNRWmediumd(ap_intf, intf.rssi-(-91))
+                            else:
+                                if hasattr(intf.node, 'pos') and intf.node.position != intf.node.pos:
+                                    intf.node.pos = intf.node.position
+                                    intf.configWLink(dist)
 
-    def pexec(self, *args, **kwargs):
-        "Run a command in our owning node"
-        return self.node.pexec(*args, **kwargs)
+    def check_in_range(self, intf, ap_intf):
+        dist = intf.node.get_distance_to(ap_intf.node)
+        if dist > ap_intf.range:
+            self.ap_out_of_range(intf, ap_intf)
+            return 0
+        return 1
 
-    def iwdev_cmd(self, *args):
-        return self.cmd('iw dev', *args)
+    def set_handover(self, intf, aps):
+        for ap in aps:
+            dist = intf.node.get_distance_to(ap)
+            for ap_wlan, ap_intf in enumerate(ap.wintfs.values()):
+                self.do_handover(intf, ap_intf)
+            self.ap_in_range(intf, ap, dist)
 
-    def iwdev_pexec(self, *args):
-        return self.pexec('iw dev', *args)
+    @staticmethod
+    def check_if_ap_exists(intf, ap_intf):
+        for wlan in intf.node.wintfs.values():
+            if wlan.associatedTo == ap_intf:
+                return 0
+        return 1
 
-    def wpa_cli_pexec(self, *args):
-        return self.pexec('wpa_cli -i ', self.name, *args)
+    def do_handover(self, intf, ap_intf):
+        "Association Control: mechanisms that optimize the use of the APs"
+        changeAP = False
+        if self.ac and intf.associatedTo and ap_intf.node != intf.associatedTo:
+            changeAP = AssCtrl(intf, ap_intf, self.ac).changeAP
+        if self.check_if_ap_exists(intf, ap_intf):
+            if not intf.associatedTo or changeAP:
+                if ap_intf.node != intf.associatedTo:
+                    intf.associate_infra(ap_intf)
 
-    def wpa_cli_cmd(self, *args):
-        return self.cmd('wpa_cli -i ', self.name, *args)
+    def parameters(self):
+        "Applies channel params and handover"
+        mob_nodes = list(set(self.mobileNodes) - set(self.aps))
+        while self.thread_._keep_alive:
+            self.config_links(mob_nodes)
 
-    def set_dev_type(self, *args):
-        return self.iwdev_cmd('{} set type {}'.format(self.name, *args))
+    def associate_interference_mode(self, intf, ap_intf):
+        if intf.bgscan_module or (intf.active_scan and 'wpa' in intf.encrypt):
+            if not intf.associatedTo:
+                intf.associate_infra(ap_intf)
+                intf.associatedTo = 'bgscan' if intf.bgscan_module else 'active_scan'
+            return 0
 
-    def add_dev_type(self, new_name, type):
-        return self.iwdev_cmd('{} interface add {} type {}'.format(
-            self.name, new_name, type))
+        return self.check_in_range(intf, ap_intf)
 
-    def set_bitrates(self, *args):
-        return self.iwdev_cmd('{} set bitrates'.format(self.name), *args)
+    def config_links(self, nodes):
+        for node in nodes:
+            for intf in node.wintfs.values():
+                if isinstance(intf, adhoc) or isinstance(intf, mesh) or isinstance(intf, ITSLink):
+                    pass
+                else:
+                    aps = []
+                    for ap in self.aps:
+                        for ap_intf in ap.wintfs.values():
+                            if not isinstance(ap_intf, adhoc) and not isinstance(ap_intf, mesh):
+                                if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
+                                    ack = self.associate_interference_mode(intf, ap_intf)
+                                else:
+                                    ack = self.check_in_range(intf, ap_intf)
+                                if ack and ap not in aps:
+                                    aps.append(ap)
+                    self.set_handover(intf, aps)
+        sleep(0.0001)
 
-    def join_ibss(self, *args):
-        return self.iwdev_cmd('{} ibss join'.format(self.name), *args)
 
-    def ibss_leave(self):
-        return self.iwdev_cmd('{} ibss leave'.format(self.name))
+class ConfigMobility(Mobility):
 
-    def mesh_join(self, ssid, *args):
-        return self.iwdev_cmd('{} mesh join'.format(self.name), ssid, 'freq', *args)
+    def __init__(self, *args, **kwargs):
+        self.config_mobility(*args, **kwargs)
 
-    def get_pid_filename(self):
-        pidfile = 'mn{}_{}_{}_wpa.pid'.format(getpid(), self.node.name, self.id)
-        return pidfile
+    def config_mobility(self, *args, **kwargs):
+        'configure Mobility Parameters'
+        node = args[0]
+        stage = args[1]
 
-    def get_wpa_cmd(self):
-        pidfile = self.get_pid_filename()
-        wpasup_flags = self.node.params.get('wpasup_flags', '')
-        cmd = ('wpa_supplicant -B -Dnl80211 -P {} -i {} -c {}_{}.staconf {}'.
-               format(pidfile, self.name, self.name, self.id, wpasup_flags))
-        return cmd
+        if stage == 'start':
+            pos = kwargs['position'].split(',') if 'position' in kwargs \
+                else node.coord[0].split(',')
+            node.params['initPos'] = self.get_position(pos)
+            node.startTime = kwargs['time']
+        elif stage == 'stop':
+            pos = kwargs['position'].split(',') if 'position' in kwargs \
+                else node.coord[1].split(',')
+            node.params['finPos'] = self.get_position(pos)
+            node.speed = 1
+            self.calculate_diff_time(node, kwargs['time'])
 
-    def wpa_cmd(self):
-        return self.cmd(self.get_wpa_cmd())
 
-    def wpa_pexec(self):
-        return self.node.pexec(self.get_wpa_cmd())
+class ConfigMobLinks(Mobility):
 
-    def kill_hostapd_process(self):
-        pattern = "mn{}_{}.apconf".format(getpid(), self.name)
-        while True:
-            try:
-                pids = co(['pgrep', '-f', pattern])
-            except CalledProcessError:
-                pids = ''
-            if pids:
-                self.cmd('rm {}'.format(pattern))
-                self.cmd('pkill -9 -f \'{}\''.format(pattern))
-            else:
-                break
+    def __init__(self, node=None):
+        self.config_mob_links(node)
 
-    def setGainWmediumd(self, gain):
-        "Sends Antenna Gain to wmediumd"
-        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            w_server.update_gain(w_gain(self.wmIface, int(gain)))
-
-    def setHeightWmediumd(self, height):
-        "Sends Antenna Height to wmediumd"
-        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            w_server.update_height(w_height(self.wmIface, int(height)))
-
-    def setTXPowerWmediumd(self):
-        "Sends TxPower to wmediumd"
-        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            w_server.update_txpower(w_txpower(self.wmIface, self.txpower))
-
-    def setSNRWmediumd(self, ap_intf, snr):
-        "Send SNR to wmediumd"
-        w_server.send_snr_update(SNRLink(self.wmIface, ap_intf.wmIface, snr))
-        w_server.send_snr_update(SNRLink(ap_intf.wmIface, self.wmIface, snr))
-
-    def setMediumIdWmediumd(self, medium_id):
-        "Sends MediumId to wmediumd"
-        w_server.update_medium(w_medium(self.wmIface, int(medium_id)))
-
-    def sendIntfTowmediumd(self):
-        "Dynamically sending nodes to wmediumd"
-        self.wmIface = DynamicIntfRef(self.node, intf=self.name)
-        self.node.wmIfaces.append(self.wmIface)
-        w_server.register_interface(self.mac)
-
-    def getCustomRate(self):
-        mode_rate = {'a': 11, 'b': 3, 'g': 11, 'n': 600, 'n2': 600,
-                     'ac': 1000, 'ax2': 500, 'ax5': 700, 'ax': 1000, 'ad': 1000}
-        return mode_rate.get(self.mode)
-
-    def getRate(self):
-        mode_rate = {'a': 54, 'b': 11, 'g': 54, 'n': 300, 'n2': 300,
-                     'ac': 600, 'ax2': 500, 'ax5': 700, 'ax': 1000, 'ad': 1000}
-        return mode_rate.get(self.mode)
-
-    def rec_rssi(self):
-        # it sends rssi value to hwsim
-        cmd = 'hwsim_mgmt -k {} {} >/dev/null 2>&1'.format(
-            self.node.phyid[self.id], abs(int(self.rssi)))
-        self.cmd(cmd)
-
-    def get_rssi(self, ap_intf, dist):
-        from mn_wifi.propagationModels import PropagationModel as ppm
-        return float(ppm(self, ap_intf, dist).rssi)
-
-    def setFreq(self, freq, intf=None):
-        return self.iwdev_cmd('{} set freq {}'.format(intf, freq))
-
-    def format_freq(self):
-        return int(format(self.freq, '.3f').replace('.', ''))
-
-    def setReg(self):
-        self.pexec('iw reg set {}'.format(self.country_code))
-
-    def setIntfName(self, *args):
-        self.cmd('ip link set {} down'.format(self.name))
-        self.cmd('ip link set {} name {}'.format(self.name, args[0]))
-        self.cmd('ip link set {} up'.format(args[0]))
-        self.setIntfAttrs(*args)
-
-    def setIntfAttrs(self, *args):
-        self.node.params['wlan'][int(args[1])] = args[0]
-        for intf in self.node.intfs:
-            if self.node.intfs[intf].name == self.name:
-                self.node.intfs[intf].name = args[0]
-        self.name = args[0]
-
-    def setAPChannel(self, channel):
-        self.freq = Getfreq(self.mode, channel).freq
-        self.pexec('hostapd_cli -i {} chan_switch {} {}'.format(
-            self.name, channel, str(self.format_freq())))
-
-    def setMeshChannel(self, channel):
-        self.freq = Getfreq(self.mode, channel).freq
-        self.iwdev_cmd('{} set channel {}'.format(self.name, channel))
-
-    def setChannel(self, channel):
-        "Set Channel"
+    def config_mob_links(self, node):
+        "Applies channel params and handover"
         from mn_wifi.node import AP
-        self.channel = channel
-        if isinstance(self, AP):
-            self.setAPChannel(channel)
-        elif isinstance(self, mesh):
-            self.setMeshChannel(channel)
-        elif isinstance(self, adhoc):
-            self.ibss_leave()
-            adhoc(node=self.node, intf=self, chann=channel)
-
-    def ipAddr(self, *args):
-        "Configure ourselves using ip link/addr"
-        if self.name not in self.node.params['wlan']:
-            self.cmd('ip addr flush ', self.name)
-            return self.cmd('ip addr add', args[0], 'brd + dev', self.name)
-
-        if len(args) == 0:
-            return self.cmd('ip addr show', self.name)
-
-        if ':' not in args[0]:
-            self.cmd('ip addr flush ', self.name)
-            cmd = 'ip addr add {} brd + dev {}'.format(args[0], self.name)
-            if self.ip6:
-                cmd += ' && ip -6 addr add {} dev {}'.format \
-                    (self.ip6, self.name)
-            return self.cmd(cmd)
-
-        self.cmd('ip -6 addr flush ', self.name)
-        return self.cmd('ip -6 addr add', args[0], 'dev', self.name)
-
-    def ipLink(self, *args):
-        "Configure ourselves using ip link"
-        return self.cmd('ip link set', self.name, *args)
-
-    def setMode(self, mode):
-        self.mode = mode
-
-    def getTxPowerGivenRange(self):
-        self.txpower = GetPowerGivenRange(self).txpower
-        
-        self.setTxPower(self.txpower)
-        if self.txpower == 1:
-            min_range = int(SetSignalRange(self).range)
-            if self.range < min_range:
-                info('*** {}: the signal range should be '
-                     'changed to (at least) {}m\n'.format(self.name, min_range))
-                info('*** >>> See https://mininet-wifi.github.io/faq/#q7 '
-                     'for more information\n')
-        else:
-            
-            info('*** {}: for signal range of {}m txpower changed '
-                 'to {}dBm.\n'.format(self.name, self.range, (str(round(self.txpower, 2)))))
-
-    def setDefaultRange(self):
-        if not self.static_range:
-            self.range = SetSignalRange(self).range
-
-    def setAntennaGain(self, gain):
-        self.antennaGain = int(gain)
-        self.setDefaultRange()
-        self.setGainWmediumd(gain)
-        self.node.configLinks()
-
-    def setAntennaHeight(self, height):
-        self.antennaHeight = int(height)
-        self.setDefaultRange()
-        self.setHeightWmediumd(height)
-        self.node.configLinks()
-
-    def getAntennaHeight(self):
-        return self.antennaHeight
-
-    def setRange(self, range):
-        self.range = float(range)
-        self.getTxPowerGivenRange()
-        self.node.configLinks()
-
-    def setTxPower(self, txpower):
-        self.txpower = txpower
-        self.iwdev_cmd('{} set txpower fixed {}'.format(self.name, self.txpower * 100))
-        self.setDefaultRange()
-        self.setTXPowerWmediumd()
-        self.node.configLinks()
-
-    def setManagedMode(self):
-        wlan = self.node.params['wlan'].index(self.name)
-        if isinstance(self, mesh):
-            self.iwdev_cmd('{} del'.format(self.name))
-            self.name = '{}-wlan{}'.format(self, self.id)
-            self.node.params['wlan'][wlan] = self.name
-        elif isinstance(self, master):
-            self.kill_hostapd_process()
-        self.set_dev_type('managed')
-        managed(self.node, wlan, intf=self)
-
-    def setMasterMode(self, ssid='new-ssid', **kwargs):
-        "set Interface to AP mode"
-        wlan = self.node.params['wlan'].index(self.name)
-        master(self.node, wlan, port=wlan, intf=self)
-
-        intf = self.node.getNameToWintf(self)
-        if int(intf.range) == 0:
-            intf.setDefaultRange()
-
-        intf.ssid = ssid
-        for key, value in kwargs.items():
-            setattr(intf, key, value)
-
-        if not intf.mac:
-            intf.mac = intf.getMAC()
-
-        HostapdConfig(intf)
-
-    def setMeshMode(self, **kwargs):
-        mesh(self.node, intf=self, **kwargs)
-
-    def setAdhocMode(self, **kwargs):
-        if isinstance(self, adhoc):
-            self.ibss_leave()
-        adhoc(self.node, intf=self, **kwargs)
-
-    def setIP(self, ipstr, prefixLen=None, **args):
-        """Set our IP address"""
-        # This is a sign that we should perhaps rethink our prefix
-        # mechanism and/or the way we specify IP addresses
-        if '/' in ipstr:
-            self.ip, self.prefixLen = ipstr.split('/')
-            return self.ipAddr(ipstr)
-
-        if prefixLen is None:
-            raise Exception('No prefix length set for IP address {}'.format
-                            (ipstr, ))
-        self.ip, self.prefixLen = ipstr, prefixLen
-        return self.ipAddr('{}/{}'.format(ipstr, prefixLen))
-
-    def setIP6(self, ipstr, prefixLen6=None, **args):
-        """Set our IP6 address"""
-        # This is a sign that we should perhaps rethink our prefix
-        # mechanism and/or the way we specify IP addresses
-        if '/' in ipstr:
-            self.ip6, self.prefixLen6 = ipstr.split('/')
-            return self.ipAddr(ipstr)
-
-        if prefixLen6 is None:
-            raise Exception('No prefix length set for IP address {}'.format
-                            (ipstr, ))
-        self.ip6, self.prefixLen6 = ipstr, prefixLen6
-        return self.ipAddr('{}/{}'.format(ipstr, prefixLen6))
-
-    def setMediumId(self, medium_id):
-        """Set medium id to create isolated interface groups"""
-        self.medium_id = int(medium_id)
-        self.setMediumIdWmediumd(medium_id)
-
-    def check_if_wpafile_exist(self):
-        file = '{}_{}.staconf'.format(self.name, self.id)
-        return glob(file)
-
-    def wpaFile(self, ap_intf):
-        cmd = ''
-        if not ap_intf.config or not self.config:
-            if not ap_intf.authmode:
-                passwd = ap_intf.passwd if not self.passwd else self.passwd
-
-        if 'wpasup_globals' not in self.node.params \
-                or ('wpasup_globals' in self.node.params
-                    and 'ctrl_interface=' not in self.node.params['wpasup_globals']):
-            cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
-        if ap_intf.wps_state and not self.passwd:
-            cmd += 'ctrl_interface_group=0\n'
-            cmd += 'update_config=1\n'
-        else:
-            if 'wpasup_globals' in self.node.params:
-                cmd += self.node.params['wpasup_globals'] + '\n'
-            cmd += 'network={\n'
-
-            if self.config:
-                config = self.config
-                if config != []:
-                    config = self.config.split(',')
-                    self.node.params.pop("config", None)
-                    for conf in config:
-                        cmd += "   " + conf + "\n"
+        if node:
+            if isinstance(node, AP) or node in self.aps:
+                nodes = self.stations
             else:
-                cmd += '   ssid=\"{}\"\n'.format(ap_intf.ssid)
-                if not ap_intf.authmode:
-                    cmd += '   psk=\"{}\"\n'.format(passwd)
-                    encrypt = ap_intf.encrypt
-                    if ap_intf.encrypt == 'wpa3':
-                        encrypt = 'wpa2'
-                    cmd += '   proto={}\n'.format(encrypt.upper())
-                    cmd += '   pairwise={}\n'.format(ap_intf.rsn_pairwise)
-                    if self.active_scan:
-                        cmd += '   scan_ssid=1\n'
-                    if self.scan_freq:
-                        cmd += '   scan_freq={}\n'.format(self.scan_freq)
-                    if self.freq_list:
-                        cmd += '   freq_list={}\n'.format(self.freq_list)
-                wpa_key_mgmt = ap_intf.wpa_key_mgmt
-                if ap_intf.ieee80211w:
-                    cmd += "   ieee80211w={}\n".format(ap_intf.ieee80211w)
-                if ap_intf.encrypt == 'wpa3':
-                    wpa_key_mgmt = 'SAE'
-                cmd += '   key_mgmt={}\n'.format(wpa_key_mgmt)
-                if self.bgscan_module:
-                    cmd += '   bgscan=\"%s:%d:%d:%d\"\n' % \
-                           (self.bgscan_module, self.s_inverval,
-                            self.bgscan_threshold, self.l_interval)
-                if ap_intf.authmode == '8021x':
-                    cmd += '   eap=PEAP\n'
-                    cmd += '   identity=\"{}\"\n'.format(self.radius_identity)
-                    cmd += '   password=\"{}\"\n'.format(self.radius_passwd)
-                    cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
-            cmd += '}'
-
-        pattern = '{}_{}.staconf'.format(self.name, self.id)
-        self.cmd('echo \'{}\' > {}'.format(cmd, pattern))
-
-    def wpa(self, ap_intf):
-        self.wpaFile(ap_intf)
-        self.wpa_pexec()
-        self.setConnected(ap_intf)
-
-    def update_client_params(self, ap_intf):
-        self.freq = ap_intf.freq
-        self.channel = ap_intf.channel
-        self.mode = ap_intf.mode
-        self.ssid = ap_intf.ssid
-
-    def wep(self, ap_intf):
-        passwd = self.passwd if self.passwd else ap_intf.passwd
-        self.wep_connect(passwd, ap_intf)
-        self.setConnected(ap_intf)
-
-    def setConnected(self, ap_intf):
-        self.associatedTo = ap_intf
-        ap_intf.associatedStations.append(self)
-
-    def setDisconnected(self, ap_intf):
-        self.rssi = 0
-        self.channel = 0
-        self.associatedTo = None
-        if self in ap_intf.associatedStations:
-            ap_intf.associatedStations.remove(self)
-
-    def roam(self, bssid):
-        self.wpa_cli_cmd('roam {}'.format(bssid))
-
-    def wep_connect(self, passwd, ap_intf):
-        self.iwdev_cmd('{} connect {} key d:0:{}'.format(
-            self.name, ap_intf.ssid, passwd))
-
-    def disconnect_pexec(self, ap_intf):
-        self.iwdev_pexec('{} disconnect'.format(self.name))
-        self.setDisconnected(ap_intf)
-
-    def disconnect(self, ap_intf):
-        self.iwdev_cmd('{} disconnect'.format(self.name))
-        self.setDisconnected(ap_intf)
-
-    def iw_connect(self, ap_intf):
-        self.pexec('iw dev {} connect {} {}'.format(
-            self.name, ap_intf.ssid, ap_intf.mac))
-        self.setConnected(ap_intf)
-
-    def iwconfig_connect(self, ap_intf):
-        self.pexec('iwconfig {} essid {} ap {}'.format(
-            self.name, ap_intf.ssid, ap_intf.mac))
-        self.setConnected(ap_intf)
-
-    def associate_infra(self, ap_intf):
-        associated = 0
-        if ap_intf.ieee80211r and (not self.encrypt or 'wpa' in self.encrypt):
-            if not self.associatedTo:
-                wpa_file_exists = self.check_if_wpafile_exist()
-                if wpa_file_exists:
-                    self.roam(ap_intf.mac)
-                else:
-                    self.wpa(ap_intf)
-            else:
-                self.roam(ap_intf.mac)
-            associated = 1
-        elif not ap_intf.encrypt:
-            associated = 1
-            self.iwconfig_connect(ap_intf)
+                nodes = [node]
         else:
-            if not self.associatedTo:
-                if 'wpa' in ap_intf.encrypt and (not self.encrypt or 'wpa' in self.encrypt):
-                    self.wpa(ap_intf)
-                    associated = 1
-                elif ap_intf.encrypt == 'wep':
-                    self.wep(ap_intf)
-                    associated = 1
-        if associated:
-            self.update_client_params(ap_intf)
+            nodes = self.stations
+        self.config_links(nodes)
 
-    def configureWirelessLink(self, ap_intf):
-        dist = self.node.get_distance_to(ap_intf.node)
-        if dist <= ap_intf.range:
-            if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                if self.rssi == 0:
-                    self.update_client_params(ap_intf)
-            if ap_intf != self.associatedTo or not self.associatedTo:
-                self.associate_infra(ap_intf)
-                if wmediumd_mode.mode == w_cst.WRONG_MODE:
-                    if dist >= 0.01: self.configWLink(dist)
-                if self not in ap_intf.associatedStations:
-                    ap_intf.associatedStations.append(self)
-            if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                self.rssi = self.get_rssi(ap_intf, dist)
 
-    def associate(self, ap_intf):
-        "Associate to Access Point"
-        if hasattr(self.node, 'position'):
-            self.configureWirelessLink(ap_intf)
-        else:
-            self.associate_infra(ap_intf)
-
-    def configureMacAddr(self):
-        """Configure Mac Address
-        :param node: node"""
-        if not self.mac:
-            self.mac = self.getMAC()
-        else:
-            self.setMAC(self.mac)
-
-    def getMAC(self):
-        "get Mac Address of any Interface"
-        try:
-            _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-            debug('getting mac address from {}\n'.format(self.name))
-            macaddr = str(self.pexec('ip addr show {}'.format(self.name)))
-            mac = _macMatchRegex.findall(macaddr)
-            debug('\n{}'.format(mac[0]))
-            return mac[0]
-        except:
-            info('Error: Please run sudo mn -c.\n')
-
-    def setMAC(self, macstr):
-        """Set the MAC address for an interface.
-           macstr: MAC address as string"""
-        self.mac = macstr
-        return (self.ipLink('down') +
-                self.ipLink('address', macstr) +
-                self.ipLink('up'))
-
-    def updateIP(self):
-        "Return updated IP address based on ip addr"
-        # use pexec instead of node.cmd so that we dont read
-        # backgrounded output from the cli.
-        ipAddr, _err, _exitCode = self.node.pexec('ip addr show {}'.format(self.name))
-        ips = self._ipMatchRegex.findall(ipAddr)
-        self.ip = ips[0] if ips else None
-        return self.ip
-
-    def updateMAC(self):
-        "Return updated MAC address based on ip addr"
-        ipAddr = self.ipAddr()
-        macs = self._macMatchRegex.findall(ipAddr)
-        self.mac = macs[0] if macs else None
-        return self.mac
-
-    # Instead of updating ip and mac separately,
-    # use one ipAddr call to do it simultaneously.
-    # This saves an ipAddr command, which improves performance.
-
-    def updateAddr(self):
-        "Return IP address and MAC address based on ipAddr."
-        ipAddr = self.ipAddr()
-        ips = self._ipMatchRegex.findall(ipAddr)
-        macs = self._macMatchRegex.findall(ipAddr)
-        self.ip = ips[0] if ips else None
-        self.mac = macs[0] if macs else None
-        return self.ip, self.mac
-
-    def isUp(self, setUp=False):
-        "Return whether interface is up"
-        if setUp:
-            cmdOutput = self.ipLink('up')
-            # no output indicates success
-            # error( "Error setting %s up: %s " % ( self.name, cmdOutput ) )
-            return False if cmdOutput else True
-        else:
-            return "UP" in self.ipAddr()
-
-    def rename(self, newname):
-        "Rename interface"
-        if self.node and self.name in self.node.nameToIntf:
-            # rename intf in node's nameToIntf
-            self.node.nameToIntf[newname] = self.node.nameToIntf.pop(self.name)
-        self.ipLink('down')
-        result = self.cmd('ip link set', self.name, 'name', newname)
-        self.name = newname
-        self.ipLink('up')
-        return result
-
-    def config(self, mac=None, ip=None, ip6=None,
-               ipAddr=None, up=True, **_params):
-        """Configure Node according to (optional) parameters:
-           mac: MAC address
-           ip: IP address
-           ipAddr: arbitrary interface configuration
-           Subclasses should override this method and call
-           the parent class's config(**params)"""
-        # If we were overriding this method, we would call
-        # the superclass config method here as follows:
-        # r = Parent.config( **params )
-        r = {}
-        self.setParam(r, 'setMAC', mac=mac)
-        self.setParam(r, 'setIP', ip=ip)
-        self.setParam(r, 'setIP6', ip=ip6)
-        self.setParam(r, 'isUp', up=up)
-        self.setParam(r, 'ipAddr', ipAddr=ipAddr)
-
-        return r
-
-    def delete(self):
-        "Delete interface"
-        # self.cmd('iw dev ' + self.name + ' del')
-        # We used to do this, but it slows us down:
-        # if self.node.inNamespace:
-        # Link may have been dumped into root NS
-        # quietRun( 'ip link del ' + self.name )
-        # self.node.delIntf(self)
-        self.link = None
-
-
-class HostapdConfig(IntfWireless):
-
-    def __init__(self, intf):
-        'configure hostapd'
-        self.check_vssid(intf)
-        self.configure(intf)
-        self.set_mac_viface(intf)
-
-    @staticmethod
-    def set_mac_viface(intf):
-        for vintf in intf.node.wintfs.values():
-            if isinstance(vintf, VirtualMaster):
-                vintf.node.params['wlan'].append(vintf.name)
-                vintf.mac = vintf.getMAC()
-
-    def check_vssid(self, intf):
-        if 'vssids' in intf.node.params:
-            if isinstance(intf.node.params['vssids'], list):
-                vssids = intf.node.params['vssids'][intf.id].split(',')
-            else:
-                vssids = intf.node.params['vssids'].split(',')
-            for id, vssid in enumerate(vssids):
-                iface = '{}-{}'.format(intf.name, id)
-                intf.vifaces.append(iface)
-                intf.vssid.append(vssid)
-                if not wmediumd_mode.mode:
-                    TCWirelessLink(intf.node, intfName=iface)
-                    VirtualMaster(intf.node, intf.id, intf=iface)
-
-    def configure(self, intf):
-        if 'link' not in intf.node.params:
-            cmd = ''
-            if 'phywlan' in intf.node.params:
-                for id, intf in enumerate(intf.node.wintfs.values()):
-                    cmd = self.setConfig(intf)
-            else:
-                cmd = self.setConfig(intf)
-            if 'vssids' in intf.node.params:
-                for vwlan, id in enumerate(intf.vifaces):
-                    cmd += self.virtual_intf(intf, vwlan)
-
-            cmd += "\nctrl_interface=/var/run/hostapd"
-            cmd += "\nctrl_interface_group=0"
-            self.ap_config_file(cmd, intf)
-
-            if '-' in intf.name: intf.setMAC(intf.mac)
-
-            if 'phywlan' in intf.node.params: intf.node.params.pop('phywlan', None)
-
-            intf.set_tc_ap()
-            intf.freq = Getfreq(intf.mode, intf.channel).freq
-            if not intf.freq:
-                info("Frequency is null for {}\n".format(intf))
-                info("Please make sure that mode ({}) supports "
-                     "channel {}\n".format(intf.mode, intf.channel))
-                exit()
-
-    def setConfig(self, intf):
-        """Configure AP
-        :param ap: ap node
-        :param wlan: wlan id"""
-        if intf.ssid:
-            if intf.encrypt and 'config' not in intf.node.params:
-                if 'wpa' in intf.encrypt:
-                    intf.auth_algs = 1
-                    if intf.ieee80211r:
-                        intf.wpa_key_mgmt = 'FT-EAP' if intf.authmode else 'FT-PSK'
-                    else:
-                        intf.wpa_key_mgmt = 'WPA-EAP' if intf.authmode else 'WPA-PSK'
-                    intf.rsn_pairwise = 'TKIP CCMP' if intf.encrypt == 'wpa' else 'CCMP'
-                    if not intf.authmode: intf.wpa_passphrase = intf.passwd
-                elif intf.encrypt == 'wep':
-                    intf.auth_algs = 2
-                    intf.wep_key0 = intf.passwd
-
-            if isinstance(intf, adhoc):
-                adhoc(intf.node, intf.id)
-            else:
-                return self.setHostapdConfig(intf)
-
-    @staticmethod
-    def get_mode_config(intf, cmd=''):
-        if intf.mode == 'ax':
-            intf.country_code = 'DE'
-        if 'n' in intf.mode:
-            cmd += "\ncountry_code={}".format(intf.country_code)
-            cmd += "\nhw_mode=g" if intf.mode == 'n2' else "\nhw_mode=a"
-        elif intf.mode == 'a':
-            cmd += "\ncountry_code={}".format(intf.country_code)
-            cmd += "\nhw_mode={}".format(intf.mode)
-        elif intf.mode == 'ac' or 'ax' in intf.mode:
-            cmd += "\ncountry_code={}".format(intf.country_code)
-            if intf.mode == 'ax2':
-                cmd += "\nhw_mode=g"
-            else:
-                cmd += "\nhw_mode=a"
-        else:
-            cmd += "\nhw_mode={}".format(intf.mode)
-        return cmd
-
-    def virtual_intf(self, intf, vwlan, cmd=''):
-        intf.txpower = intf.node.wintfs[0].txpower
-        intf.antennaGain = intf.node.wintfs[0].antennaGain
-        intf.antennaHeight = intf.node.wintfs[0].antennaHeight
-        cmd += "\n\nbss={}".format(intf.vifaces[vwlan])
-        cmd += "\nssid={}".format(intf.vssid[vwlan])
-        if intf.encrypt:
-            if intf.encrypt == 'wep':
-                cmd += "\nauth_algs={}".format(intf.auth_algs)
-                cmd += "\nwep_default_key=0"
-                cmd += self.verifyWepKey(intf.wep_key0)
-        return cmd
-
-    def setHostapdConfig(self, intf):
-        "Set hostapd config"
-        cmd = "echo \'"
-        args = ['max_num_sta', 'beacon_int', 'rsn_preauth',
-                'rts_threshold', 'fragm_threshold']
-
-        cmd += 'interface={}'.format(intf.node.params.get('phywlan', intf.name))
-        cmd += '\ndriver=nl80211'
-        cmd += '\nssid={}'.format(intf.ssid)
-        cmd += '\nwds_sta=1'
-        cmd += self.get_mode_config(intf)  # get mode
-        cmd += "\nchannel={}".format(intf.channel)
-
-        for arg in args:
-            if arg in intf.node.params:
-                cmd += '\n{}={}'.format(arg, intf.node.params.get(arg))
-
-        if intf.ht_capab: cmd += '\nht_capab={}'.format(intf.ht_capab)
-        if intf.vht_capab: cmd += '\nvht_capab={}'.format(intf.vht_capab)
-        if intf.macaddr_acl: cmd += '\nmacaddr_acl={}'.format(intf.macaddr_acl)
-        if intf.ignore_broadcast_ssid: cmd += '\nignore_broadcast_ssid={}'.format(intf.ignore_broadcast_ssid)
-        if intf.beacon_int: cmd += '\nbeacon_int={}'.format(intf.beacon_int)
-        if intf.client_isolation: cmd += '\nap_isolate=1'
-        if 'config' in intf.node.params:
-            config = intf.node.params['config']
-            if config != []:
-                config = config.split(',')
-                # ap.params.pop("config", None)
-                for conf in config: cmd += "\n" + conf
-        else:
-            if intf.authmode == '8021x':
-                cmd += "\nieee8021x=1"
-                cmd += "\nwpa_key_mgmt=WPA-EAP"
-                if intf.encrypt:
-                    cmd += "\nauth_algs={}".format(intf.auth_algs)
-                    cmd += "\nwpa=2"
-                cmd += '\neap_server=0'
-                cmd += '\neapol_version=2'
-
-                if not intf.radius_server: intf.radius_server = '127.0.0.1'
-                cmd += "\nwpa_pairwise=TKIP CCMP"
-                cmd += "\neapol_key_index_workaround=0"
-                cmd += "\nown_ip_addr={}".format(intf.radius_server)
-                cmd += "\nnas_identifier={}.example.com".format(intf.node.name)
-                cmd += "\nauth_server_addr={}".format(intf.radius_server)
-                cmd += "\nauth_server_port=1812"
-                if not intf.shared_secret: intf.shared_secret = 'secret'
-                cmd += "\nauth_server_shared_secret={}".format(intf.shared_secret)
-            else:
-                if intf.ieee80211w: cmd += "\nieee80211w={}".format(intf.ieee80211w)
-                if intf.encrypt:
-                    if 'wpa' in intf.encrypt:
-                        cmd += "\nauth_algs={}".format(intf.auth_algs)
-                        cmd += "\nwpa=1" if intf.encrypt == 'wpa' else "\nwpa=2"
-                        if intf.encrypt == 'wpa3':
-                            cmd += "\nwpa_key_mgmt=SAE"
-                        else:
-                            cmd += "\nwpa_key_mgmt={}".format(intf.wpa_key_mgmt)
-                        cmd += '\nwpa_pairwise={}'.format(intf.rsn_pairwise)
-                        cmd += '\nwpa_passphrase={}'.format(intf.wpa_passphrase)
-                    elif intf.encrypt == 'wep':
-                        cmd += "\nauth_algs={}".format(intf.auth_algs)
-                        cmd += '\nwep_default_key={}'.format(0)
-                        cmd += self.verifyWepKey(intf.wep_key0)
-
-                if intf.wps_state:
-                    cmd += '\nwps_state={}'.format(intf.wps_state)
-                    cmd += '\neap_server=1'
-                    if intf.config_methods:
-                        cmd += '\nconfig_methods={}'.format(intf.config_methods)
-                    else:
-                        cmd += '\nconfig_methods=label display push_button keypad'
-                    cmd += '\nwps_pin_requests=/var/run/hostapd.pin-req'
-                    cmd += '\nap_setup_locked=0'
-
-                if intf.mode == 'ac' or 'ax' in intf.mode or 'n' in intf.mode:
-                    cmd += '\nwmm_enabled=1'
-                    if intf.mode != 'ax2':
-                        cmd += '\nieee80211n=1'
-                    if intf.mode == 'ac':
-                        cmd += '\nieee80211ac=1'
-                    if 'ax' in intf.mode:
-                        cmd += '\nieee80211ax=1'
-                        if intf.ieee80211w:
-                            cmd += '\nop_class=131'
-
-                if intf.ieee80211r:
-                    if intf.mobility_domain:
-                        cmd += '\nmobility_domain={}'.format(intf.mobility_domain)
-                        # cmd += ("\nown_ip_addr=127.0.0.1")
-                        cmd += '\nnas_identifier={}.example.com'.format(intf.node.name)
-                        for apref in intf.bssid_list:
-                            cmd += '\nr0kh={} r0kh-{}.example.com 000102030405060708090a0b0c0d0e0f'.format(intf.mac,
-                                                                                                           apref)
-                            cmd += '\nr1kh={} {} 000102030405060708090a0b0c0d0e0f'.format(intf.mac, intf.mac)
-                        cmd += '\nrsn_preauth=1'
-                        cmd += '\npmk_r1_push=1'
-                        cmd += '\nft_over_ds=1'
-                        cmd += '\nft_psk_generate_local=1'
-        return cmd
-
-    def verifyWepKey(self, wep_key0):
-        "Check WEP key"
-        len_list = [5, 10, 13, 16, 26, 32]
-        if len(wep_key0) in len_list:
-            if len(wep_key0) in [5, 13, 16]:
-                cmd = "\nwep_key0=\"{}\"".format(wep_key0)
-            else:
-                cmd = "\nwep_key0={}".format(wep_key0)
-        else:
-            info("Warning! Wep Key length is wrong!\n")
-            exit(1)
-        return cmd
-
-    _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-
-    def ap_config_file(self, cmd, intf):
-        "run an Access Point and create the config file"
-        if 'phywlan' in intf.node.params:
-            intf_ = intf.node.params['phywlan']
-            intf.cmd('ip link set {} down'.format(intf_))
-            intf.cmd('ip link set {} up'.format(intf_))
-        apconfname = 'mn{}_{}-wlan{}.apconf'.format(getpid(), intf.node.name, intf.id + 1)
-        content = cmd + "\' > {}".format(apconfname)
-        intf.cmd(content)
-        cmd = self.get_hostapd_cmd(intf)
-        try:
-            intf.cmd(cmd)
-            if intf.country_code == 'US':
-                sleep(0.5)
-            if int(intf.channel) == 0 or intf.channel == 'acs_survey':
-                info("*** Waiting for ACS... It takes 10 seconds.\n")
-                sleep(10)
-        except:
-            info("*** error with hostapd. Please, run sudo mn -c in order "
-                 "to fix it or check if hostapd is working properly in "
-                 "your system.")
-            exit(1)
-
-    @staticmethod
-    def get_hostapd_cmd(intf):
-        apconfname = "mn{}_{}-wlan{}.apconf".format(getpid(), intf.node.name, intf.id + 1)
-        hostapd_flags = intf.node.params.get('hostapd_flags', '')
-        cmd = "hostapd -B {} {}".format(apconfname, hostapd_flags)
-        return cmd
-
-
-class WirelessLink(TCIntf, IntfWireless):
-    """Interface customized by tc (traffic control) utility
-       Allows specification of bandwidth limits (various methods)
-       as well as delay, loss and max queue length"""
-
-    def config(self, bw=None, delay=None, jitter=None, loss=None,
-               gro=False, speedup=0, use_hfsc=False, use_tbf=False,
-               latency_ms=None, enable_ecn=False, enable_red=False,
-               max_queue_size=None, **params):
-        """Configure the port and set its properties.
-            bw: bandwidth in b/s (e.g. '10m')
-            delay: transmit delay (e.g. '1ms' )
-            jitter: jitter (e.g. '1ms')
-            loss: loss (e.g. '1%' )
-            gro: enable GRO (False)
-            txo: enable transmit checksum offload (True)
-            rxo: enable receive checksum offload (True)
-            speedup: experimental switch-side bw option
-            use_hfsc: use HFSC scheduling
-            use_tbf: use TBF scheduling
-            latency_ms: TBF latency parameter
-            enable_ecn: enable ECN (False)
-            enable_red: enable RED (False)
-            max_queue_size: queue limit parameter for netem"""
-
-        # Support old names for parameters
-        gro = not params.pop('disable_gro', not gro)
-
-        result = IntfWireless.config(self, **params)
-
-        def on(isOn):
-            "Helper method: bool -> 'on'/'off'"
-            return 'on' if isOn else 'off'
-
-        # Set offload parameters with ethool
-        self.cmd('ethtool -K', self, 'gro', on(gro))
-
-        # Optimization: return if nothing else to configure
-        # Question: what happens if we want to reset things?
-        if bw is None and not delay and not loss and max_queue_size is None:
-            return
-
-        # Clear existing configuration
-        tcoutput = self.tc('%s qdisc show dev %s')
-        if "priomap" not in tcoutput and "noqueue" not in tcoutput \
-                and "fq_codel" not in tcoutput and "qdisc fq" not in tcoutput:
-            cmds = ['%s qdisc del dev %s root']
-        else:
-            cmds = []
-        # Bandwidth limits via various methods
-        bwcmds, parent = self.bwCmds(bw=bw, speedup=speedup,
-                                     use_hfsc=use_hfsc, use_tbf=use_tbf,
-                                     latency_ms=latency_ms,
-                                     enable_ecn=enable_ecn,
-                                     enable_red=enable_red)
-        cmds += bwcmds
-
-        # Delay/jitter/loss/max_queue_size using netem
-        delaycmds, parent = self.delayCmds(delay=delay, jitter=jitter,
-                                           loss=loss,
-                                           max_queue_size=max_queue_size,
-                                           parent=parent)
-        cmds += delaycmds
-
-        # Execute all the commands in our node
-        debug("at map stage w/cmds: {}\n".format(cmds))
-        tcoutputs = [self.tc(cmd) for cmd in cmds]
-        for output in tcoutputs:
-            if output != '':
-                error("*** Error: {}".format(output))
-        debug("cmds:", cmds, '\n')
-        debug("outputs:", tcoutputs, '\n')
-        result['tcoutputs'] = tcoutputs
-        result['parent'] = parent
-
-        return result
-
-    def set_attrs(self, node, wlan):
-        self.ip = None
-        self.ip6 = None
-        self.mac = None
-        self.prefixLen = None
-        self.prefixLen6 = None
-        self.ssid = None
-        self.antennaGain = 5.0
-        self.antennaHeight = 1.0
-        self.channel = 1
-        self.freq = 2.412
-        self.txpower = 14
-        self.range = 0
-        self.static_range = 0  # when the range is manually defined
-        self.mode = 'g'
-        self.node = node
-        self.id = wlan
-
-    def assign_params_to_intf(self, intf, wlan):
-        if intf and hasattr(intf, 'wmIface'): self.wmIface = intf.wmIface
-
-        for key in self.__dict__.keys():
-            if key in self.node.params:
-                if isinstance(self.node.params[key], list):
-                    try:
-                        value = self.node.params[key][wlan]
-                        setattr(self, key, value)
-                    except IndexError:
-                        error('*** index out of range for \'{}\' parameter\n'.format(key))
-                        error('*** please check out your code!\n')
-                        exit(1)
-                else:
-                    if wlan > 0 and key == 'mac':
-                        self.mac = self.getMAC()
-                    else:
-                        if key == 'range':
-                            setattr(self, key, int(self.node.params[key]))
-                            self.static_range = True
-                        else:
-                            setattr(self, key, self.node.params[key])
-
-
-class _4address(Link, IntfWireless):
-    node = None
-
-    def __init__(self, node1, node2, port1=None, port2=None, **params):
-        """Create 4addr link to another node.
-           node1: ap
-           node2: client
-           port1/port2: port id"""
-        wlan = port2 if port2 else 0
-        apwlan = port1 if port1 else 0
-
-        if hasattr(node2, 'cwds'):
-            node2.cwds += 1
-        else:
-            node2.cwds = 0
-
-        intfName2 = '{}.wds{}'.format(node2.name, node2.cwds)
-
-        if not hasattr(node1, 'position'): self.setPos(node1)
-        if not hasattr(node2, 'position'): self.setPos(node2)
-
-        if intfName2 not in node2.params['wlan']:
-            intf = node2.wintfs[wlan]
-            ap_intf = node1.wintfs[apwlan]
-
-            self.node = node2
-            self.add4addrIface(intf, intfName2)
-            sleep(1)
-
-            intf.mode = ap_intf.mode
-            intf.channel = ap_intf.channel
-            intf.freq = ap_intf.freq
-            intf.txpower = ap_intf.txpower
-            intf.antennaGain = ap_intf.antennaGain
-            node2.params['wlan'].append(intfName2)
-            sleep(1)
-
-            params1, params2 = params, params
-            params1['port'] = node2.newPort()
-            params2['port'] = node1.newPort()
-            intf1 = IntfWireless(name=intfName2, node=node2, link=self, **params1)
-            if hasattr(node1, 'wds'):
-                node1.wds += 1
-            else:
-                node1.wds = 1
-            intfName1 = node1.params['wlan'][apwlan] + '.sta{}'.format(node1.wds)
-            intf2 = IntfWireless(name=intfName1, node=node1, link=self, **params2)
-            node1.params['wlan'].append(intfName1)
-
-            node1_intf_index = node1.params['wlan'].index(intfName1)
-            node2_intf_index = node2.params['wlan'].index(intfName2)
-            _4addrAP(node1, node1_intf_index)
-            _4addrClient(node2, node2_intf_index)
-
-            node2.wintfs[node2_intf_index].mac = intf.mac[:3] + '09' + ':0' + str(node2.cwds) + intf.mac[8:]
-            self.bring4addrIfaceDown(node2.cwds)
-            self.setMAC(node2.wintfs[node2_intf_index], node2.cwds)
-            self.bring4addrIfaceUP(node2.cwds)
-            self.iwdev_cmd('{} connect -w {} {}'.format(
-                node2.params['wlan'][node2_intf_index], ap_intf.ssid, ap_intf.mac))
-
-            # All we are is dust in the wind, and our two interfaces
-            self.intf1, self.intf2 = intf1, intf2
-
-    def setPos(self, node):
-        nums = re.findall(r'\d+', node.name)
-        if nums:
-            id = int(hex(int(nums[0]))[2:])
-            node.position = (10, round(id, 2), 0)
-
-    def bring4addrIfaceDown(self, wlan):
-        self.cmd('ip link set dev {}.wds{} down'.format(self.node, wlan))
-
-    def bring4addrIfaceUP(self, wlan):
-        self.cmd('ip link set dev {}.wds{} up'.format(self.node, wlan))
-
-    def setMAC(self, intf, wlan):
-        self.cmd('ip link set dev {}.wds{} addr {}'.format(intf.node, wlan, intf.mac))
-
-    def add4addrIface(self, intf, intfName):
-        self.iwdev_cmd('{} interface add {} type managed 4addr on'.format(
-            intf.name, intfName))
-
-    def status(self):
-        "Return link status as a string"
-        return "({} {})".format(self.intf1.status(), self.intf2)
-
-
-class WirelessIntf(object):
-    """A basic link is just a veth pair.
-       Other types of links could be tunnels, link emulators, etc.."""
-
-    # pylint: disable=too-many-branches
-    def __init__(self, node, port=None, intfName=None, addr=None,
-                 cls=None, **params):
-        """Create veth link to another node, making two new interfaces.
-           node: first node
-           port: node port number (optional)
-           intf: default interface class/constructor
-           cls: optional interface-specific constructors
-           intfName: node interface name (optional)
-           params: parameters for interface 1"""
-        # This is a bit awkward; it seems that having everything in
-        # params is more orthogonal, but being able to specify
-        # in-line arguments is more convenient! So we support both.
-        params = dict(params) if params else {}
-        params['port'] = port if port is not None else node.newPort()
-
-        if not intfName: intfName = self.wlanName(node, params['port'])
-
-        intf1 = cls(name=intfName, node=node, link=self, mac=addr, **params)
-        intf2 = 'wifi'
-
-        # All we are is dust in the wind, and our two interfaces
-        self.intf1, self.intf2 = intf1, intf2
-
-    # pylint: enable=too-many-branches
-
-    @staticmethod
-    def _ignore(*args, **kwargs):
-        "Ignore any arguments"
-        pass
-
-    def wlanName(self, node, n):
-        "Construct a canonical interface name node-ethN for interface n."
-        # Leave this as an instance method for now
-        assert self
-        return node.name + '-' + 'wlan' + repr(n)
-
-    def delete(self):
-        "Delete this link"
-        self.intf1.delete()
-        self.intf1 = None
-        self.intf2 = None
-
-    def stop(self):
-        "Override to stop and clean up link as needed"
-        self.delete()
-
-    def status(self):
-        "Return link status as a string"
-        return "(use iw/iwconfig to check connectivity)"
-
-    def __str__(self):
-        return '{}<->{}'.format(self.intf1, self.intf2)
-
-
-class TCWirelessLink(WirelessIntf):
-    "Link with symmetric TC interfaces configured via opts"
-
-    def __init__(self, node, port=None, intfName=None,
-                 addr=None, cls=WirelessLink, **params):
-        if cls == TCWirelessLink:
-            cls = WirelessLink
-        WirelessIntf.__init__(self, node=node, port=port,
-                              intfName=intfName, cls=cls,
-                              addr=addr, **params)
-
-
-class master(WirelessLink):
-    "master class"
-
-    def __init__(self, node, wlan, port=None, intf=None):
-        WirelessLink.set_attrs(self, node, wlan)
-        self.name = node.params['wlan'][wlan]
-        node.addWAttr(self, port=port)
-        self.params = {}
-        self.stationsInRange = {}
-        self.vssid = []
-        self.vifaces = []
-        self.associatedStations = []
-        self.bssid_list = []
-        self.auth_algs = None
-        self.authmode = None
-        self.beacon_int = None
-        self.client_isolation = None
-        self.config = None
-        self.config_methods = None
-        self.country_code = 'US'
-        self.device_type = None
-        self.encrypt = None
-        self.freq = None
-        self.ht_capab = None
-        self.ifb = None
-        self.ieee80211r = None
-        self.ieee80211w = None
-        self.ignore_broadcast_ssid = None
-        self.macaddr_acl = None
-        self.mobility_domain = None
-        self.passwd = None
-        self.rsn_pairwise = None
-        self.radius_server = None
-        self.shared_secret = None
-        self.vht_capab = None
-        self.wpa_key_mgmt = None
-        self.wps_state = None
-        self.wpa_psk_file = None
-        self.wep_key0 = None
-        self.link = None
-        self.band = 20  # bandwidth channel
-        self.consumption = 0.0
-        self.voltage = 10.0
-        self.assign_params_to_intf(intf, wlan)
-
-
-class VirtualMaster(master):
-    "master class"
-
-    def __init__(self, node, wlan, port=None, intf=None):
-        WirelessLink.set_attrs(self, node, wlan)
-        self.name = intf
-        node.addWAttr(self, port=port)
-        self.params = {}
-        self.stationsInRange = {}
-        self.vssid = []
-        self.vifaces = []
-        self.associatedStations = []
-        self.ifb = None
-        self.auth_algs = None
-        self.authmode = None
-        self.freq = None
-        self.beacon_int = None
-        self.config = None
-        self.config_methods = None
-        self.encrypt = None
-        self.ht_capab = None
-        self.vht_capab = None
-        self.ieee80211r = None
-        self.ieee80211w = None
-        self.client_isolation = None
-        self.mobility_domain = None
-        self.passwd = None
-        self.shared_secret = None
-        self.wpa_key_mgmt = None
-        self.rsn_pairwise = None
-        self.radius_server = None
-        self.wps_state = None
-        self.device_type = None
-        self.wpa_psk_file = None
-        self.wep_key0 = None
-        self.link = None
-        self.assign_params_to_intf(intf, wlan)
-
-
-class phyAP(WirelessLink):
-    "phyap class"
-
-    def __init__(self, node, wlan, port=None, intf=None):
-        WirelessLink.set_attrs(self, node, wlan)
-        self.name = node.params['wlan'][wlan]
-        node.addWAttr(self, port=port)
-        self.params = {}
-        self.stationsInRange = {}
-        self.vssid = []
-        self.vifaces = []
-        self.associatedStations = []
-        self.bssid_list = []
-        self.ifb = None
-        self.auth_algs = None
-        self.authmode = None
-        self.freq = None
-        self.beacon_int = None
-        self.config = None
-        self.config_methods = None
-        self.country_code = 'US'
-        self.encrypt = None
-        self.ht_capab = None
-        self.vht_capab = None
-        self.ieee80211r = None
-        self.ieee80211w = None
-        self.client_isolation = None
-        self.mobility_domain = None
-        self.passwd = None
-        self.shared_secret = None
-        self.wpa_key_mgmt = None
-        self.rsn_pairwise = None
-        self.radius_server = None
-        self.wps_state = None
-        self.device_type = None
-        self.wpa_psk_file = None
-        self.wep_key0 = None
-        self.link = None
-        self.band = 20  # bandwidth channel
-        self.assign_params_to_intf(intf, wlan)
-
-
-class managed(WirelessLink):
-    "managed class"
-
-    def __init__(self, node, wlan, intf=None):
-        WirelessLink.set_attrs(self, node, wlan)
-        self.name = node.params['wlan'][wlan]
-        node.addWIntf(self, port=wlan)
-        node.addWAttr(self, port=wlan)
-        self.apsInRange = {}
-        self.associatedTo = None
-        self.authmode = None
-        self.active_scan = None
-        self.beacon_int = None
-        self.client_isolation = None
-        self.config = None
-        self.country_code = None
-        self.encrypt = None
-        self.freq_list = None
-        self.ieee80211w = None
-        self.ieee80211r = None
-        self.ifb = None
-        self.wps_state = None
-        self.ht_capab = None
-        self.vht_capab = None
-        self.macaddr_acl = None
-        self.params = {}
-        self.ignore_broadcast_ssid = None
-        self.link = None
-        self.passwd = None
-        self.radius_identity = None
-        self.radius_passwd = None
-        self.scan_freq = None
-        self.bgscan_module = None
-        self.s_inverval = 0  # short interval
-        self.l_interval = 0  # long interval
-        self.bgscan_threshold = 0
-        self.consumption = 0.0
-        self.voltage = 10.0
-        self.band = 20  # bandwidth channel
-        self.rssi = -60
-        self.assign_params_to_intf(intf, wlan)
-
-
-class _4addrClient(WirelessLink):
-    "managed class"
-
-    def __init__(self, node, wlan):
-        self.node = node
-        self.id = wlan
-        self.ip = None
-        self.freq = node.wintfs[0].freq
-        self.mac = node.wintfs[wlan - 1].mac
-        self.range = node.wintfs[0].range
-        self.static_range = node.wintfs[0].static_range
-        self.txpower = node.wintfs[wlan - 1].txpower
-        self.antennaGain = 5.0
-        self.name = node.params['wlan'][wlan]
-        self.stationsInRange = {}
-        self.associatedStations = []
-        self.apsInRange = {}
-        self.params = {}
-        # node.addWIntf(self, port=wlan)
-        node.addWAttr(self, port=wlan)
-
-
-class _4addrAP(WirelessLink):
-    "managed class"
-
-    def __init__(self, node, wlan):
-        self.node = node
-        self.ip = None
-        self.id = wlan
-        self.freq = node.wintfs[0].freq
-        self.mac = node.wintfs[0].mac
-        self.range = node.wintfs[0].range
-        self.static_range = node.wintfs[0].static_range
-        self.txpower = node.wintfs[0].txpower
-        self.antennaGain = 5.0
-        self.name = node.params['wlan'][wlan]
-        self.stationsInRange = {}
-        self.associatedStations = []
-        self.params = {}
-        # node.addWIntf(self, port=wlan)
-        node.addWAttr(self, port=wlan)
-
-
-class wmediumd(object):
-    positions = []
-    txpowers = []
-    links = []
-    mac_list = []
+class model(Mobility):
 
     def __init__(self, **kwargs):
-        self.configWmediumd(**kwargs)
+        self.start_thread(**kwargs)
 
-    def configWmediumd(self, wlinks, fading_cof, noise_th, stations,
-                       aps, cars, ppm, mediums):
-        "Configure wmediumd"
-        intfrefs = []
-        isnodeaps = []
-        intfs = {}
-        intf_ids = {}
-        nodes = stations + aps + cars
-        intf_id = 0
-        for node in nodes:
-            node.wmIfaces = []
+    def start_thread(self, **kwargs):
+        debug('Starting mobility thread...\n')
+        Mobility.thread_ = thread(name='mobModel', target=self.models, kwargs=kwargs)
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
+        self.set_wifi_params()
 
-            if 'vssids' in node.params:
-                for intf in list(node.wintfs.values()):
-                    if isinstance(node.params['vssids'], list):
-                        vssids = node.params['vssids'][0].split(',')
-                    else:
-                        vssids = node.params['vssids'].split(',')
-                    for id, vif in enumerate(range(len(vssids))):
-                        iface = '{}-{}'.format(intf.name, id)
-                        TCWirelessLink(intf.node, intfName=iface)
-                        VirtualMaster(intf.node, intf.id, intf=iface)
+    def models(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
+               draw=False, seed=1, mob_model='RandomWalk',
+               min_wt=1, max_wt=5, max_x=100, max_y=100, **kwargs):
+        "Used when a mobility model is set"
+        np.random.seed(seed)
+        self.ac = kwargs.get('ac_method', None)
+        n_groups = kwargs.get('n_groups', 1)
+        self.stations, self.mobileNodes, self.aps = stations, stations, aps
 
-            for id, intf in enumerate(node.wintfs.values()):
-                if not intf.mac:
-                    intf.mac = node.wintfs[0].mac[:-1] + str(id)
+        for node in mob_nodes:
+            args = {'min_x': 0, 'min_y': 0,
+                    'max_x': max_x, 'max_y': max_y,
+                    'min_v': 10, 'max_v': 10}
+            for key in args.keys():
+                setattr(node, key, node.params.get(key, args[key]))
 
-                if intf.mac not in self.mac_list and not isinstance(intf, phyAP):
-                    intf.wmIface = DynamicIntfRef(node, intf=intf.name)
-                    intfrefs.append(intf.wmIface)
-                    node.wmIfaces.append(intf.wmIface)
-                    intfs[intf.name] = intf
-                    intf_ids[intf.name] = intf_id
-                    intf_id += 1
-                    if isinstance(intf, master) or \
-                            (node in aps and (not isinstance(intf, (managed, adhoc)))):
-                        isnodeaps.append(1)
-                    else:
-                        isnodeaps.append(0)
-                    self.mac_list.append(intf.mac)
+        if draw:
+            nodes = mob_nodes + stat_nodes
+            PlotGraph(nodes=nodes, max_x=max_x, max_y=max_y, **kwargs)
 
-        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            self.interference(nodes)
-        elif wmediumd_mode.mode == w_cst.SPECPROB_MODE:
+        if not mob_nodes:
+            if draw:
+                PlotGraph.pause()
+            return
+
+        debug('Configuring the mobility model %s\n' % mob_model)
+        if mob_model == 'RandomWalk':  # Random Walk model
+            for node in mob_nodes:
+                array_ = ['constantVelocity', 'constantDistance']
+                for param in array_:
+                    if not hasattr(node, param):
+                        setattr(node, param, 1)
+            mob = random_walk(mob_nodes)
+        elif mob_model == 'TruncatedLevyWalk':  # Truncated Levy Walk model
+            mob = truncated_levy_walk(mob_nodes)
+        elif mob_model == 'RandomDirection':  # Random Direction model
+            mob = random_direction(mob_nodes, dimensions=(max_x, max_y))
+        elif mob_model == 'RandomWayPoint':  # Random Waypoint model
+            for node in mob_nodes:
+                array_ = ['constantVelocity', 'constantDistance',
+                          'min_v', 'max_v']
+                for param in array_:
+                    if not hasattr(node, param):
+                        setattr(node, param, '1')
+            mob = random_waypoint(mob_nodes, wt_min=min_wt, wt_max=max_wt)
+        elif mob_model == 'GaussMarkov':  # Gauss-Markov model
+            mob = gauss_markov(mob_nodes, alpha=0.99)
+        elif mob_model == 'ReferencePoint':  # Reference Point Group model
+            mob = reference_point_group(mob_nodes, n_groups,
+                                        dimensions=(max_x, max_y),
+                                        aggregation=0.5)
+        elif mob_model == 'TimeVariantCommunity':
+            mob = tvc(mob_nodes, n_groups, dimensions=(max_x, max_y),
+                      aggregation=[0.5, 0.], epoch=[100, 100])
+        elif mob_model == 'CRP':
+            mob = coherence_ref_point(mob_nodes, n_groups, (max_x, max_y),
+                                      kwargs['pointlist'])
+        else:
+            raise Exception("Mobility Model not defined or doesn't exist!")
+
+        current_time = time()
+        while (time() - current_time) < kwargs['mob_start_time']:
             pass
-        elif wmediumd_mode.mode == w_cst.ERRPROB_MODE:
-            self.error_prob(wlinks)
-        else:
-            self.snr(wlinks, noise_th)
-        mediums_id_list = []
-        for medium_index, medium_elements in enumerate(mediums):
-            medium_id = medium_index + 1  # Default one is 0
-            medium_intf_ids = []
-            for node in medium_elements:
-                if isinstance(node, str):
-                    # Node is a interface
-                    medium_intf_ids.append(intf_ids[node])
-                    intfs[node].medium_id = medium_id
-                else:
-                    # Node is station or AP
-                    for interface in node.wintfs.values():
-                        medium_intf_ids.append(intf_ids[interface.name])
-                        interface.medium_id = medium_id
-            mediums_id_list.append(medium_intf_ids)
-        WStarter(intfrefs=intfrefs, links=self.links, pos=self.positions,
-                 fading_cof=fading_cof, noise_th=noise_th, txpowers=self.txpowers,
-                 isnodeaps=isnodeaps, ppm=ppm, mediums=mediums_id_list)
 
-    @staticmethod
-    def get_position(pos=None):
-        if pos: return float(pos[0]), float(pos[1]), float(pos[2])
-        return 0, 0, 0
-
-    def interference(self, nodes):
-        for node in nodes:
-            posX, posY, posZ = self.get_position(node.position) \
-                if hasattr(node, 'position') else self.get_position()
-            node.lastpos = [posX, posY, posZ]
-
-            for wlan, intf in enumerate(node.wintfs.values()):
-                if intf.mac in self.mac_list and not isinstance(intf, (phyAP, _4addrAP)):
-                    if wlan >= 1: posX += 0.1
-                    self.positions.append(w_pos(intf.wmIface, [posX, posY, posZ]))
-                    self.txpowers.append(w_txpower(intf.wmIface, int(intf.txpower)))
-
-    def error_prob(self, wlinks):
-        for link in wlinks:
-            link0, link1 = link[0].wmIface, link[1].wmIface
-            self.links.append(ERRPROBLink(link0, link1, link[2]))
-            self.links.append(ERRPROBLink(link1, link0, link[2]))
-
-    def snr(self, wlinks, noise_th):
-        for link in wlinks:
-            link0, link1 = link[0].wmIface, link[1].wmIface
-            self.links.append(SNRLink(link0, link1, link[0].rssi - noise_th))
-            self.links.append(SNRLink(link1, link0, link[0].rssi - noise_th))
-
-
-class LinkAttrs(WirelessLink):
-
-    def __init__(self, node, intf, wlan):
-        self.node = node
-        self.antennaGain = intf.antennaGain
-        self.antennaHeight = intf.antennaHeight
-        self.band = intf.band
-        self.country_code = intf.country_code
-        self.encrypt = intf.encrypt
-        self.freq = intf.freq
-        self.id = wlan
-        self.ip6 = intf.ip6
-        self.ip = intf.ip
-        self.prefixLen = intf.prefixLen
-        self.prefixLen6 = intf.prefixLen6
-        self.link = intf.link
-        self.mac = intf.mac
-        self.txpower = intf.txpower
-        self.range = intf.range
-        self.static_range = intf.static_range
-        self.consumption = 0.0
-        self.voltage = 10.0
-
-    def check_channel_band(self, ht_cap):
-        if '40' in ht_cap:
-            self.band = 40
-        elif '80' in ht_cap:
-            self.band = 80
-        elif '160' in ht_cap:
-            self.band = 160
-        if 'band' in self.node.params:
-            del self.node.params['band']
-
-    def delete(self):
-        "Delete this link"
-        self.intf1.delete()
-        self.intf1 = None
-        self.intf2 = None
-
-    def stop(self):
-        "Override to stop and clean up link as needed"
-        self.delete()
-
-    def status(self):
-        "Return link status as a string"
-        return "({} {})".format(self.intf1.status(), self.intf2)
-
-    def __str__(self):
-        return '{}<->{}'.format(self.intf1, self.intf2)
-
-
-class ITSLink(LinkAttrs):
-
-    def __init__(self, node, intf=None, proto_args='', **params):
-        "configure ieee80211p"
-        intf = node.getNameToWintf(intf)
-        wlan = node.params['wlan'].index(intf.name)
-        LinkAttrs.__init__(self, node, intf, wlan)
-
-        if isinstance(self, master):
-            self.kill_hostapd()
-
-        self.node = node
-        self.name = intf.name
-        self.mode = 'a'
-        self.mac = intf.mac
-        self.associatedTo = 'ITS'
-
-        # It takes default values if keys are not set
-        kwargs = {'channel': '181', 'band': 10, 'proto': None, 'txpower': 17}
-
-        for k, v in kwargs.items():
-            setattr(self, k, params.get(k, v))
-
-        self.freq = Getfreq(self.mode, self.channel).freq
-
-        if isinstance(intf, master):
-            self.name = '{}-ocb'.format(node.name)
-            self.add_ocb_mode()
-        else:
-            self.set_ocb_mode()
-
-        intf1 = WirelessLink(name=node.params['wlan'][wlan], node=node,
-                             link=self, port=wlan)
-        intf2 = 'ITS'
-
-        node.addWAttr(self, port=wlan)
-        intf.setTxPower(self.txpower)
-        self.configure_ocb()
-
-        if self.proto: manetProtocols(self, proto_args)
-
-        # All we are is dust in the wind, and our two interfaces
-        self.intf1, self.intf2 = intf1, intf2
-
-    def kill_hostapd(self):
-        self.node.setManagedMode(self)
-
-    def add_ocb_mode(self):
-        "Set OCB Interface"
-        self.ipLink('down')
-        self.node.delIntf(self.name)
-        self.add_dev_type(self.name, 'ocb')
-        # we set the port to remove the existing wlan from node.intfs
-        IntfWireless(name=self.name, node=self.node, port=1)
-        self.setMAC(self.name)
-        self.ipLink('up')
-
-    def set_ocb_mode(self):
-        "Set OCB Interface"
-        self.ipLink('down')
-        self.set_dev_type('ocb')
-        self.ipLink('up')
-
-    def configure_ocb(self):
-        "Configure Wireless OCB"
-        freq = int('{:<04s}'.format(str(self.freq).replace('.', '')))
-        self.iwdev_cmd('{} ocb join {} {}MHz'.format(self.name, freq, self.band))
-
-
-class WifiDirectLink(LinkAttrs):
-
-    def __init__(self, node, intf=None):
-        "configure wifi-direct"
-        intf = node.getNameToWintf(intf)
-        wlan = node.params['wlan'].index(intf.name)
-        LinkAttrs.__init__(self, node, intf, wlan)
-        self.name = intf.name
-
-        intf1 = WirelessLink(name=node.params['wlan'][wlan], node=node,
-                             link=self, port=wlan)
-        intf2 = 'wifiDirect'
-
-        # node.addWIntf(self, port=wlan)
-        node.addWAttr(self, port=wlan)
-
-        self.config_()
-        cmd = self.get_wpa_cmd()
-        node.cmd(cmd)
-
-        # All we are is dust in the wind, and our two interfaces
-        self.intf1, self.intf2 = intf1, intf2
-
-    def get_filename(self):
-        suffix = 'wifiDirect.conf'
-        pattern = "mn{}_{}_{}".format(getpid(), self.name, suffix)
-        return pattern
-
-    def get_wpa_cmd(self):
-        pattern = self.get_filename()
-        cmd = 'wpa_supplicant -B -Dnl80211 -c{} -i{}'.format(pattern, self.name)
-        return cmd
-
-    def config_(self):
-        pattern = self.get_filename()
-        cmd = "echo \'"
-        cmd += 'ctrl_interface=/var/run/wpa_supplicant\
-              \nap_scan=1\
-              \np2p_go_ht40=1\
-              \ndevice_name={}\
-              \ndevice_type=1-0050F204-1\
-              \np2p_no_group_iface=1'.format(self.name)
-        cmd += "\' > {}".format(pattern)
-        self.set_config(cmd)
-
-    @staticmethod
-    def set_config(cmd):
-        subprocess.check_output(cmd, shell=True)
-
-
-class PhysicalWifiDirectLink(WifiDirectLink):
-
-    def __init__(self, node, freq=2.412, txpower=14, intf=None):
-        "configure wifi-direct"
-        self.name = intf
-        self.node = node
-        self.txpower = txpower
-        self.freq = freq
-        self.antennaGain = 5
-        self.range = 100
-
-        intf1 = WirelessLink(name=self.name, node=node, link=self)
-        intf2 = 'wifiDirect'
-
-        node.addWAttr(self)
-
-        for wlan, intf in enumerate(node.wintfs.values()):
-            if intf.name == self.name: break
-
-        self.txpower = node.wintfs[0].txpower
-        node.params['wlan'].append(self.name)
-        self.mac = None
-
-        self.config_()
-        cmd = self.get_wpa_cmd()
-        sh(cmd)
-
-        # All we are is dust in the wind, and our two interfaces
-        self.intf1, self.intf2 = intf1, intf2
-
-
-class adhoc(LinkAttrs):
-    node = None
-
-    def __init__(self, node, intf, proto_args='', **params):
-        """Configure AdHoc
-        node: name of the node
-        self: custom association class/constructor
-        params: parameters for station"""
-        intf = node.getNameToWintf(intf)
-        wlan = node.params['wlan'].index(intf.name)
-
-        if isinstance(intf, master): intf.kill_hostapd_process()
-
-        LinkAttrs.__init__(self, node, intf, wlan)
-        self.associatedTo = 'adhoc'
-
-        # It takes default values if keys are not set
-        kwargs = {'ibss': '02:CA:FF:EE:BA:01', 'ht_cap': '',
-                  'passwd': None, 'ssid': 'adhocNet', 'proto': None,
-                  'mode': 'g', 'channel': 1, 'txpower': 15,
-                  'ap_scan': 2, 'bitrates': ''}
-
-        for k, v in kwargs.items():
-            setattr(self, k, params.get(k, v))
-
-        self.check_channel_band(self.ht_cap)
-
-        if intf and hasattr(intf, 'wmIface'):
-            self.wmIface = intf.wmIface
-
-        if 'mp' in intf.name:
-            self.iwdev_cmd('{} del'.format(intf.name))
-            node.params['wlan'][wlan] = intf.name.replace('mp', 'wlan')
-
-        self.name = intf.name
-
-        intf1 = WirelessLink(name=node.params['wlan'][wlan], node=node,
-                             link=self, port=wlan)
-        intf2 = 'wifiAdhoc'
-
-        node.addWAttr(self, port=wlan)
-
-        self.freq = Getfreq(self.mode, self.channel).freq
-        self.setReg()
-        self.configureAdhoc()
-
-        self.setTxPower(self.txpower)
-
-        if self.proto: manetProtocols(self, proto_args)
-
-        # All we are is dust in the wind, and our two interfaces
-        self.intf1, self.intf2 = intf1, intf2
-
-    def configureAdhoc(self):
-        "Configure Wireless Ad Hoc"
-        self.set_dev_type('ibss')
-        self.ipLink('up')
-
-        if self.passwd:
-            self.setSecuredAdhoc()
-        else:
-            if self.bitrates:
-                self.set_bitrates(self.bitrates)
-            self.join_ibss(self.ssid, self.format_freq(),
-                           self.ht_cap, self.ibss)
-
-    def get_sta_confname(self):
-        return '{}_0.staconf'.format(self.name)
-
-    def setSecuredAdhoc(self):
-        "Set secured adhoc"
-        cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
-        cmd += 'ap_scan={}\n'.format(self.ap_scan)
-        cmd += 'network={\n'
-        cmd += '         ssid="{}"\n'.format(self.ssid)
-        cmd += '         mode=1\n'
-        cmd += '         frequency={}\n'.format(self.format_freq())
-        cmd += '         proto=RSN\n'
-        cmd += '         key_mgmt=WPA-PSK\n'
-        cmd += '         pairwise=CCMP\n'
-        cmd += '         group=CCMP\n'
-        cmd += '         psk="{}"\n'.format(self.passwd)
-        cmd += '}'
-
-        pattern = self.get_sta_confname()
-        sh('echo \'{}\' > {}'.format(cmd, pattern))
-        self.cmd(self.get_wpa_cmd())
-
-
-class mesh(LinkAttrs):
-    node = None
-
-    def __init__(self, node, intf, proto_args='', **params):
-        from mn_wifi.node import AP
-        """Configure wireless mesh
-        node: name of the node
-        self: custom association class/constructor
-        params: parameters for node"""
-
-        phyWlan = 0
-        if 'vIface' in params:
-            phyWlan = int(intf[-1])
-            intf = intf[:-5] + 'mp' + str(phyWlan)
-        intf = node.getNameToWintf(intf)
-        wlan = node.params['wlan'].index(intf.name)
-
-        if isinstance(intf, master):
-            intf.kill_hostapd_process()
-
-        if 'vIface' in params:
-            wlan += len(node.params['wlan'])
-        if isinstance(node, AP) and isinstance(intf, mesh):
-            wlan -= 1
-
-        LinkAttrs.__init__(self, node, intf, wlan)
-        iface = intf
-
-        port = wlan + 1 if isinstance(node, AP) else wlan
-        if 'vIface' in params:
-            self.name = '{}-mp{}.{}'.format(node, phyWlan, port)
-        else:
-            self.name = '{}-mp{}'.format(node, port)
-        self.associatedTo = 'mesh'
-
-        # It takes default values if keys are not set
-        kwargs = {'ibss': '02:CA:FF:EE:BA:01', 'ht_cap': '',
-                  'passwd': None, 'ssid': 'meshNet', 'proto': None,
-                  'mode': 'g', 'channel': 1, 'txpower': 15}
-
-        for k, v in kwargs.items():
-            setattr(self, k, params.get(k, v))
-
-        self.check_channel_band(self.ht_cap)
-
-        if wlan > 0 and 'vIface' in params:
-            self.mac = intf.mac[:4] + str(wlan) + intf.mac[5:]
-            self.node.params['wlan'].append(self.name)
-            if wmediumd_mode.mode:
-                self.sendIntfTowmediumd()
-            # mp interface must be created before ethtool
-            self.iwdev_cmd(self.set_mesh_type(intf, phyWlan))
-        else:
-            self.wmIface = DynamicIntfRef(node, intf=self.name)
-            if wmediumd_mode.mode and wmediumd_mode.mode != w_cst.ERRPROB_MODE:
-                node.wmIfaces[wlan] = self.wmIface
-            self.node.cmd('ip link set {} down'.format(intf))
-            self.iwdev_cmd(self.set_mesh_type(intf, port))
-
-        intf1 = WirelessLink(name=self.name, node=node,
-                             link=self, port=port)
-        intf2 = 'wifiMesh'
-
-        node.addWAttr(self, port=wlan)
-        self.setTxPower(self.txpower)
-        if 'vIface' in params:
-            self.setMAC(self.mac)
-        else:
-            self.prepareMeshIface(wlan, iface)
-        self.configureMesh()
-
-        if self.proto:
-            manetProtocols(self, proto_args)
-
-        # All we are is dust in the wind, and our two interfaces
-        self.intf1, self.intf2 = intf1, intf2
-
-    def set_mesh_type(self, intf, phyWlan):
-        return '{}-wlan{} interface add {} type mp'.format(intf.node, phyWlan, self.name)
-
-    def prepareMeshIface(self, wlan, intf):
-        if isinstance(intf, adhoc): self.set_dev_type('managed')
-
-        self.setMAC(intf.mac)
-        self.node.params['wlan'][wlan] = self.name
-
-        self.setMeshChannel(self.channel)
-        self.setReg()
-
-        if self.ip:
-            self.setIP(self.ip, self.prefixLen)
-            self.cmd('ip link set lo up')
-
-    def configureMesh(self):
-        "Configure Wireless Mesh Interface"
-        if self.passwd:
-            self.setSecuredMesh()
-        else:
-            self.mesh_join(self.ssid, self.format_freq(), self.ht_cap)
-
-    def get_sta_confname(self):
-        return '{}.staconf'.format(self.name)
-
-    def setSecuredMesh(self):
-        "Set secured mesh"
-        cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
-        cmd += 'ctrl_interface_group=adm\n'
-        cmd += 'user_mpm=1\n'
-        cmd += 'network={\n'
-        cmd += '         ssid="{}"\n'.format(self.ssid)
-        cmd += '         mode=5\n'
-        cmd += '         frequency={}\n'.format(self.format_freq())
-        cmd += '         key_mgmt=SAE\n'
-        cmd += '         psk="{}"\n'.format(self.passwd)
-        cmd += '}'
-
-        pattern = self.get_sta_confname()
-        sh('echo \'{}\' > {}'.format(cmd, pattern))
-
-
-class physicalMesh(IntfWireless):
-
-    def __init__(self, node, intf=None, channel=1, ssid='meshNet',
-                 ht_cap='', freq=2.412):
-        """Configure wireless mesh
-        node: name of the node
-        self: custom association class/constructor
-        params: parameters for node"""
-        wlan = 0
-        self.name = ''
-        self.node = node
-        self.ssid = ssid
-        self.ht_cap = ht_cap
-        self.channel = channel
-        self.freq = freq
-
-        node.wintfs[wlan].ssid = ssid
-        if int(node.wintfs[wlan].range) == 0:
-            intf = node.params['wlan'][wlan]
-            node.setDefaultRange(intf)
-            node.wintfs[wlan].range = intf.range
-
-        self.name = intf
-        self.setPhysicalMeshIface(node, wlan, intf)
-        self.setMeshChannel(channel)
-        self.ipLink('up')
-        self.freq = self.format_freq()
-        self.mesh_join(self.ssid, self.freq, self.ht_cap)
-
-    def ipLink(self, state=None):
-        "Configure ourselves using ip link"
-        sh('ip link set {} {}'.format(self.name, state))
-
-    def setPhysicalMeshIface(self, node, wlan, intf):
-        iface = 'phy{}-mp{}'.format(node, wlan)
-        self.ipLink('down')
-        while True:
-            id = ''
-            cmd = 'ip link show | grep {}'.format(iface)
-            try:
-                id = subprocess.check_output(cmd, shell=True).split('\n')
-            except:
+        self.start_mob_mod(mob, mob_nodes, draw)
+
+    def start_mob_mod(self, mob, nodes, draw):
+        """
+        :param mob: mobility params
+        :param nodes: list of nodes
+        """
+        for xy in mob:
+            for idx, node in enumerate(nodes):
+                pos = round(xy[idx][0], 2), round(xy[idx][1], 2), 0.0
+                self.set_pos(node, pos)
+                if draw:
+                    node.update_2d()
+            if draw:
+                PlotGraph.pause()
+            else:
+                sleep(0.5)
+            while self.pause_simulation:
                 pass
-            if len(id) == 0:
-                cmd = 'iw dev {} interface add {} type mp'.format(intf, iface)
-                self.name = iface
-                subprocess.check_output(cmd, shell=True)
+
+
+class Tracked(Mobility):
+    "Used when the position of each node is previously defined"
+
+    def __init__(self, **kwargs):
+        self.start_thread(**kwargs)
+
+    def start_thread(self, **kwargs):
+        debug('Starting mobility thread...\n')
+        Mobility.thread_ = thread(target=self.configure, kwargs=kwargs)
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
+        self.set_wifi_params()
+
+    def configure(self, stations, aps, stat_nodes, mob_nodes,
+                  draw, **kwargs):
+        self.ac = kwargs.get('ac_method', None)
+        self.stations = stations
+        self.aps = aps
+        self.mobileNodes = mob_nodes
+        nodes = stations + aps
+
+        for node in mob_nodes:
+            node.position = node.params['initPos']
+            node.matrix_id = 0
+            node.time = node.startTime
+
+        dim = 'update_2d'
+        if draw:
+            kwargs['nodes'] = stat_nodes + mob_nodes
+            PlotGraph(**kwargs)
+            if hasattr(PlotGraph, 'plot3d'):
+                dim = 'update_3d'
+
+        coordinate = {}
+        for node in nodes:
+            if hasattr(node, 'coord'):
+                coordinate[node] = self.set_coordinates(node)
+        self.run(mob_nodes, draw, coordinate, dim, **kwargs)
+
+    def run(self, mob_nodes, draw, coordinate, dim, mob_start_time=0,
+            mob_stop_time=10, reverse=False, mob_rep=1, **kwargs):
+
+        for rep in range(mob_rep):
+            t1 = time()
+            i = 0.1
+            if reverse:
+                for node in mob_nodes:
+                    if rep % 2 == 1 or (rep % 2 == 0 and rep > 0):
+                        fin_pos = node.params['finPos']
+                        node.params['finPos'] = node.params['initPos']
+                        node.params['initPos'] = fin_pos
+
+            if not coordinate:
+                coordinate = {}
+                for node in mob_nodes:
+                    self.calculate_diff_time(node)
+                    coordinate[node] = self.create_coord(node, tracked=True)
+
+            while mob_start_time <= time() - t1 <= mob_stop_time:
+                t2 = time()
+                if t2 - t1 >= i:
+                    for node, pos in coordinate.items():
+                        if (t2 - t1) >= node.startTime and node.time <= node.endTime:
+                            node.matrix_id += 1
+                            if node.matrix_id < len(coordinate[node]):
+                                pos = pos[node.matrix_id]
+                            else:
+                                pos = pos[len(coordinate[node]) - 1]
+                            self.set_pos(node, pos)
+                            node.time += 0.1
+                            if draw:
+                                node_update = getattr(node, dim)
+                                node_update()
+                    PlotGraph.pause()
+                    i += 0.1
+                while self.pause_simulation:
+                    pass
+            if rep == mob_rep:
+                self.thread_._keep_alive = False
+
+    @staticmethod
+    def get_total_displacement(node):
+        x, y, z = 0, 0, 0
+        for num, coord in enumerate(node.coord):
+            if num > 0:
+                c0 = node.coord[num].split(',')
+                c1 = node.coord[num-1].split(',')
+                x += abs(float(c0[0]) - float(c1[0]))
+                y += abs(float(c0[1]) - float(c1[1]))
+                z += abs(float(c0[2]) - float(c1[2]))
+        return (x, y, z)
+
+    def create_coord(self, node, tracked=False):
+        coord = []
+        if tracked:
+            pos = node.position
+            for _ in range((node.endTime - node.startTime) * 10):
+                x = round(pos[0], 2) + round(node.moveFac[0], 2)
+                y = round(pos[1], 2) + round(node.moveFac[1], 2)
+                z = round(pos[2], 2) + round(node.moveFac[2], 2) if len(pos)==3 else 0
+                pos = (x, y, z)
+                coord.append((x, y, z))
+        else:
+            for idx in range(len(node.coord) - 1):
+                coord.append([node.coord[idx], node.coord[idx + 1]])
+        return coord
+
+    def dir(self, p1, p2):
+        if p1 > p2:
+            return False
+        return True
+
+    def mob_time(self, node):
+        t1 = node.startTime
+        if hasattr(node, 'time'):
+            t1 = node.time
+        t2 = node.endTime
+        t = t2 - t1
+        return t
+
+    def get_points(self, node, a0, a1, total):
+        x1, y1 = float(a0[0]), float(a0[1])
+        z1 = float(a0[2]) if len(a0) > 2 else float(0)
+       
+        x2, y2 = float(a1[0]), float(a1[1])
+        z2 = float(a1[2]) if len(a1) > 2 else float(0)
+        points = []
+        perc_dif = []
+        ldelta = [0, 0, 0]
+        faxes = [x1, y1, z1]  # first reference point
+        laxes = [x2, y2, z2]  # last refence point
+        dif = [abs(x2-x1), abs(y2-y1), abs(z2-z1)]   # difference first and last axes
+        for n in dif:
+            if n == 0:
+                perc_dif.append(0)
+            else:
+                # we get the difference among axes to calculate the speed
+                perc_dif.append((n * 100) / total[dif.index(n)])
+
+        dmin = min(x for x in perc_dif if x != 0)
+        t = self.mob_time(node) * 1000  # node simulation time
+        dt = t * (dmin / 100)
+
+        for n in perc_dif:
+            if n != 0:
+                ldelta[perc_dif.index(n)] = dif[perc_dif.index(n)] / dt
+
+        # direction of the node
+        dir = (self.dir(x1, x2), self.dir(y1, y2), self.dir(z1, z2))
+
+        for n in np.arange(0, dt, 1):
+            for delta in ldelta:
+                if dir[ldelta.index(delta)]:
+                    if n < dt - 1:
+                        faxes[ldelta.index(delta)] += delta
+                    else:
+                        faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
+                else:
+                    if n < dt - 1:
+                        faxes[ldelta.index(delta)] -= delta
+                    else:
+                        faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
+            points.append(self.get_position(faxes))
+        return points
+
+    def set_coordinates(self, node):
+        coord = self.create_coord(node)
+        total = self.get_total_displacement(node)
+        points = []
+        for c in coord:
+            a0 = c[0].split(',')
+            a1 = c[1].split(',')
+            points += (self.get_points(node, a0, a1, total))
+
+        t = self.mob_time(node) * 10
+        interval = len(points) / t
+        pointsL = []
+        for id in np.arange(0, len(points), interval):
+            if id < len(points) - interval:
+                pointsL.append(points[int(id)])
+            else:
+                # set the last position according to the coordinates
+                pointsL.append(points[int(len(points)-1)])
+        return pointsL
+
+
+# coding: utf-8
+#
+#  Copyright (C) 2008-2010 Istituto per l'Interscambio Scientifico I.S.I.
+#  You can contact us by email (isi@isi.it) or write to:
+#  ISI Foundation, Viale S. Severo 65, 10133 Torino, Italy.
+#
+#  This program was written by Andre Panisson <panisson@gmail.com>
+#
+'''
+Created on Jan 24, 2012
+Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+@author: Andre Panisson
+@contact: panisson@gmail.com
+@organization: ISI Foundation, Torino, Italy
+@source: https://github.com/panisson/pymobility
+@copyright: http://dx.doi.org/10.5281/zenodo.9873
+'''
+
+# define a Uniform Distribution
+U = lambda MIN, MAX, SAMPLES: rand(*SAMPLES.shape) * (MAX - MIN) + MIN
+
+# define a Truncated Power Law Distribution
+P = lambda ALPHA, MIN, MAX, SAMPLES: ((MAX ** (ALPHA + 1.) - 1.) * \
+                                      rand(*SAMPLES.shape) + 1.) ** (1. / (ALPHA + 1.))
+
+# define an Exponential Distribution
+E = lambda SCALE, SAMPLES: -SCALE * np.log(rand(*SAMPLES.shape))
+
+
+# *************** Palm state probability **********************
+def pause_probability_init(wt_min, wt_max, min_v,
+                           max_v, dimensions):
+    np.seterr(divide='ignore', invalid='ignore')
+    alpha1 = ((wt_max + wt_min) * (max_v - min_v)) / \
+             (2 * np.log(max_v / min_v))
+    delta1 = np.sqrt(np.sum(np.square(dimensions)))
+    return alpha1 / (alpha1 + delta1)
+
+# *************** Palm residual ******************************
+def residual_time(mean, delta, shape=(1,)):
+    t1 = mean - delta
+    t2 = mean + delta
+    u = rand(*shape)
+    residual = np.zeros(shape)
+    if delta != 0.0:
+        case_1_u = u < (2. * t1 / (t1 + t2))
+        residual[case_1_u] = u[case_1_u] * (t1 + t2) / 2.
+        residual[np.logical_not(case_1_u)] = \
+            t2 - np.sqrt((1. - u[np.logical_not(case_1_u)]) * (t2 * t2 - t1 * t1))
+    else:
+        residual = u * mean
+    return residual
+
+
+# *********** Initial speed ***************************
+def initial_speed(speed_mean, speed_delta, shape=(1,)):
+    v0 = speed_mean - speed_delta
+    v1 = speed_mean + speed_delta
+    u = rand(*shape)
+    return pow(v1, u) / pow(v0, u - 1)
+
+
+def init_random_waypoint(nr_nodes, dimensions, min_v, max_v,
+                         wt_min, wt_max):
+
+    x = np.empty(nr_nodes)
+    y = np.empty(nr_nodes)
+    x_waypoint = np.empty(nr_nodes)
+    y_waypoint = np.empty(nr_nodes)
+    speed = np.empty(nr_nodes)
+    pause_time = np.empty(nr_nodes)
+    moving = np.ones(nr_nodes)
+    speed_mean, speed_delta = (min_v + max_v) / 2., (max_v - min_v) / 2.
+    pause_mean, pause_delta = (wt_min + wt_max) / 2., (wt_max - wt_min) / 2.
+
+    # steady-state pause probability for Random Waypoint
+    q0 = pause_probability_init(wt_min, wt_max, min_v, max_v, dimensions)
+
+    max_x = dimensions[0]
+    max_y = dimensions[1]
+    for i in range(nr_nodes):
+        while True:
+            if rand() < q0[i]:
+                # moving[i] = 0.
+                # speed_mean = np.delete(speed_mean, i)
+                # speed_delta = np.delete(speed_delta, i)
+                # M_0
+                x1 = rand() * max_x[i]
+                x2 = rand() * max_x[i]
+                # M_1
+                y1 = rand() * max_y[i]
+                y2 = rand() * max_y[i]
                 break
+
+            # M_0
+            x1 = rand() * max_x[i]
+            x2 = rand() * max_x[i]
+            # M_1
+            y1 = rand() * max_y[i]
+            y2 = rand() * max_y[i]
+
+            # r is a ratio of the length of the randomly chosen path over
+            # the length of a diagonal across the simulation area
+            r = np.sqrt(((x2 - x1) * (x2 - x1) +
+                         (y2 - y1) * (y2 - y1)) / \
+                        (max_x[i] * max_x[i] +
+                         max_y[i] * max_y[i]))
+            if rand() < r:
+                moving[i] = 1.
+                break
+
+        x[i] = x1
+        y[i] = y1
+
+        x_waypoint[i] = x2
+        y_waypoint[i] = y2
+
+    # steady-state positions
+    # initially the node has traveled a proportion u2 of the path from (x1,y1) to (x2,y2)
+    u2 = rand(*x.shape)
+    x[:] = u2 * x + (1 - u2) * x_waypoint
+    y[:] = u2 * y + (1 - u2) * y_waypoint
+
+    # steady-state speed and pause time
+    paused_bool = moving == 0.
+    paused_idx = np.where(paused_bool)[0]
+    pause_time[paused_idx] = residual_time(pause_mean, pause_delta, paused_idx.shape)
+    speed[paused_idx] = 0.0
+
+    moving_bool = np.logical_not(paused_bool)
+    moving_idx = np.where(moving_bool)[0]
+    pause_time[moving_idx] = 0.0
+    speed[moving_idx] = initial_speed(speed_mean, speed_delta, moving_idx.shape)
+
+    return x, y, x_waypoint, y_waypoint, speed, pause_time
+
+
+class RandomWaypoint(object):
+    def __init__(self, nodes, wt_min=None, wt_max=None):
+        """
+        Random Waypoint model.
+        Required arguments:
+          *nr_nodes*:
+            Integer, the number of nodes.
+          *dimensions*:
+            Tuple of Integers, the x and y dimensions of the simulation area.
+        keyword arguments:
+          *velocity*:
+            Tuple of Integers, the minimum and maximum values for node velocity.
+          *wt_max*:
+            Integer, the maximum wait time for node pauses.
+            If wt_max is 0 or None, there is no pause time.
+        """
+        self.nodes = nodes
+        self.nr_nodes = len(nodes)
+        self.wt_min = wt_min
+        self.wt_max = wt_max
+        self.init_stationary = True
+
+    def __iter__(self):
+
+        NODES = np.arange(self.nr_nodes)
+
+        MAX_V = U(0, 0, NODES)
+        MIN_V = U(0, 0, NODES)
+        MAX_X = U(0, 0, NODES)
+        MAX_Y = U(0, 0, NODES)
+        MIN_X = U(0, 0, NODES)
+        MIN_Y = U(0, 0, NODES)
+
+        for node in range(self.nr_nodes):
+            MAX_V[node] = self.nodes[node].max_v / 10.
+            MIN_V[node] = self.nodes[node].min_v / 10.
+            MAX_X[node] = self.nodes[node].max_x
+            MAX_Y[node] = self.nodes[node].max_y
+            MIN_X[node] = self.nodes[node].min_x
+            MIN_Y[node] = self.nodes[node].min_y
+
+        dimensions = (MAX_X, MAX_Y)
+
+        if self.init_stationary:
+            x, y, x_waypoint, y_waypoint, velocity, wt = \
+                init_random_waypoint(self.nr_nodes, dimensions,
+                                     MIN_V, MAX_V, self.wt_min, self.wt_max)
+
+        else:
+            NODES = np.arange(self.nr_nodes)
+            x = U(MIN_X, MAX_X, NODES)
+            y = U(MIN_Y, MAX_Y, NODES)
+            x_waypoint = U(MIN_X, MAX_X, NODES)
+            y_waypoint = U(MIN_Y, MAX_Y, NODES)
+            wt = np.zeros(self.nr_nodes)
+            velocity = U(MIN_V, MAX_V, NODES)
+
+        theta = np.arctan2(y_waypoint - y, x_waypoint - x)
+        costheta = np.cos(theta)
+        sintheta = np.sin(theta)
+
+        while True:
+            # update node position
+            x += velocity * costheta
+            y += velocity * sintheta
+
+            # calculate distance to waypoint
+            d = np.sqrt(np.square(y_waypoint - y) + np.square(x_waypoint - x))
+            # update info for arrived nodes
+            arrived = np.where(np.logical_and(d <= velocity, wt <= 0.))[0]
+
+            # step back for nodes that surpassed waypoint
+            x[arrived] = x_waypoint[arrived]
+            y[arrived] = y_waypoint[arrived]
+
+            if self.wt_max:
+                velocity[arrived] = 0.
+                wt[arrived] = U(self.wt_min, self.wt_max, arrived)
+                # update info for paused nodes
+                wt[np.where(velocity == 0.)[0]] -= 1.
+                # update info for moving nodes
+                arrived = np.where(np.logical_and(velocity == 0., wt < 0.))[0]
+
+            if arrived.size > 0 and len(arrived) == 1:
+                wx = U(MIN_X, MAX_X, arrived)
+                x_waypoint[arrived] = wx[arrived]
+                wy = U(MIN_Y, MAX_Y, arrived)
+                y_waypoint[arrived] = wy[arrived]
+                v = U(MIN_V, MAX_V, arrived)
+                velocity[arrived] = v[arrived]
+                theta[arrived] = np.arctan2(y_waypoint[arrived] - y[arrived],
+                                            x_waypoint[arrived] - x[arrived])
+                costheta[arrived] = np.cos(theta[arrived])
+                sintheta[arrived] = np.sin(theta[arrived])
+
+            self.velocity = velocity
+            self.wt = wt
+            yield np.dstack((x, y))[0]
+
+
+class StochasticWalk(object):
+    def __init__(self, nodes, FL_DISTR, VEL_DISTR, WT_DISTR=None,
+                 border_policy='reflect', model=None):
+        """
+        Base implementation for models with direction uniformly chosen from [0,pi]:
+        random_direction, random_walk, truncated_levy_walk
+        Required arguments:
+          *nr_nodes*:
+            Integer, the number of nodes.
+          *dimensions*:
+            Tuple of Integers, the x and y dimensions of the simulation area.
+          *FL_DISTR*:
+            A function that, given a set of samples,
+             returns another set with the same size of the input set.
+            This function should implement the distribution of flight lengths
+             to be used in the model.
+          *VEL_DISTR*:
+            A function that, given a set of flight lengths,
+             returns another set with the same size of the input set.
+            This function should implement the distribution of velocities
+             to be used in the model, as random or as a function of the flight
+             lengths.
+        keyword arguments:
+          *WT_DISTR*:
+            A function that, given a set of samples,
+             returns another set with the same size of the input set.
+            This function should implement the distribution of wait times
+             to be used in the node pause.
+            If WT_DISTR is 0 or None, there is no pause time.
+          *border_policy*:
+            String, either 'reflect' or 'wrap'. The policy that is used when
+            the node arrives to the border.
+            If 'reflect', the node reflects off the border.
+            If 'wrap', the node reappears at the opposite edge
+            (as in a torus-shaped area).
+        """
+        self.b = [0]
+        self.nodes = nodes
+        self.collect_fl_stats = False
+        self.collect_wt_stats = False
+        self.border_policy = border_policy
+        self.nr_nodes = len(nodes)
+        self.FL_DISTR = FL_DISTR
+        self.VEL_DISTR = VEL_DISTR
+        self.WT_DISTR = WT_DISTR
+        self.model = model
+
+    def __iter__(self):
+        def reflect(xy):
+            # node bounces on the margins
+            b = np.where(xy[:, 0] < MIN_X)[0]
+            if b.size > 0:
+                xy[b, 0] = 2 * MIN_X[b] - xy[b, 0]
+                cosintheta[b, 0] = -cosintheta[b, 0]
+            b = np.where(xy[:, 0] > MAX_X)[0]
+            if b.size > 0:
+                xy[b, 0] = 2 * MAX_X[b] - xy[b, 0]
+                cosintheta[b, 0] = -cosintheta[b, 0]
+            b = np.where(xy[:, 1] < MIN_Y)[0]
+            if b.size > 0:
+                xy[b, 1] = 2 * MIN_Y[b] - xy[b, 1]
+                cosintheta[b, 1] = -cosintheta[b, 1]
+            b = np.where(xy[:, 1] > MAX_Y)[0]
+            if b.size > 0:
+                xy[b, 1] = 2 * MAX_Y[b] - xy[b, 1]
+                cosintheta[b, 1] = -cosintheta[b, 1]
+            self.b = b
+
+        def wrap(xy):
+            b = np.where(xy[:, 0] < MIN_X)[0]
+            if b.size > 0: xy[b, 0] += MAX_X[b]
+            b = np.where(xy[:, 0] > MAX_X)[0]
+            if b.size > 0: xy[b, 0] -= MAX_X[b]
+            b = np.where(xy[:, 1] < MIN_Y)[0]
+            if b.size > 0: xy[b, 1] += MAX_Y[b]
+            b = np.where(xy[:, 1] > MAX_Y)[0]
+            if b.size > 0: xy[b, 1] -= MAX_Y[b]
+            self.b = b
+
+        if self.border_policy == 'reflect':
+            borderp = reflect
+        elif self.border_policy == 'wrap':
+            borderp = wrap
+        else:
+            borderp = self.border_policy
+
+        NODES = np.arange(self.nr_nodes)
+
+        MAX_X = U(0, 0, NODES)
+        MAX_Y = U(0, 0, NODES)
+        MIN_X = U(0, 0, NODES)
+        MIN_Y = U(0, 0, NODES)
+
+        for node in range(len(self.nodes)):
+            MAX_X[node] = self.nodes[node].max_x
+            MAX_Y[node] = self.nodes[node].max_y
+            MIN_X[node] = self.nodes[node].min_x
+            MIN_Y[node] = self.nodes[node].min_y
+
+        xy = U(0, MAX_X[self.b], np.dstack((NODES, NODES))[0])
+        fl = self.FL_DISTR(NODES)
+        velocity = self.VEL_DISTR(fl)
+        theta = U(0, 1.8 * np.pi, NODES)
+        cosintheta = np.dstack((np.cos(theta), np.sin(theta)))[0] * \
+                     np.dstack((velocity, velocity))[0]
+        wt = np.zeros(self.nr_nodes)
+
+        if self.collect_fl_stats: self.fl_stats = list(fl)
+        if self.collect_wt_stats: self.wt_stats = list(wt)
+
+        while True:
+            xy += cosintheta
+            fl -= velocity
+
+            # step back for nodes that surpassed fl
+            arrived = np.where(np.logical_and(velocity > 0., fl <= 0.))[0]
+
+            if arrived.size > 0:
+                diff = fl.take(arrived) / velocity.take(arrived)
+                xy[arrived] += np.dstack((diff, diff))[0] * cosintheta[arrived]
+
+            # apply border policy
+            borderp(xy)
+
+            if self.WT_DISTR:
+                velocity[arrived] = 0.
+                wt[arrived] = self.WT_DISTR(arrived)
+                if self.collect_wt_stats: self.wt_stats.extend(wt[arrived])
+                # update info for paused nodes
+                wt[np.where(velocity == 0.)[0]] -= 1.
+                arrived = np.where(np.logical_and(velocity == 0., wt < 0.))[0]
+
+            # update info for moving nodes
+            if arrived.size > 0:
+                theta = U(0, 2 * np.pi, arrived)
+                fl[arrived] = self.FL_DISTR(arrived)
+                if self.collect_fl_stats: self.fl_stats.extend(fl[arrived])
+                if self.model == 'RandomDirection':
+                    velocity[arrived] = self.VEL_DISTR(fl[arrived][0])[arrived]
+                elif self.model == 'TruncatedLevyWalk':
+                    velocity[arrived] = self.VEL_DISTR(fl[arrived])
+                else:
+                    velocity[arrived] = self.VEL_DISTR(fl[arrived])[arrived]
+                v = velocity[arrived]
+                cosintheta[arrived] = np.dstack((v * np.cos(theta),
+                                                 v * np.sin(theta)))[0]
+            yield xy
+
+
+class RandomWalk(StochasticWalk):
+    def __init__(self, nodes, border_policy='reflect'):
+        """
+        Random Walk mobility model.
+        This model is based in the Stochastic Walk, but both the flight
+        length and node velocity distributions are in fact constants,
+        set to the *distance* and *velocity* parameters. The waiting time
+        is set to None.
+        Required arguments:
+          *nr_nodes*:
+            Integer, the number of nodes.
+        keyword arguments:
+          *velocity*:
+            Double, the value for the constant node velocity. Default is 1.0
+          *distance*:
+            Double, the value for the constant distance traveled in each step.
+            Default is 1.0
+          *border_policy*:
+            String, either 'reflect' or 'wrap'. The policy that is used when the
+            node arrives to the border.
+            If 'reflect', the node reflects off the border.
+            If 'wrap', the node reappears at the opposite edge
+            (as in a torus-shaped area).
+        """
+        nr_nodes = len(nodes)
+        NODES = np.arange(nr_nodes)
+        VELOCITY = U(0, 0, NODES)
+        velocity = VELOCITY
+        distance = VELOCITY
+
+        for node in range(len(nodes)):
+            velocity[node] = nodes[node].constantVelocity
+            distance[node] = nodes[node].constantDistance
+
+            if velocity[node] > distance[node]:
+                # In this implementation, each step is 1 second,
+                # it is not possible to have a velocity larger than the distance
+                raise Exception('Velocity must be <= Distance')
+
+        fl = np.zeros(nr_nodes) + distance
+        vel = np.zeros(nr_nodes) + velocity
+
+        FL_DISTR = lambda SAMPLES: np.array(fl[:len(SAMPLES)])
+        VEL_DISTR = lambda FD: np.array(vel[:len(FD)])
+
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VEL_DISTR,
+                                border_policy=border_policy)
+
+
+class RandomDirection(StochasticWalk):
+    def __init__(self, nodes, dimensions, wt_max=None, border_policy='reflect'):
+        """
+        Random Direction mobility model.
+        This model is based in the Stochastic Walk. The flight length is chosen
+        from a uniform distribution, with minimum 0 and maximum set to the maximum
+        dimension value. The velocity is also chosen from a uniform distribution,
+        with boundaries set by the *velocity* parameter.
+        If wt_max is set, the waiting time is chosen from a uniform distribution
+        with values between 0 and wt_max. If wt_max is not set, waiting time is
+        set to None.
+        Required arguments:
+          *nr_nodes*:
+            Integer, the number of nodes.
+          *dimensions*:
+            Tuple of Integers, the x and y dimensions of the simulation area.
+        keyword arguments:
+          *wt_max*:
+            Double, maximum value for the waiting time distribution.
+            If wt_max is set, the waiting time is chosen from a uniform
+            distribution with values between 0 and wt_max.
+            If wt_max is not set, the waiting time is set to None.
+            Default is None.
+          *border_policy*:
+            String, either 'reflect' or 'wrap'. The policy that is used
+            when the node arrives to the border. If 'reflect', the node reflects
+            off the border. If 'wrap', the node reappears at the opposite edge
+            (as in a torus-shaped area).
+        """
+        nr_nodes = len(nodes)
+        NODES = np.arange(nr_nodes)
+
+        max_v = U(0, 0, NODES)
+        min_v = U(0, 0, NODES)
+
+        MAX_V = max_v
+        MIN_V = min_v
+
+        for node in range(len(nodes)):
+            MAX_V[node] = nodes[node].max_v / 10.
+            MIN_V[node] = nodes[node].min_v / 10.
+
+        FL_MAX = max(dimensions)
+
+        FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
+        if wt_max:
+            WT_DISTR = lambda SAMPLES: U(0, wt_max, SAMPLES)
+        else:
+            WT_DISTR = None
+        VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
+
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VEL_DISTR,
+                                WT_DISTR, border_policy, model='RandomDirection')
+
+
+class TruncatedLevyWalk(StochasticWalk):
+    def __init__(self, nodes, FL_EXP=-2.6, FL_MAX=50., WT_EXP=-1.8,
+                 WT_MAX=100., border_policy='reflect'):
+        """
+        Truncated Levy Walk mobility model, based on the following paper:
+        Injong Rhee, Minsu Shin, Seongik Hong, Kyunghan Lee, and Song Chong.
+        On the Levy-Walk Nature of Human Mobility.
+            In 2008 IEEE INFOCOM - Proceedings of the 27th Conference on Computer
+            Communications, pages 924-932. April 2008.
+        The implementation is a special case of the more generic Stochastic Walk,
+        in which both the flight length and waiting time distributions are
+        truncated power laws, with exponents set to FL_EXP and WT_EXP and
+        truncated at FL_MAX and WT_MAX. The node velocity is a function of the
+        flight length.
+        Required arguments:
+          *nr_nodes*:
+            Integer, the number of nodes.
+        keyword arguments:
+          *FL_EXP*:
+            Double, the exponent of the flight length distribution.
+            Default is -2.6
+          *FL_MAX*:
+            Double, the maximum value of the flight length distribution.
+            Default is 50
+          *WT_EXP*:
+            Double, the exponent of the waiting time distribution.
+            Default is -1.8
+          *WT_MAX*:
+            Double, the maximum value of the waiting time distribution.
+            Default is 100
+          *border_policy*:
+            String, either 'reflect' or 'wrap'. The policy that is used when the
+            node arrives to the border. If 'reflect', the node reflects off the
+            border. If 'wrap', the node reappears at the opposite edge (as in a
+            torus-shaped area).
+        """
+        FL_DISTR = lambda SAMPLES: P(FL_EXP, 1., FL_MAX, SAMPLES)
+        if WT_EXP and WT_MAX:
+            WT_DISTR = lambda SAMPLES: P(WT_EXP, 1., WT_MAX, SAMPLES)
+        else:
+            WT_DISTR = None
+        VEL_DISTR = lambda FD: np.sqrt(FD) / 10.
+
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VEL_DISTR,
+                                WT_DISTR, border_policy, model='TruncatedLevyWalk')
+
+
+class HeterogeneousTruncatedLevyWalk(StochasticWalk):
+    def __init__(self, nodes, dimensions, WT_EXP=-1.8, WT_MAX=100.,
+                 FL_EXP=-2.6, FL_MAX=50., border_policy='reflect'):
+        """
+        This is a variant of the Truncated Levy Walk mobility model.
+        This model is based in the Stochastic Walk.
+        The waiting time distribution is a truncated power law with exponent
+        set to WT_EXP and truncated WT_MAX. The flight length is a uniform
+        distribution, different for each node. These uniform distributions are
+        created by taking both min and max values from a power law with exponent
+        set to FL_EXP and truncated FL_MAX. The node velocity is a function of
+        the flight length.
+        Required arguments:
+          *nr_nodes*:
+            Integer, the number of nodes.
+          *dimensions*:
+            Tuple of Integers, the x and y dimensions of the simulation area.
+        keyword arguments:
+          *WT_EXP*:
+            Double, the exponent of the waiting time distribution.
+             Default is -1.8
+          *WT_MAX*:
+            Double, the maximum value of the waiting time distribution.
+            Default is 100
+          *FL_EXP*:
+            Double, the exponent of the flight length distribution.
+            Default is -2.6
+          *FL_MAX*:
+            Double, the maximum value of the flight length distribution.
+            Default is 50
+          *border_policy*:
+            String, either 'reflect' or 'wrap'. The policy that is used when
+            the node arrives to the border. If 'reflect', the node reflects off
+            the border. If 'wrap', the node reappears at the opposite edge
+            (as in a torus-shaped area).
+        """
+        nr_nodes = len(nodes)
+        NODES = np.arange(nr_nodes)
+        FL_MAX = P(-1.8, 10., FL_MAX, NODES)
+        FL_MIN = FL_MAX / 10.
+
+        FL_DISTR = lambda SAMPLES: rand(len(SAMPLES)) * \
+                                   (FL_MAX[SAMPLES] - FL_MIN[SAMPLES]) + \
+                                   FL_MIN[SAMPLES]
+        WT_DISTR = lambda SAMPLES: P(WT_EXP, 1., WT_MAX, SAMPLES)
+        VEL_DISTR = lambda FD: np.sqrt(FD) / 10.
+
+        StochasticWalk.__init__(self, nr_nodes, dimensions, FL_DISTR,
+                                VEL_DISTR, WT_DISTR=WT_DISTR,
+                                border_policy=border_policy)
+
+
+def random_waypoint(*args, **kwargs):
+    return iter(RandomWaypoint(*args, **kwargs))
+
+
+def stochastic_walk(*args, **kwargs):
+    return iter(StochasticWalk(*args, **kwargs))
+
+
+def random_walk(*args, **kwargs):
+    return iter(RandomWalk(*args, **kwargs))
+
+
+def random_direction(*args, **kwargs):
+    return iter(RandomDirection(*args, **kwargs))
+
+
+def truncated_levy_walk(*args, **kwargs):
+    return iter(TruncatedLevyWalk(*args, **kwargs))
+
+
+def heterogeneous_truncated_levy_walk(*args, **kwargs):
+    return iter(HeterogeneousTruncatedLevyWalk(*args, **kwargs))
+
+
+def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
+    """
+    Gauss-Markov Mobility Model, as proposed in
+    Camp, T., Boleng, J. & Davies, V. A survey of mobility models for ad hoc
+    network research.
+    Wireless Communications and Mobile Computing 2, 483-502 (2002).
+    Required arguments:
+      *nr_nodes*:
+        Integer, the number of nodes.
+    keyword arguments:
+      *velocity_mean*:
+        The mean velocity
+      *alpha*:
+        The tuning parameter used to vary the randomness
+      *variance*:
+        The randomness variance
+    """
+    nr_nodes = len(nodes)
+    NODES = np.arange(nr_nodes)
+
+    MAX_X = U(0, 0, NODES)
+    MAX_Y = U(0, 0, NODES)
+    MIN_X = U(0, 0, NODES)
+    MIN_Y = U(0, 0, NODES)
+
+    for node in range(len(nodes)):
+        MAX_X[node] = nodes[node].max_x
+        MAX_Y[node] = nodes[node].max_y
+        MIN_X[node] = nodes[node].min_x
+        MIN_Y[node] = nodes[node].min_y
+
+    x = U(MIN_X, MAX_X, NODES)
+    y = U(MIN_Y, MAX_Y, NODES)
+    velocity = np.zeros(nr_nodes) + velocity_mean
+    theta = U(0, 2 * np.pi, NODES)
+    angle_mean = theta
+    alpha2 = 1.0 - alpha
+    alpha3 = np.sqrt(1.0 - alpha * alpha) * variance
+
+    while True:
+        x = x + velocity * np.cos(theta)
+        y = y + velocity * np.sin(theta)
+
+        # node bounces on the margins
+        b = np.where(x < MIN_X)[0]
+        x[b] = 2 * MIN_X[b] - x[b]
+        theta[b] = np.pi - theta[b]
+        angle_mean[b] = np.pi - angle_mean[b]
+
+        b = np.where(x > MAX_X)[0]
+        x[b] = 2 * MAX_X[b] - x[b]
+        theta[b] = np.pi - theta[b]
+        angle_mean[b] = np.pi - angle_mean[b]
+
+        b = np.where(y < MIN_Y)[0]
+        y[b] = 2 * MIN_Y[b] - y[b]
+        theta[b] = -theta[b]
+        angle_mean[b] = -angle_mean[b]
+
+        b = np.where(y > MAX_Y)[0]
+        y[b] = 2 * MAX_Y[b] - y[b]
+        theta[b] = -theta[b]
+        angle_mean[b] = -angle_mean[b]
+        # calculate new speed and direction based on the model
+        velocity = (alpha * velocity +
+                    alpha2 * velocity_mean +
+                    alpha3 * np.random.normal(0.0, 1.0, nr_nodes))
+
+        theta = (alpha * theta +
+                 alpha2 * angle_mean +
+                 alpha3 * np.random.normal(0.0, 1.0, nr_nodes))
+
+        yield np.dstack((x, y))[0]
+
+
+def reference_point_group(nodes, n_groups, dimensions,
+                          velocity=(0.1, 1.), aggregation=0.1):
+    """
+    Reference Point Group Mobility model, discussed in the following paper:
+        Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
+        A group mobility model for ad hoc wireless networks. In Proceedings of
+        the 2nd ACM international workshop on Modeling, analysis and simulation
+        of wireless and mobile systems (MSWiM '99). ACM, New York, NY, USA,
+        53-60.
+    In this implementation, group trajectories follow a random direction model,
+    while nodes follow a random walk around the group center.
+    The parameter 'aggregation' controls how close the nodes are to the group
+    center.
+    Required arguments:
+      *nr_nodes*:
+        list of integers, the number of nodes in each group.
+      *dimensions*:
+        Tuple of Integers, the x and y dimensions of the simulation area.
+    keyword arguments:
+      *velocity*:
+        Tuple of Doubles, the minimum and maximum values for group velocity.
+      *aggregation*:
+        Double, parameter (between 0 and 1) used to aggregate the nodes in the
+        group. Usually between 0 and 1, the more this value approximates to 1,
+        the nodes will be more aggregated and closer to the group center.
+        With a value of 0, the nodes are randomly distributed in the simulation
+        area. With a value of 1, the nodes are close to the group center.
+    """
+
+    nr_nodes = [0 for _ in range(n_groups)]
+    group = 0
+    for n in range(len(nodes)):
+        nr_nodes[group] += 1
+        group += 1
+        if n_groups == group:
+            group = 0
+
+    try:
+        iter(nr_nodes)
+    except TypeError:
+        nr_nodes = [nr_nodes]
+
+    NODES = np.arange(sum(nr_nodes))
+
+    groups = []
+    prev = 0
+    for (i, n) in enumerate(nr_nodes):
+        groups.append(np.arange(prev, n + prev))
+        prev += n
+
+    g_ref = np.empty(sum(nr_nodes), dtype=np.int)
+    for (i, g) in enumerate(groups):
+        for n in g:
+            g_ref[n] = i
+
+    FL_MAX = max(dimensions)
+    MIN_V, MAX_V = velocity
+    FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
+    VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
+
+    MAX_X, MAX_Y = dimensions
+    x = U(0, MAX_X, NODES)
+    y = U(0, MAX_Y, NODES)
+    velocity = 1.
+    theta = U(0, 2 * np.pi, NODES)
+    costheta = np.cos(theta)
+    sintheta = np.sin(theta)
+
+    GROUPS = np.arange(len(groups))
+    g_x = U(0, MAX_X, GROUPS)
+    g_y = U(0, MAX_X, GROUPS)
+    g_fl = FL_DISTR(GROUPS)
+    g_velocity = VEL_DISTR(g_fl)
+    g_theta = U(0, 2 * np.pi, GROUPS)
+    g_costheta = np.cos(g_theta)
+    g_sintheta = np.sin(g_theta)
+
+    while True:
+        x = x + velocity * costheta
+        y = y + velocity * sintheta
+        g_x = g_x + g_velocity * g_costheta
+        g_y = g_y + g_velocity * g_sintheta
+
+        for (i, g) in enumerate(groups):
+            # step to group direction + step to group center
+            x_g = x[g]
+            y_g = y[g]
+            c_theta = np.arctan2(g_y[i] - y_g, g_x[i] - x_g)
+
+            x[g] = x_g + g_velocity[i] * g_costheta[i] + aggregation * np.cos(c_theta)
+            y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggregation * np.sin(c_theta)
+
+        # node and group bounces on the margins
+        b = np.where(x < 0)[0]
+        if b.size > 0:
+            x[b] = -x[b]
+            costheta[b] = -costheta[b]
+            g_idx = np.unique(g_ref[b])
+            g_costheta[g_idx] = -g_costheta[g_idx]
+        b = np.where(x > MAX_X)[0]
+        if b.size > 0:
+            x[b] = 2 * MAX_X - x[b]
+            costheta[b] = -costheta[b]
+            g_idx = np.unique(g_ref[b])
+            g_costheta[g_idx] = -g_costheta[g_idx]
+        b = np.where(y < 0)[0]
+        if b.size > 0:
+            y[b] = -y[b]
+            sintheta[b] = -sintheta[b]
+            g_idx = np.unique(g_ref[b])
+            g_sintheta[g_idx] = -g_sintheta[g_idx]
+        b = np.where(y > MAX_Y)[0]
+        if b.size > 0:
+            y[b] = 2 * MAX_Y - y[b]
+            sintheta[b] = -sintheta[b]
+            g_idx = np.unique(g_ref[b])
+            g_sintheta[g_idx] = -g_sintheta[g_idx]
+
+        # update info for nodes
+        theta = U(0, 2 * np.pi, NODES)
+        costheta = np.cos(theta)
+        sintheta = np.sin(theta)
+
+        # update info for arrived groups
+        g_fl = g_fl - g_velocity
+        g_arrived = np.where(np.logical_and(g_velocity > 0., g_fl <= 0.))[0]
+
+        if g_arrived.size > 0:
+            g_theta = U(0, 2 * np.pi, g_arrived)
+            g_costheta[g_arrived] = np.cos(g_theta)
+            g_sintheta[g_arrived] = np.sin(g_theta)
+            g_fl[g_arrived] = FL_DISTR(g_arrived)
+            g_velocity[g_arrived] = VEL_DISTR(g_fl[g_arrived])
+
+        yield np.dstack((x, y))[0]
+
+
+def tvc(nodes, n_groups, dimensions, velocity=(0.1, 1.),
+        aggregation=[0.5, 0.], epoch=[100, 100]):
+    """
+    Time-variant Community Mobility Model, discussed in the paper
+        Wei-jen Hsu, Thrasyvoulos Spyropoulos, Konstantinos Psounis, and Ahmed Helmy,
+        "Modeling Time-variant User Mobility in Wireless Mobile Networks,"
+        INFOCOM 2007, May 2007.
+    This is a variant of the original definition, in the following way:
+    - Communities don't have a specific area, but a reference point where the
+       community members aggregate around.
+    - The community reference points are not static, but follow a random
+    direction model.
+    - You can define a list of epoch stages, each value is the duration of the
+    stage.
+       For each stage a different aggregation value is used (from the aggregation
+       parameter).
+    - Aggregation values should be doubles between 0 and 1.
+       For aggregation 0, there's no attraction point and the nodes move in a random
+       walk model. For aggregation near 1, the nodes move closer to the community
+       reference point.
+    Required arguments:
+      *nr_nodes*:
+        list of integers, the number of nodes in each group.
+      *dimensions*:
+        Tuple of Integers, the x and y dimensions of the simulation area.
+    keyword arguments:
+      *velocity*:
+        Tuple of Doubles, the minimum and maximum values for community velocities.
+      *aggregation*:
+        List of Doubles, parameters (between 0 and 1) used to aggregate the nodes
+        around the community center.
+        Usually between 0 and 1, the more this value approximates to 1,
+        the nodes will be more aggregated and closer to the group center.
+        With aggregation 0, the nodes are randomly distributed in the simulation area.
+        With aggregation near 1, the nodes are closer to the group center.
+      *epoch*:
+        List of Integers, the number of steps each epoch stage lasts.
+    """
+
+    nr_nodes = [0 for _ in range(n_groups)]
+    group = 0
+    for n in range(len(nodes)):
+        nr_nodes[group] += 1
+        group += 1
+        if n_groups == group:
+            group = 0
+
+    if len(aggregation) != len(epoch):
+        raise Exception("The parameters 'aggregation' and 'epoch' should be "
+                        "of same size")
+
+    try:
+        iter(nr_nodes)
+    except TypeError:
+        nr_nodes = [nr_nodes]
+
+    NODES = np.arange(sum(nr_nodes))
+
+    epoch_total = sum(epoch)
+
+    def AGGREGATION(t):
+        acc = 0
+        for i in range(len(epoch)):
+            acc += epoch[i]
+            if t % epoch_total <= acc: return aggregation[i]
+        raise Exception("Something wrong here")
+
+    groups = []
+    prev = 0
+    for (i, n) in enumerate(nr_nodes):
+        groups.append(np.arange(prev, n + prev))
+        prev += n
+
+    g_ref = np.empty(sum(nr_nodes), dtype=np.int)
+    for (i, g) in enumerate(groups):
+        for n in g:
+            g_ref[n] = i
+
+    FL_MAX = max(dimensions)
+    MIN_V, MAX_V = velocity
+    FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
+    VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
+
+    def wrap(x, y):
+        b = np.where(x < 0)[0]
+        if b.size > 0:
+            x[b] += MAX_X
+        b = np.where(x > MAX_X)[0]
+        if b.size > 0:
+            x[b] -= MAX_X
+        b = np.where(y < 0)[0]
+        if b.size > 0:
+            y[b] += MAX_Y
+        b = np.where(y > MAX_Y)[0]
+        if b.size > 0:
+            y[b] -= MAX_Y
+
+    MAX_X, MAX_Y = dimensions
+    x = U(0, MAX_X, NODES)
+    y = U(0, MAX_Y, NODES)
+    velocity = 1.
+    theta = U(0, 2 * np.pi, NODES)
+    costheta = np.cos(theta)
+    sintheta = np.sin(theta)
+
+    GROUPS = np.arange(len(groups))
+    g_x = U(0, MAX_X, GROUPS)
+    g_y = U(0, MAX_X, GROUPS)
+    g_fl = FL_DISTR(GROUPS)
+    g_velocity = VEL_DISTR(g_fl)
+    g_theta = U(0, 2 * np.pi, GROUPS)
+    g_costheta = np.cos(g_theta)
+    g_sintheta = np.sin(g_theta)
+
+    t = 0
+
+    while True:
+
+        t += 1
+        # get aggregation value for this step
+        aggr = AGGREGATION(t)
+
+        x = x + velocity * costheta
+        y = y + velocity * sintheta
+
+        # move reference point only if nodes have to go there
+        if aggr > 0:
+
+            g_x = g_x + g_velocity * g_costheta
+            g_y = g_y + g_velocity * g_sintheta
+
+            # group wrap around when outside the margins (torus shaped area)
+            wrap(g_x, g_y)
+
+            # update info for arrived groups
+            g_arrived = np.where(np.logical_and(g_velocity > 0., g_fl <= 0.))[0]
+            g_fl = g_fl - g_velocity
+
+            if g_arrived.size > 0:
+                g_theta = U(0, 2 * np.pi, g_arrived)
+                g_costheta[g_arrived] = np.cos(g_theta)
+                g_sintheta[g_arrived] = np.sin(g_theta)
+                g_fl[g_arrived] = FL_DISTR(g_arrived)
+                g_velocity[g_arrived] = VEL_DISTR(g_fl[g_arrived])
+
+            # update node position according to group center
+            for (i, g) in enumerate(groups):
+                # step to group direction + step to reference point
+                x_g = x[g]
+                y_g = y[g]
+
+                dy = g_y[i] - y_g
+                dx = g_x[i] - x_g
+                c_theta = np.arctan2(dy, dx)
+
+                # invert angle if wrapping around
+                invert = np.where((np.abs(dy) > MAX_Y / 2) !=
+                                  (np.abs(dx) > MAX_X / 2))[0]
+                c_theta[invert] = c_theta[invert] + np.pi
+
+                x[g] = x_g + g_velocity[i] * g_costheta[i] + aggr * np.cos(c_theta)
+                y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggr * np.sin(c_theta)
+
+        # node wrap around when outside the margins (torus shaped area)
+        wrap(x, y)
+
+        # update info for nodes
+        theta = U(0, 2 * np.pi, NODES)
+        costheta = np.cos(theta)
+        sintheta = np.sin(theta)
+
+        yield np.dstack((x, y))[0]
+
+
+def coherence_ref_point(nodes, n_groups, dimensions, pointlist, velocity=(0.1, 1.),
+                        g_velocity=0.4, aggregation=0.1):
+    """
+    Based on the Reference Point Group Mobility model, discussed in the following paper:
+
+        Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
+        A group mobility model for ad hoc wireless networks. In Proceedings of
+        the 2nd ACM international workshop on Modeling, analysis and simulation
+        of wireless and mobile systems (MSWiM '99). ACM, New York, NY, USA,
+        53-60.
+
+    In this implementation, group trajectories follow a fixed linear path,
+    while nodes follow a random walk around the group center.
+    The parameter 'aggregation' controls how close the nodes are to the group
+    center.
+
+    Required arguments:
+
+        *nr_nodes*:
+        list of integers, the number of nodes in each group.
+
+        *dimensions*:
+        Tuple of Integers, the x and y dimensions of the simulation area.
+
+    keyword arguments:
+
+        *velocity*:
+        Tuple of Doubles, the minimum and maximum values for group velocity.
+
+        *g_velocity*
+        Velocity of group vector. Appears to be 5.7 m/s per unit locally.
+
+        *aggregation*:
+        Double, parameter (between 0 and 1) used to aggregate the nodes in the
+        group. Usually between 0 and 1, the more this value approximates to 1,
+        the nodes will be more aggregated and closer to the group center.
+        With a value of 0, the nodes are randomly distributed in the simulation
+        area. With a value of 1, the nodes are close to the group center.
+
+        *pointlist*
+        List of Tuples of integers x,y,z corresponding to points in the model.
+    """
+    nr_nodes = [0 for _ in range(n_groups)]
+    group = 0
+    for n in range(len(nodes)):
+        nr_nodes[group] += 1
+        group += 1
+        if n_groups == group:
+            group = 0
+
+    try:
+        iter(nr_nodes)
+    except TypeError:
+        nr_nodes = [nr_nodes]
+
+    NODES = np.arange(sum(nr_nodes))
+
+    groups = []
+    prev = 0
+    for (i, n) in enumerate(nr_nodes):
+        groups.append(np.arange(prev, n + prev))
+        prev += n
+
+    g_ref = np.empty(sum(nr_nodes), dtype=np.int)
+    for (i, g) in enumerate(groups):
+        for n in g:
+            g_ref[n] = i
+
+    FL_MAX = max(dimensions)
+    MIN_V, MAX_V = velocity
+    G_VEL = g_velocity
+
+    FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
+    #VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
+    MAX_X, MAX_Y = dimensions
+
+    if len(pointlist) > 1:
+        current_x, current_y, current_z = pointlist[0]
+        next_x, next_y, next_z = pointlist[1]
+    else:
+        current_x, current_y, current_z = pointlist[0]
+        next_x, next_y, next_z = pointlist[0]
+    x = U(current_x, current_x + MAX_V, NODES)
+    y = U(current_y, current_y + MAX_V, NODES)
+    velocity = 1.
+    theta = U(0, 2 * np.pi, NODES)
+    costheta = np.cos(theta)
+    sintheta = np.sin(theta)
+
+    GROUPS = np.arange(len(groups))
+    g_x = np.array([current_x])
+    g_y = np.array([current_y])
+
+    g_fl = FL_DISTR(GROUPS)
+    g_velocity = np.array([G_VEL])
+    g_theta = [np.arctan2(next_y - current_y, next_x - current_x)]
+    g_costheta = np.cos(g_theta)
+    g_sintheta = np.sin(g_theta)
+    point_index = 1
+    while True:
+        #Adjust location of individual point?
+        x = x + velocity * costheta
+        y = y + velocity * sintheta
+        #Adjust location of group?
+        g_x = g_x + g_velocity * g_costheta
+        g_y = g_y + g_velocity * g_sintheta
+
+        for (i, g) in enumerate(groups):
+            # step to group direction + step to group center
+            x_g = x[g]
+            y_g = y[g]
+            c_theta = np.arctan2(g_y[i] - y_g, g_x[i] - x_g)
+
+            x[g] = x_g + g_velocity[i] * g_costheta[i] + aggregation * np.cos(c_theta)
+            y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggregation * np.sin(c_theta)
+
+        # update info for nodes
+        theta = U(0, 2 * np.pi, NODES)
+        costheta = np.cos(theta)
+        sintheta = np.sin(theta)
+
+        # update info for arrived groups
+        g_fl = g_fl - g_velocity
+
+        g_finished = (abs(g_x - next_x) < 1 and abs(g_y - next_y) < 1)
+
+        if g_x - next_x < 10:
+            if g_finished:
+                if point_index + 1 >= len(pointlist):
+                    g_velocity[0] = 0
+                else:
+                    point_index += 1
+                    current_x = next_x
+                    current_y = next_y
+                    next_x, next_y, next_z = pointlist[point_index]
+                    g_theta = [np.arctan2(next_y - g_y, next_x - g_x)]
+                    g_costheta = np.cos(g_theta)
+                    g_sintheta = np.sin(g_theta)
+
+        yield np.dstack((x, y))[0]
