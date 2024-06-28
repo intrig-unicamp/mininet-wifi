@@ -36,7 +36,7 @@ class Mobility(object):
         node.position = init_pos
         pos_x = float(fin_pos[0]) - float(init_pos[0])
         pos_y = float(fin_pos[1]) - float(init_pos[1])
-        pos_z = float(fin_pos[2]) - float(init_pos[2])
+        pos_z = float(fin_pos[2]) - float(init_pos[2]) if len(fin_pos) == 3 else float(0)
 
         pos = round(pos_x/diff_time*0.1, 2),\
               round(pos_y/diff_time*0.1, 2),\
@@ -45,7 +45,10 @@ class Mobility(object):
 
     @staticmethod
     def get_position(pos):
-        return float('%s' % pos[0]), float('%s' % pos[1]), float('%s' % pos[2])
+        x = float('%s' % pos[0])
+        y = float('%s' % pos[1])
+        z = float('%s' % pos[2]) if len(pos) == 3 else float('%s' % 0)
+        return x, y, z
 
     @staticmethod
     def speed(node, pos_x, pos_y, pos_z, mob_time):
@@ -395,7 +398,7 @@ class Tracked(Mobility):
                     self.calculate_diff_time(node)
                     coordinate[node] = self.create_coord(node, tracked=True)
 
-            if reverse and rep%2 == 1:
+            if reverse and rep % 2 == 1:
                 for node in mob_nodes:
                     fin_pos = node.params['finPos']
                     node.params['finPos'] = node.params['initPos']
@@ -448,7 +451,7 @@ class Tracked(Mobility):
             for _ in range((node.endTime - node.startTime) * 10):
                 x = round(pos[0], 2) + round(node.moveFac[0], 2)
                 y = round(pos[1], 2) + round(node.moveFac[1], 2)
-                z = round(pos[2], 2) + round(node.moveFac[2], 2)
+                z = round(pos[2], 2) + round(node.moveFac[2], 2) if len(pos)==3 else 0
                 pos = (x, y, z)
                 coord.append((x, y, z))
         else:
@@ -470,8 +473,11 @@ class Tracked(Mobility):
         return t
 
     def get_points(self, node, a0, a1, total):
-        x1, y1, z1 = float(a0[0]), float(a0[1]), float(a0[2])
-        x2, y2, z2 = float(a1[0]), float(a1[1]), float(a1[2])
+        x1, y1 = float(a0[0]), float(a0[1])
+        z1 = float(a0[2]) if len(a0) > 2 else float(0)
+
+        x2, y2 = float(a1[0]), float(a1[1])
+        z2 = float(a1[2]) if len(a1) > 2 else float(0)
         points = []
         perc_dif = []
         ldelta = [0, 0, 0]
