@@ -36,7 +36,7 @@ class Mobility(object):
         node.position = init_pos
         pos_x = float(fin_pos[0]) - float(init_pos[0])
         pos_y = float(fin_pos[1]) - float(init_pos[1])
-        pos_z = float(fin_pos[2]) - float(init_pos[2]) if len(fin_pos) == 3 else float(0)
+        pos_z = float(fin_pos[2]) - float(init_pos[2])
 
         pos = round(pos_x/diff_time*0.1, 2),\
               round(pos_y/diff_time*0.1, 2),\
@@ -45,10 +45,7 @@ class Mobility(object):
 
     @staticmethod
     def get_position(pos):
-        x = float('%s' % pos[0])
-        y = float('%s' % pos[1])
-        z = float('%s' % pos[2]) if len(pos) == 3 else float('%s' % 0)
-        return x, y, z
+        return float('%s' % pos[0]), float('%s' % pos[1]), float('%s' % pos[2])
 
     @staticmethod
     def speed(node, pos_x, pos_y, pos_z, mob_time):
@@ -387,12 +384,10 @@ class Tracked(Mobility):
         for rep in range(mob_rep):
             t1 = time()
             i = 0.1
-            if reverse:
-                for node in mob_nodes:
-                    if rep % 2 == 1 or (rep % 2 == 0 and rep > 0):
-                        fin_pos = node.params['finPos']
-                        node.params['finPos'] = node.params['initPos']
-                        node.params['initPos'] = fin_pos
+
+            for node in mob_nodes:
+                node.time = 0
+                node.matrix_id = 0
 
             if not coordinate:
                 coordinate = {}
@@ -400,16 +395,28 @@ class Tracked(Mobility):
                     self.calculate_diff_time(node)
                     coordinate[node] = self.create_coord(node, tracked=True)
 
+            if reverse and rep%2 == 1:
+                for node in mob_nodes:
+                    fin_pos = node.params['finPos']
+                    node.params['finPos'] = node.params['initPos']
+                    node.params['initPos'] = fin_pos
+
             while mob_start_time <= time() - t1 <= mob_stop_time:
                 t2 = time()
                 if t2 - t1 >= i:
                     for node, pos in coordinate.items():
                         if (t2 - t1) >= node.startTime and node.time <= node.endTime:
                             node.matrix_id += 1
-                            if node.matrix_id < len(coordinate[node]):
-                                pos = pos[node.matrix_id]
+                            if reverse and rep % 2 == 1:
+                                if node.matrix_id < len(coordinate[node]):
+                                    pos = list(reversed(coordinate[node]))[node.matrix_id]
+                                else:
+                                    pos = list(reversed(coordinate[node]))[-1]
                             else:
-                                pos = pos[len(coordinate[node]) - 1]
+                                if node.matrix_id < len(coordinate[node]):
+                                    pos = pos[node.matrix_id]
+                                else:
+                                    pos = pos[len(coordinate[node]) - 1]
                             self.set_pos(node, pos)
                             node.time += 0.1
                             if draw:
@@ -441,7 +448,7 @@ class Tracked(Mobility):
             for _ in range((node.endTime - node.startTime) * 10):
                 x = round(pos[0], 2) + round(node.moveFac[0], 2)
                 y = round(pos[1], 2) + round(node.moveFac[1], 2)
-                z = round(pos[2], 2) + round(node.moveFac[2], 2) if len(pos)==3 else 0
+                z = round(pos[2], 2) + round(node.moveFac[2], 2)
                 pos = (x, y, z)
                 coord.append((x, y, z))
         else:
@@ -463,11 +470,8 @@ class Tracked(Mobility):
         return t
 
     def get_points(self, node, a0, a1, total):
-        x1, y1 = float(a0[0]), float(a0[1])
-        z1 = float(a0[2]) if len(a0) > 2 else float(0)
-       
-        x2, y2 = float(a1[0]), float(a1[1])
-        z2 = float(a1[2]) if len(a1) > 2 else float(0)
+        x1, y1, z1 = float(a0[0]), float(a0[1]), float(a0[2])
+        x2, y2, z2 = float(a1[0]), float(a1[1]), float(a1[2])
         points = []
         perc_dif = []
         ldelta = [0, 0, 0]
