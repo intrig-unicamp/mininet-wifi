@@ -158,6 +158,15 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         self.n_groups = 1
         self.wlinks = []
         self.pointlist = []
+        # These arguments are for mobility models and have their defaults configured in mobility.py
+        self.velocity_mean = -1.
+        self.alpha = -1.
+        self.variance = -1.
+        self.aggregation = -1.
+        self.g_velocity = -1.
+        self.aggregation_epoch = []
+        self.epoch = []
+        self.velocity = ()
         self.initial_mediums = []
 
         if autoSetPositions and link == wmediumd:
@@ -1254,11 +1263,14 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         mob_params = {}
         float_args = ['min_x', 'min_y', 'min_z',
                       'max_x', 'max_y', 'max_z',
-                      'min_v', 'max_v', 'min_wt', 'max_wt']
+                      'min_v', 'max_v', 'min_wt', 'max_wt',
+                      'velocity_mean', 'alpha', 'variance', 'aggregation',
+                      'g_velocity']
         args = ['stations', 'cars', 'aps', 'draw', 'seed',
                 'roads', 'mob_start_time', 'mob_stop_time',
                 'links', 'mob_model', 'mob_rep', 'reverse',
-                'ac_method', 'pointlist', 'n_groups']
+                'ac_method', 'pointlist', 'n_groups', 'aggregation_epoch', 'epoch',
+                'velocity']
         args += float_args
         for arg in args:
             if arg in float_args:
