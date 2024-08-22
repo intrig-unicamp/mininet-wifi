@@ -394,6 +394,11 @@ function sumo {
     sudo make install
 }
 
+# Install btvirt
+function btvirt {
+    echo "Installing btvirt..."
+}
+
 
 # Install NetworkManager
 function network_manager {
@@ -830,6 +835,7 @@ function usage {
     printf -- ' -r: remove existing Open vSwitch packages\n' >&2
     printf -- ' -s <dir>: place dependency (S)ource/build trees in <dir>\n' >&2
     printf -- ' -S: install SUMO\n' >&2
+    printf -- ' -t: install btvirt dependencies\n' >&2
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
     printf -- ' -W: install Mininet-WiFi dependencies\n' >&2
@@ -845,7 +851,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abBdeEfhiklmMnNoOPrSsvWx036' OPTION
+    while getopts 'abBdeEfhiklmMnNoOPrSstvWx036' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -875,6 +881,7 @@ else
             BUILD_DIR="$( cd -P "$OPTARG" && pwd )"; # get the full path
             echo "Dependency installation directory: $BUILD_DIR";;
       S)    sumo;;
+      t)    btvirt;;
       v)    ovs;;
       W)    wifi_deps;;
       0)    OF_VERSION=1.0;;

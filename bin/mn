@@ -102,7 +102,7 @@ LINKS = { 'default': Link,  # Note: overridden below
           'wtc': WirelessLink,
           'wmediumd': wmediumd,
           'tcu': TCULink,
-          'ovs': OVSLink }
+          'ovs': OVSLink}
 
 # TESTS dict can contain functions and/or Mininet() method names
 # XXX: it would be nice if we could specify a default test, but
@@ -267,6 +267,8 @@ class MininetRunner(object):
                                             'between associated stations in the BSS')
         opts.add_option('--wifi', '-w', action='store_true',
                         default=False, help='activate wifi')
+        opts.add_option('--btvirt', '-t', action='store_true',
+                        default=False, help='activate btvirt')
         opts.add_option('--ieee80211w', type='string',
                         default=None, help='enable ieee80211w')
         opts.add_option('--docker', '-d', action='store_true',
@@ -404,6 +406,11 @@ class MininetRunner(object):
             TOPOS['minimal'] = MinimalWirelessTopo
             if opts.link == 'default':
                 opts.link = 'wtc'
+
+        if opts.btvirt:
+            TOPOS['single'] = SingleAPTopo
+            TOPOS['linear'] = LinearWirelessTopo
+            TOPOS['minimal'] = MinimalWirelessTopo
 
         topo = buildTopo(TOPOS, opts.topo)
         switch = customClass(SWITCHES, opts.switch)

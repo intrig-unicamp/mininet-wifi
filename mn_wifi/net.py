@@ -38,17 +38,19 @@ from mn_wifi.sixLoWPAN.link import LowPANLink, LoWPAN
 from mn_wifi.sixLoWPAN.net import Mininet_IoT
 from mn_wifi.sixLoWPAN.node import OVSSensor, LowPANNode
 from mn_wifi.sixLoWPAN.util import ipAdd6
+from mn_wifi.btvirt.node import BTNode
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.vanet import vanet
 from mn_wifi.wmediumdConnector import error_prob, snr, interference
 from mn_wifi.wwan.link import WWANLink
 from mn_wifi.wwan.net import Mininet_WWAN
+from mn_wifi.btvirt.net import Mininet_btvirt
 from mn_wifi.wwan.node import WWANNode
 
 VERSION = "2.6"
 
 
-class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
+class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
     def __init__(self, accessPoint=OVSKernelAP, station=Station, car=Car,
                  sensor=LowPANNode, apsensor=OVSSensor, modem=WWANNode, link=WirelessLink,
@@ -59,7 +61,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
                  disable_tcp_checksum=False, ifb=False, client_isolation=False,
                  plot=False, plot3d=False, docker=False, container='mininet-wifi',
                  ssh_user='alpha', rec_rssi=False, iot_module='mac802154_hwsim',
-                 wwan_module='wwan_hwsim', json_file=None, ac_method=None, **kwargs):
+                 wwan_module='wwan_hwsim', json_file=None, ac_method=None, btdevice=BTNode, **kwargs):
         """Create Mininet object.
 
            accessPoint: default Access Point class
@@ -68,6 +70,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
            sensor: default Sensor class/constructor
            apsensor: default AP Sensor class/constructor
            modem: default Modem class/constructor
+           btdevice: a btvirt node
            link: default Link class/constructor
            ieee80211w: enable ieee80211w
            ssid: wifi ssid
@@ -182,6 +185,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
 
         Mininet_IoT.__init__(self, sensor=sensor, apsensor=apsensor)
         Mininet_WWAN.__init__(self, modem=modem)
+        Mininet_btvirt.__init__(self, btdevice=btdevice)
         Mininet.__init__(self, link=link, **kwargs)
 
     def socketServer(self, **kwargs):
@@ -685,7 +689,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
 
     def configHosts(self):
         "Configure a set of nodes."
-        nodes = self.hosts + self.sensors + self.modems
+        nodes = self.hosts + self.sensors + self.modems + self.btdevices
         for node in nodes:
             # info( host.name + ' ' )
             intf = node.defaultIntf()
@@ -810,6 +814,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         self.terms += makeTerms(self.sensors, 'sensor')
         self.terms += makeTerms(self.apsensors, 'apsensor')
         self.terms += makeTerms(self.modems, 'modem')
+        self.terms += makeTerms(self.btdevices, 'btdevices')
 
     def telemetry(self, **kwargs):
         run_telemetry(**kwargs)
@@ -877,7 +882,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
             switch.terminate()
         info('\n')
         info('*** Stopping nodes\n')
-        nodes = self.hosts + self.stations + self.sensors + self.modems
+        nodes = self.hosts + self.stations + self.sensors + self.modems + self.btdevices
         for node in nodes:
             info(node.name + ' ')
             node.terminate()
@@ -895,7 +900,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         lost = 0
         ploss = None
         if not hosts:
-            hosts = self.hosts + self.stations + self.sensors + self.modems
+            hosts = self.hosts + self.stations + self.sensors + self.modems + self.btdevices
             output('*** Ping: testing ping reachability\n')
         for node in hosts:
             output('{} -> '.format(node.name))
@@ -1060,7 +1065,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
 
     def get_mn_wifi_nodes(self):
         return self.stations + self.cars + self.aps + \
-               self.sensors + self.apsensors + self.modems
+               self.sensors + self.apsensors + self.modems + \
+               self.btdevices
 
     def get_distance(self, src, dst):
         """
@@ -1089,7 +1095,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         mob_nodes = []
         stat_nodes = []
         nodes = self.stations + self.aps + self.cars + \
-                self.sensors + self.apsensors + self.modems
+                self.sensors + self.apsensors + self.modems + \
+                self.btdevices
         for node in nodes:
             if hasattr(node, 'position') and 'initPos' not in node.params:
                 stat_nodes.append(node)
@@ -1310,6 +1317,10 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
         for sensor in sensors:
             self.nameToNode[sensor.name] = sensor
 
+    def addBTdevices(self, nodes):
+        for node in nodes:
+            self.nameToNode[node.name] = node
+
     def addModems(self):
         for modem in self.modems:
             self.nameToNode[modem.name] = modem
@@ -1366,6 +1377,11 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
             self.sensors, self.apsensors = self.init_6lowpan_module(self.iot_module)
             sensors = self.sensors + self.apsensors
             self.addSensors(sensors)
+            self.configure6LowPANLink()
+
+        if self.nbtdevices:
+            self.btdevices = self.init_btvirt(self.iot_module)
+            self.addBTdevices(self.btdevices)
             self.configure6LowPANLink()
 
         if self.nwwans:

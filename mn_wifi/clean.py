@@ -13,6 +13,7 @@ from mininet.log import info
 from mininet.util import decode
 from mn_wifi.sixLoWPAN.clean import Cleanup as CleanLowpan
 from mn_wifi.wwan.clean import Cleanup as CleanWwan
+from mn_wifi.btvirt.clean import Cleanup as CleanBTVirt
 from mn_wifi.wmediumdConnector import w_server
 
 
@@ -66,6 +67,7 @@ class Cleanup(object):
         cls.killprocs('sumo-gui')
         cls.killprocs('olsrd2_static')
         cls.killprocs('hostapd')
+        cls.killprocs('btvirt')
         sleep(0.1)
         cls.sh('pkill babel')
         cls.sh('pkill batmand')
@@ -107,6 +109,7 @@ class Cleanup(object):
             info('\n*** Done\n')
             cls.sh('fuser -k %s/tcp >/dev/null 2>&1' % cls.socket_port)
 
+        CleanBTVirt.cleanup_btvirt()
         CleanLowpan.cleanup_6lowpan()
         CleanWwan.cleanup_wwan()
 
