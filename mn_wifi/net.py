@@ -591,7 +591,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         else:
             n1 = node1 if node2 in self.aps else node2
             n2 = node1 if node1 in self.aps else node2
-
+ 
             if port1 is not None and port2 is not None:
                 wlan1 = port1 if node2 in self.aps else port2
                 wlan2 = port1 if node1 in self.aps else port2
@@ -642,7 +642,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         node1 = node1 if not isinstance(node1, string_types) else self[node1]
         node2 = node2 if not isinstance(node2, string_types) else self[node2]
         cls = self.link if cls is None else cls
-
+ 
         modes = [mesh, adhoc, ITSLink, WifiDirectLink, PhysicalWifiDirectLink]
         if cls in modes:
             link = cls(node=node1, **params)
@@ -675,7 +675,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         elif ((node1 in self.stations and node2 in self.aps)
               or (node2 in self.stations and node1 in self.aps)) and cls != TCLink:
             if cls == wmediumd:
-                self.infra_wmediumd_link(node1, node2, **params)
+                self.infra_wmediumd_link(node1, node2, port1, port2, **params)
             else:
                 self.infra_tc(node1, node2, port1, port2, cls, **params)
         else:
@@ -882,7 +882,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             switch.terminate()
         info('\n')
         info('*** Stopping nodes\n')
-        nodes = self.hosts + self.stations + self.sensors + self.modems + self.btdevices
+        nodes = self.hosts + self.stations + self.sensors + self.modems + self.btdevices + self.apsensors
         for node in nodes:
             info(node.name + ' ')
             node.terminate()
@@ -1445,6 +1445,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
     def auto_association(self):
         "This is useful to make the users' life easier"
         isap = []
+
         for node in self.stations:
             for intf in node.wintfs.values():
                 if isinstance(intf, master) or \
