@@ -19,7 +19,7 @@ from mininet.node import Node
 from mininet.nodelib import NAT
 from mininet.term import makeTerms
 from mininet.util import (macColonHex, ipStr, ipParse, ipAdd,
-                          waitListening, BaseString)
+                          waitListening, BaseString, fmtBps)
 from six import string_types
 
 from mn_wifi.clean import Cleanup as CleanupWifi
@@ -1031,36 +1031,39 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         output('*** Iperf: testing', l4Type, 'bandwidth between',
                client, 'and', server, '\n')
         server.cmd('killall -9 iperf')
-        iperfArgs = 'iperf -p %d ' % port
+        # Note: CSV mode
+        iperfArgs = 'iperf -y C -p %d ' % port
         bwArgs = ''
         if l4Type == 'UDP':
             iperfArgs += '-u '
             bwArgs = '-b ' + udpBw + ' '
-        elif l4Type != 'TCP':
-            raise Exception('Unexpected l4 type: {}'.format(l4Type))
-        if fmt:
-            iperfArgs += '-f {} '.format(fmt)
         server.sendCmd(iperfArgs + '-s')
+        serverip = server.IP()
         if l4Type == 'TCP':
-            if not waitListening(client, server.IP(), port):
+            if not waitListening(client, serverip, port):
                 raise Exception('Could not connect to iperf on port %d'
                                 % port)
         cliout = client.cmd(iperfArgs + '-t %d -c ' % seconds +
                             server.IP() + ' ' + bwArgs)
-        debug('Client output: {}\n'.format(cliout))
-        servout = ''
-        # We want the last *b/sec from the iperf server output
-        # for TCP, there are two of them because of waitListening
-        count = 2 if l4Type == 'TCP' else 1
-        while len(re.findall('/sec', servout)) < count:
-            servout += server.monitor(timeoutms=5000)
+        cvals = self._iperfVals(cliout, serverip)
+        debug('iperf client output:', cliout, cvals)
+        serverout = ''
+        # Wait for output from the client session
+        while True:
+            serverout += server.monitor(timeoutms=5000)
+            svals = self._iperfVals(serverout, serverip)
+            # Check for the client's source/output port
+            if (svals and cvals['sport'] == svals['sport']
+                    and int(svals['rate']) > 0):
+                break
+        debug('iperf server output:', serverout, svals)
         server.sendInt()
-        servout += server.waitOutput()
-        debug('Server output: {}\n'.format(servout))
-        result = [self._parseIperf(servout), self._parseIperf(cliout)]
+        serverout += server.waitOutput()
+        result = [fmtBps(svals['rate'], fmt),
+                  fmtBps(cvals['rate'], fmt)]
         if l4Type == 'UDP':
             result.insert(0, udpBw)
-        output('*** Results: {}\n'.format(result))
+        output('*** Results: %s\n' % result)
         return result
 
     def get_mn_wifi_nodes(self):
