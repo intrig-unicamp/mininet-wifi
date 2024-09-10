@@ -62,8 +62,6 @@ For instructions about easier development check [this helper file](doc/dev_help.
 For your convenience, we provide pre-built VM images including Mininet-WiFi and other useful software. The VM images are in .ova format and should be usable with any modern x64 virtualization system.   
   
 [[4.6GB Size] - Lubuntu 20.04 x64](https://drive.google.com/file/d/1R8n4thPwV2krFa6WNP0Eh05ZHZEdhw4W/view?usp=sharing) - Mininet-WiFi (_pass: wifi_)     
-[[6.7GB Size] - Lubuntu 20.04 x64](https://drive.google.com/file/d/1oozRqFO2KjjxW0Ob47d6Re4i6ay1wdwg/view?usp=sharing) - Mininet-WiFi with P4 (_pass: wifi_)     
-
    
 ## Note
 Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop _Network Manager_ with either `sudo systemctl stop network-manager` or `sudo service network-manager stop`.    
