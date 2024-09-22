@@ -1757,10 +1757,14 @@ class adhoc(LinkAttrs):
         LinkAttrs.__init__(self, node, intf, wlan)
         self.associatedTo = 'adhoc'
 
+        default_txpower = 15
+        if intf.txpower:
+            default_txpower = intf.txpower
+
         # It takes default values if keys are not set
         kwargs = {'ibss': '02:CA:FF:EE:BA:01', 'ht_cap': '',
                   'passwd': None, 'ssid': 'adhocNet', 'proto': None,
-                  'mode': 'g', 'channel': 1, 'txpower': 15,
+                  'mode': 'g', 'channel': 1, 'txpower': default_txpower,
                   'ap_scan': 2, 'bitrates': ''}
 
         for k, v in kwargs.items():
