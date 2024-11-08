@@ -13,6 +13,7 @@ class sumo(Mobility):
     vehCmds = None
 
     def __init__(self, cars, aps, **kwargs):
+        self.mobStarted = False
         Mobility.thread_ = thread(name='vanet', target=self.configureApp,
                                   args=(cars, aps), kwargs=dict(kwargs,))
         Mobility.thread_.daemon = True
@@ -62,7 +63,7 @@ class sumo(Mobility):
 
         vehCmds = _vehicle.VehicleDomain()
         vehCmds._connection = traci.getConnection(label="default")
-
+        self.set_mob_started()
         while True:
             traci.simulationStep()
             for vehID1 in vehCmds.getIDList():
