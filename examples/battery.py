@@ -6,6 +6,7 @@
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
+from mn_wifi.energy import Energy
 
 
 def topology():
@@ -24,6 +25,9 @@ def topology():
 
     info("*** Starting network\n")
     net.build()
+
+    info("*** Measuring energy consumption\n")
+    Energy(net.sensors)
 
     info("*** Running CLI\n")
     CLI(net)

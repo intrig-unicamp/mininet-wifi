@@ -751,15 +751,6 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                 if src != dst:
                     src.setARP(ip=dst.IP(), mac=dst.MAC())
 
-    def hasVoltageParam(self):
-        nodes = self.get_mn_wifi_nodes()
-        energy_nodes = []
-        for node in nodes:
-            if 'voltage' in node.params:
-                energy_nodes.append(node)
-        if energy_nodes:
-            Energy(energy_nodes)
-
     def build(self):
         "Build mininet-wifi."
         if self.topo:
@@ -803,7 +794,6 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             if self.autoAssociation and not self.configWiFiDirect:
                 self.auto_association()
 
-        self.hasVoltageParam()
         self.built = True
 
     def startTerms(self):

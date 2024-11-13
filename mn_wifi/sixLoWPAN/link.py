@@ -238,6 +238,7 @@ class LowPANLink(Link, IntfSixLoWPAN):
         node.addWAttr(self, port=wpan)
         self.range = 50
         self.voltage = 10.0
+        self.current = 3.0
         self.consumption = 0.0
         self.ip6 = None
         self.set_attr(node, wpan)

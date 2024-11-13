@@ -88,8 +88,15 @@ class LowPANNode(Node_wifi):
         cmd += '        ifname = \"{}-pan0\",\n'.format(self.name)
         if 'storing_mode' not in self.params:
             self.params['storing_mode'] = 2
+        if 'trickle_t' not in self.params:
+            self.params['trickle_t'] = 1
         if 'dodag_root' in self.params and self.params['dodag_root']:
             cmd += '        dodag_root = true,\n'
+        else:
+            cmd += '        dodag_root = false,\n'
+        cmd += '        mode_of_operation = {},\n'.format(self.params['storing_mode'])
+        cmd += '        trickle_t = {},\n'.format(self.params['trickle_t'])
+        if 'dodag_root' in self.params and self.params['dodag_root']:
             cmd += '        rpls = { {\n'
             cmd += '               instance = 1,\n'
             cmd += '               dags = { {\n'
@@ -97,14 +104,12 @@ class LowPANNode(Node_wifi):
             cmd += '                       dest_prefix = \"fd3c:be8a:173f:8e80::/64\",\n'
             cmd += '               }, }\n'
             cmd += '        }, }\n'
-        else:
-            cmd += '        dodag_root = false,\n'
         cmd += '}, }'
         self.cmd('echo \'{}\' > lowpan-{}.conf'.format(cmd, self.name))
         self.runRPLD()
 
     def runRPLD(self):
-        self.cmd('rpld -C lowpan-{}.conf &'.format(self.name))
+        self.cmd('nohup rpld -C lowpan-{}.conf > /dev/null 2>&1 &'.format(self.name))
 
     def setDefault6Route(self, intf=None):
         """Set the default ipv6 route to go through intf.
