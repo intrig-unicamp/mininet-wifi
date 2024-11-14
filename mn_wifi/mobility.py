@@ -201,6 +201,11 @@ class Mobility(object):
                     self.set_handover(intf, aps)
         sleep(0.0001)
 
+    def set_mob_started(self):
+        self.mobStarted = True
+
+    def get_mob_started(self):
+        return self.mobStarted
 
 class ConfigMobility(Mobility):
 
@@ -246,6 +251,7 @@ class ConfigMobLinks(Mobility):
 class model(Mobility):
 
     def __init__(self, **kwargs):
+        self.mobStarted = False
         self.start_thread(**kwargs)
 
     def start_thread(self, **kwargs):
@@ -354,7 +360,7 @@ class model(Mobility):
         current_time = time()
         while (time() - current_time) < kwargs['mob_start_time']:
             pass
-
+        self.set_mob_started()
         self.start_mob_mod(mob, mob_nodes, draw)
 
     def start_mob_mod(self, mob, nodes, draw):
@@ -380,6 +386,7 @@ class Tracked(Mobility):
     "Used when the position of each node is previously defined"
 
     def __init__(self, **kwargs):
+        self.mobStarted = False
         self.start_thread(**kwargs)
 
     def start_thread(self, **kwargs):
@@ -440,6 +447,7 @@ class Tracked(Mobility):
                     node.params['initPos'] = fin_pos
 
             while mob_start_time <= time() - t1 <= mob_stop_time:
+                self.set_mob_started()
                 t2 = time()
                 if t2 - t1 >= i:
                     for node, pos in coordinate.items():

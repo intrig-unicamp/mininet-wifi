@@ -144,6 +144,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.iot_module = iot_module
         self.wwan_module = wwan_module
         self.ifbIntf = 0
+        self.mob_object = None
         self.mob_start_time = 0
         self.mob_stop_time = 0
         self.mob_rep = 1
@@ -736,8 +737,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             stat_nodes, mob_nodes = self.get_mob_stat_nodes()
             method = TrackedMob
             if self.mob_model or self.cars or self.roads:
-                method = self.start_mobility
-            method(stat_nodes=stat_nodes, mob_nodes=mob_nodes, **mob_params)
+                method = self.start_mobility(stat_nodes=stat_nodes, mob_nodes=mob_nodes, **mob_params)
+            else:
+                self.mob_object = method(stat_nodes=stat_nodes, mob_nodes=mob_nodes, **mob_params)
             self.mob_check = True
         else:
             if self.draw and not self.isReplaying:
@@ -1227,9 +1229,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         for node in kwargs.get('mob_nodes'):
             node.position, node.pos = (0, 0, 0), (0, 0, 0)
         if self.roads:
-            vanet(**kwargs)
+            self.mob_object = vanet(**kwargs)
         else:
-            MobModel(**kwargs)
+            self.mob_object = MobModel(**kwargs)
 
     def setMobilityModel(self, **kwargs):
         for key in kwargs:
@@ -1289,7 +1291,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             if not hasattr(car, 'position'):
                 car.position = (0, 0, 0)
             car.pos = car.position
-        program(self.cars, self.aps, **kwargs)
+        # If other external programs are added, this will likely need
+        # to be tweaked.
+        self.mob_object = program(self.cars, self.aps, **kwargs)
 
     def start_wmediumd(self):
         wmediumd(wlinks=self.wlinks, fading_cof=self.fading_cof,
@@ -1493,6 +1497,13 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
     def start_simulation():
         "Start the simulation"
         mob.pause_simulation = False
+
+    def is_mob_started(self):
+        "Check if mobility has started"
+        if self.mob_object:
+            return self.mob_object.get_mob_started()
+        else:
+            info("is_mob_started() is not applicable or not implemented with current mobility!")
 
     @staticmethod
     def setChannelEquation(**params):

@@ -44,6 +44,7 @@ class vanet(Mobility):
 
     def __init__(self, **kwargs):
         kwargs['nodes'] = kwargs['cars']
+        self.mobStarted = False
         Mobility.thread_ = thread(name='vanet', target=self.start,
                                   kwargs=kwargs)
         Mobility.thread_.daemon = True
@@ -64,6 +65,7 @@ class vanet(Mobility):
         self.display_grid(**kwargs)
         self.display_cars(cars)
         self.set_wifi_params()
+        self.set_mob_started()
         while self.thread_._keep_alive:
             [self.scatter, self.com_lines] = \
                 self.simulate_car_movement(cars, aps, self.scatter,
