@@ -74,7 +74,7 @@ fi
 KERNEL_NAME=`uname -r`
 KERNEL_HEADERS=kernel-headers-${KERNEL_NAME}
 
-if ! echo $DIST | egrep 'Ubuntu|Debian|Fedora|RedHatEnterpriseServer|CentOS'; then
+if ! echo $DIST | egrep 'Kali|Ubuntu|Debian|Fedora|RedHatEnterpriseServer|CentOS'; then
     echo "Install.sh currently only supports Ubuntu, Debian and Fedora."
     exit 1
 fi
@@ -177,7 +177,7 @@ function wifi_deps {
     if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "CentOS" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf libnl3-devel \
             iproute telnet python-setuptools libcgroup-tools openssl-devel \
-            ethtool help2man pyflakes pylint python-pep8 python-pexpect libevent-devel \
+            ethtool help2man python3-pyflakes pylint python-pep8 python-pexpect libevent-devel \
             dbus-devel libconfig-devel epel-release ${PYPKG}-six
     elif [ "$DIST" = "SUSE LINUX"  ]; then
         $install gcc make socat psmisc xterm openssh iperf \
@@ -185,17 +185,17 @@ function wifi_deps {
           ethtool help2man ${PYPKG}-pyflakes python3-pylint \
                             python-pep8 ${PYPKG}-pexpect ${PYPKG}-tk
     else
-        pf=pyflakes
+        pf=python3-pyflakes
         if [ $PYTHON_VERSION == 3 ]; then
             ln -sf python3 /usr/bin/python
         fi
         # Starting around 20.04, installing pyflakes instead of pyflakes3
         # causes Python 2 to be installed, which is exactly NOT what we want.
         if [ "$DIST" = "Ubuntu" ] &&  [ `expr $RELEASE '>=' 20.04` = "1" ]; then
-                pf=pyflakes3
+                pf=python3-pyflakes3
         fi
         $install gcc make socat psmisc xterm ssh iperf telnet \
-                 ethtool help2man $pf pylint pep8 \
+                 ethtool help2man $pf pylint python3-pep8 \
                  net-tools \
                  ${PYPKG}-pexpect ${PYPKG}-tk
         # Install pip
@@ -515,7 +515,7 @@ function of {
     else
         $install git-core autotools-dev pkg-config libc6-dev
     fi
-    git clone --depth=1 https://github.com/mininet/openflow
+    git clone --depth=1 https://github.com/JsphByd/openflow
     cd $BUILD_DIR/openflow
 
     # Patch controller to handle more than 16 switches
