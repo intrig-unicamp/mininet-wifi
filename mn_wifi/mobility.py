@@ -381,6 +381,41 @@ class model(Mobility):
             while self.pause_simulation:
                 pass
 
+class RTCModel(model):
+    def __init__(self, **kwargs):
+        self.tick_time = kwargs.get('rtc_model_mob_tick', 1)
+        super().__init__(**kwargs)
+
+    def start_mob_mod(self, mob, nodes, draw):
+        """
+        :param mob: mobility params
+        :param nodes: list of nodes
+        """
+        next_tick_time = time() + self.tick_time
+        for xy in mob:
+            for idx, node in enumerate(nodes):
+                pos = round(xy[idx][0], 2), round(xy[idx][1], 2), 0.0
+                self.set_pos(node, pos)
+                if draw:
+                    node.update_2d()
+            if draw:
+                PlotGraph.pause()
+            if self.pause_simulation:
+                while self.pause_simulation:
+                    pass
+                # When resuming simulation, reset the tick timing
+                next_tick_time = time() + self.tick_time
+                continue
+            # We try to use "best effort" scheduling- we want to have
+            # done as many ticks as there are elapsed seconds since we last
+            # performed a mobility tick and try to iterate the loop as consistently
+            # as possible
+            else:
+                while time() < next_tick_time:
+                    # If time() has been exceeded since the while loop check, don't sleep
+                    sleep(max(next_tick_time - time(), 0))
+            next_tick_time = next_tick_time + self.tick_time
+
 
 class Tracked(Mobility):
     "Used when the position of each node is previously defined"
