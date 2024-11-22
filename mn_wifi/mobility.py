@@ -381,9 +381,9 @@ class model(Mobility):
             while self.pause_simulation:
                 pass
 
-class RTCModel(model):
+class TimedModel(model):
     def __init__(self, **kwargs):
-        self.tick_time = kwargs.get('rtc_model_mob_tick', 1)
+        self.tick_time = kwargs.get('timed_model_mob_tick', 1)
         super().__init__(**kwargs)
 
     def start_mob_mod(self, mob, nodes, draw):
