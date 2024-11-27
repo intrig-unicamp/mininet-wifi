@@ -186,6 +186,7 @@ function wifi_deps {
                             python-pep8 ${PYPKG}-pexpect ${PYPKG}-tk
     else
         pf=pyflakes
+        pep=pep8
         if [ $PYTHON_VERSION == 3 ]; then
             ln -sf python3 /usr/bin/python
         fi
@@ -194,8 +195,13 @@ function wifi_deps {
         if [ "$DIST" = "Ubuntu" ] &&  [ `expr $RELEASE '>=' 20.04` = "1" ]; then
                 pf=pyflakes3
         fi
+        # Starting around 24.04, installing pycodestyle instead of pep8
+        if [ "$DIST" = "Ubuntu" ] &&  [ `expr $RELEASE '>=' 24.04` = "1" ]; then
+                pep8=pycodestyle
+        fi
+
         $install gcc make socat psmisc xterm ssh iperf telnet \
-                 ethtool help2man $pf pylint pep8 \
+                 ethtool help2man $pf pylint $pep \
                  net-tools \
                  ${PYPKG}-pexpect ${PYPKG}-tk
         # Install pip
