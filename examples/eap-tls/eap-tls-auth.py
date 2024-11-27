@@ -5,7 +5,6 @@
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
-import os.path
 import os
 from os import path
 
@@ -47,7 +46,7 @@ def topology():
     ap1 = net.addAccessPoint('ap1', 
                             ssid="simplewifi", 
                             hostapd_flags='-dd > /tmp/hostapd.txt',
-                            mode="g", channel="1", 
+                            mode="g", channel="1", encrypt='wpa2',
                             failMode="standalone", datapath='user', 
                             config='eap_server=1,'
                                    'ieee8021x=1,'
