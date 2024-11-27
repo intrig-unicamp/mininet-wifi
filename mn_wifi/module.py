@@ -119,7 +119,7 @@ class Mac80211Hwsim(object):
                   stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=-1)
         output, err_out = p.communicate()
         if p.returncode == 0:
-            m = search("ID (\d+)", output.decode())
+            m = search(r"ID (\d+)", output.decode())
             debug("Created mac80211_hwsim device with ID %s\n" % m.group(1))
             Mac80211Hwsim.hwsim_ids.append(m.group(1))
         else:
@@ -184,7 +184,7 @@ class Mac80211Hwsim(object):
         sh("echo 'for i in ${phys[@]}' >> %s" % file)
         sh("echo 'do' >> %s" % file)
         sh("echo '    pid=$(ps -aux | grep \"${nodes[$j]}\" | grep -v 'hostapd' "
-           "| awk \"{print \$2}\" | awk \"NR>=%s&&NR<=%s\")' "
+           "| awk \"{print \\$2}\" | awk \"NR>=%s&&NR<=%s\")' "
            ">> %s" % (num+1, num+1, file))
         sh("echo '    sudo iw phy $i set netns $pid' >> %s" % file)
         sh("echo '    j=$((j+1))' >> {}".format(file))
