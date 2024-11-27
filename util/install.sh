@@ -197,7 +197,7 @@ function wifi_deps {
         fi
         # Starting around 24.04, installing pycodestyle instead of pep8
         if [ "$DIST" = "Ubuntu" ] &&  [ `expr $RELEASE '>=' 24.04` = "1" ]; then
-                pep8=pycodestyle
+                pep=pycodestyle
         fi
 
         $install gcc make socat psmisc xterm ssh iperf telnet \
