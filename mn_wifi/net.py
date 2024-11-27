@@ -29,7 +29,7 @@ from mn_wifi.link import IntfWireless, wmediumd, _4address, HostapdConfig, \
     master, managed, physicalMesh, PhysicalWifiDirectLink, _4addrClient, \
     _4addrAP, phyAP
 from mn_wifi.mobility import Tracked as TrackedMob, model as MobModel, \
-    Mobility as mob, ConfigMobility, ConfigMobLinks
+    Mobility as mob, ConfigMobility, ConfigMobLinks, TimedModel
 from mn_wifi.module import Mac80211Hwsim
 from mn_wifi.node import AP, Station, Car, OVSKernelAP, physicalAP
 from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
@@ -145,6 +145,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.wwan_module = wwan_module
         self.ifbIntf = 0
         self.mob_object = None
+        self.use_timed_model_mob = False
+        self.timed_model_mob_tick = 1.0
         self.mob_start_time = 0
         self.mob_stop_time = 0
         self.mob_rep = 1
@@ -1231,7 +1233,10 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         if self.roads:
             self.mob_object = vanet(**kwargs)
         else:
-            self.mob_object = MobModel(**kwargs)
+            if kwargs.get('use_timed_model_mob'):
+                self.mob_object = TimedModel(**kwargs)
+            else:
+                self.mob_object = MobModel(**kwargs)
 
     def setMobilityModel(self, **kwargs):
         for key in kwargs:
@@ -1267,12 +1272,12 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                       'max_x', 'max_y', 'max_z',
                       'min_v', 'max_v', 'min_wt', 'max_wt',
                       'velocity_mean', 'alpha', 'variance', 'aggregation',
-                      'g_velocity']
+                      'g_velocity', 'timed_model_mob_tick']
         args = ['stations', 'cars', 'aps', 'draw', 'seed',
                 'roads', 'mob_start_time', 'mob_stop_time',
                 'links', 'mob_model', 'mob_rep', 'reverse',
                 'ac_method', 'pointlist', 'n_groups', 'aggregation_epoch', 'epoch',
-                'velocity']
+                'velocity', 'use_timed_model_mob']
         args += float_args
         for arg in args:
             if arg in float_args:
