@@ -19,7 +19,7 @@ setup(
     version=VERSION,
     description='Process-based SDN emulator',
     author='Bob Lantz; and Ramon Fontes',
-    author_email='rlantz@cs.stanford.edu; ramonrf@dca.fee.unicamp.br',
+    author_email='rlantz@cs.stanford.edu; ramon.fontes@ufrn.br',
     packages=['mn_wifi', 'mn_wifi.sixLoWPAN', 'mn_wifi.wwan', 'mn_wifi.btvirt', 'mn_wifi.data', 'mn_wifi.examples',
               'mn_wifi.examples.eap-tls', 'mn_wifi.examples.eap-tls.CA', 'mn_wifi.examples.p4',
               'mn_wifi.sumo', 'mn_wifi.sumo.sumolib', 'mn_wifi.sumo.traci',
