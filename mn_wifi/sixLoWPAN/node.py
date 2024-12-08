@@ -102,6 +102,7 @@ class LowPANNode(Node_wifi):
             cmd += '               dags = { {\n'
             cmd += '                       mode_of_operation = {},\n'.format(self.params['storing_mode'])
             cmd += '                       dest_prefix = \"fd3c:be8a:173f:8e80::/64\",\n'
+            cmd += '                       dodagid = \"fd3c:be8a:173f:8e80::1\",\n'
             cmd += '               }, }\n'
             cmd += '        }, }\n'
         cmd += '}, }'
