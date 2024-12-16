@@ -192,7 +192,7 @@ function wifi_deps {
         # Starting around 20.04, installing pyflakes instead of pyflakes3
         # causes Python 2 to be installed, which is exactly NOT what we want.
         if [ "$DIST" = "Ubuntu" ] &&  [ `expr $RELEASE '>=' 20.04` = "1" ]; then
-                pf=python3-pyflakes3
+                pf=python3-pyflakes
         fi
         $install gcc make socat psmisc xterm ssh iperf telnet \
                  ethtool help2man $pf pylint python3-pep8 \
