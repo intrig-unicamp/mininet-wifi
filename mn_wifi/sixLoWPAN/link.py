@@ -294,6 +294,10 @@ class LowPANLink(Link, IntfSixLoWPAN):
         assert self
         return node.name + '-' + ifacename  # + repr(n)
 
+    def pexec(self, *args, **kwargs):
+        "Run a command in our owning node"
+        return self.node.pexec(*args, **kwargs)
+
     def delete(self):
         "Delete this link"
         self.intf1.delete()

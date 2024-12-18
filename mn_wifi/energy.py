@@ -24,34 +24,25 @@ class Energy(object):
     def start(self, nodes):
 
         for node in nodes:
+            node.consumption = 0
             for intf in node.wintfs.values():
                 intf.rx, intf.tx = 0, 0
 
         try:
             while self.thread_._keep_alive:
-               sleep(1)  # set sleep time to 1 second
-               for node in nodes:
-                   for intf in node.wintfs.values():
-                       intf.consumption += self.getTotalEnergyConsumption(intf)
+                sleep(1)  # set sleep time to 1 second
+                for node in nodes:
+                    for intf in node.wintfs.values():
+                        intf.consumption += float(self.getTotalEnergyConsumption(intf))
+                        node.consumption += float(self.getTotalEnergyConsumption(intf))
         except:
             error("Error with the energy consumption function\n")
 
-    def clean_and_convert(self, value):
-        # Remove escape sequences ANSI
-        ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
-        cleaned_value = ansi_escape.sub('', value).replace("\n", "").replace("\r", "")
-
-        try:
-            return int(cleaned_value)
-        except ValueError:
-            print(f"Erro ao converter para inteiro: '{cleaned_value}'")
-            return None  # Ou um valor padrão caso desejado
-
     def get_cat_dev(self, intf, col):
         p = '{print $%s}' % col
-        value = intf.cmd(Energy.cat_dev.format(intf.name, p)).replace("\n", "")
+        value = intf.pexec(Energy.cat_dev.format(intf.name, p), shell=True)[0].replace("\n", "")
         if value:
-            return self.clean_and_convert(value)
+            return value
         return 0
 
     def get_rx_packet(self, intf):
@@ -76,11 +67,10 @@ class Energy(object):
         return 'idle'
 
     def get_energy(self, intf, factor):
-        return intf.voltage * factor
+        return intf.voltage * factor * 0.1 / 3600 / 1000
 
     def getTotalEnergyConsumption(self, intf):
         state = self.get_state(intf)
-        # energy to decrease = time * voltage (mA) * current
         if state == 'idle':
             return self.get_energy(intf, 0.273)
         elif state == 'tx':
@@ -99,4 +89,4 @@ class Energy(object):
 
     def ipLink(self, intf):
         "Configure ourselves using ip link"
-        self.cmd('ip link set {} down'.format(intf.name))
+        self.pexec('ip link set {} down'.format(intf.name), shell=True)
