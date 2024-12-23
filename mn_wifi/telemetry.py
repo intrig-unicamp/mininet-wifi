@@ -59,7 +59,7 @@ class telemetry(object):
                 parseData.max_x = max_x
                 parseData.max_y = max_y
                 fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 10))
-                fig.canvas.set_window_title('Mininet-WiFi Graph')
+                #fig.canvas.set_window_title('Mininet-WiFi Graph')
                 self.axes.set_xlabel('meters')
                 self.axes.set_xlabel('meters')
                 self.axes.set_xlim([min_x, max_x])
@@ -69,7 +69,7 @@ class telemetry(object):
                     fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 4))
                 else:
                     fig, (self.axes) = plt.subplots(1, (len(nodes)), figsize=(10, 4))
-                fig.canvas.set_window_title('Mininet-WiFi Graph')
+                #fig.canvas.set_window_title('Mininet-WiFi Graph')
         self.nodes = nodes
         parseData(nodes, self.axes, single, data_type=data_type, fig=fig, **kwargs)
 
@@ -183,20 +183,6 @@ class parseData(object):
 
     def pub_msg(self, topic, msg):
         sh('mosquitto_pub -t {} -m \'{}\''.format(topic, msg))
-
-    def run_dojot(self, topic):
-        for node in self.nodes:
-            for wlan in range(0, len(node.params['wlan'])):
-                msg = '{'
-                if 'rssi' in self.data_type:
-                    iface = self.ifaces[node][wlan]
-                    rssi = get_rssi(node, iface)
-                    msg += '\"{}\":{},'.format((node.name+'-rssi'), rssi)
-                if 'position' in self.data_type:
-                    pos = str(get_position(node))
-                    msg += '\"{}\":\"{}\",'.format((node.name + '-pos'), pos)
-                msg = msg[:-1] + '}'
-                self.pub_msg(topic, msg)
 
     def plot(self, axes, nodes_x, nodes_y, names):
         time.sleep(0.0001)
@@ -313,20 +299,15 @@ class parseData(object):
             if single or data_type == 'position':
                 self.instantiate_node(node)
 
-        self.phys, self.ifaces = telemetry.get_phys(nodes, inNamespaceNodes)
+        if data_type != "position":
+            self.phys, self.ifaces = telemetry.get_phys(nodes, inNamespaceNodes)
         interval = 1000
-        if 'tool' in kwargs:
-            topic = kwargs['dojot_topic']
-            while self.thread_._keep_alive:
-                self.run_dojot(topic)
-                time.sleep(interval/1000)
-        else:
-            for node in nodes:
-                if path.exists('{}'.format(self.filename.format(node))):
-                    sh('rm {}'.format(self.filename.format(node)))
-            self.ani = animation.FuncAnimation(fig, self.animate, interval=interval)
-            fig.canvas.mpl_connect('close_event', self.close)
-            plt.show()
+        for node in nodes:
+            if path.exists('{}'.format(self.filename.format(node))):
+                sh('rm {}'.format(self.filename.format(node)))
+        self.ani = animation.FuncAnimation(fig, self.animate, interval=interval)
+        fig.canvas.mpl_connect('close_event', self.close)
+        plt.show()
 
     def close(self, event):
         self.thread_._keep_alive = False
