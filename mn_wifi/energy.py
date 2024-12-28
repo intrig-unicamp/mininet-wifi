@@ -30,7 +30,7 @@ class BitZigBeeEnergy(object):
         self.cost_rx = 0.00009  # Energy per received byte (J/byte)
 
         # Conversion factor: Joules to Watt-hours
-        self.joules_to_wh = 1 / 3600
+        self.joules_to_wh = 0.1 / 3600
 
         # Start monitoring thread
         BitZigBeeEnergy.thread_ = thread(target=self.start, args=(nodes,))
