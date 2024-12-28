@@ -103,6 +103,10 @@ class BitZigBeeEnergy(object):
         rx_diff = rx_bytes - intf.rx_bytes
         tx_diff = tx_bytes - intf.tx_bytes
 
+        # udpate with the last read
+        intf.rx_bytes = rx_bytes
+        intf.tx_bytes = tx_bytes
+
         # Calculate energy consumption in Joules
         energy_in_joules = (rx_diff * self.cost_rx) + (tx_diff * self.cost_tx)
 
