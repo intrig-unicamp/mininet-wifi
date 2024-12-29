@@ -90,6 +90,11 @@ class LowPANNode(Node_wifi):
             self.params['storing_mode'] = 2
         if 'trickle_t' not in self.params:
             self.params['trickle_t'] = 1
+        if 'public_key' in self.params:
+            cmd += '        public_key = \"{}\",\n'.format(self.params['public_key'])
+        if 'secret_key' in self.params:
+            cmd += '        secret_key = \"{}\",\n'.format(self.params['secret_key'])
+
         if 'dodag_root' in self.params and self.params['dodag_root']:
             cmd += '        dodag_root = true,\n'
         else:
@@ -106,7 +111,8 @@ class LowPANNode(Node_wifi):
             cmd += '               }, }\n'
             cmd += '        }, }\n'
         cmd += '}, }'
-        self.cmd('echo \'{}\' > lowpan-{}.conf'.format(cmd, self.name))
+        
+        self.pexec('echo \'{}\' > lowpan-{}.conf'.format(cmd, self.name), shell=True)
         self.runRPLD()
 
     def runRPLD(self):
