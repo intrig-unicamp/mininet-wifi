@@ -90,6 +90,8 @@ class LowPANNode(Node_wifi):
             self.params['storing_mode'] = 2
         if 'trickle_t' not in self.params:
             self.params['trickle_t'] = 1
+        if 'enc_mode' in self.params:
+            cmd += '        enc_mode = {},\n'.format(self.params['enc_mode'])
         if 'public_key' in self.params:
             cmd += '        public_key = \"{}\",\n'.format(self.params['public_key'])
         if 'secret_key' in self.params:
