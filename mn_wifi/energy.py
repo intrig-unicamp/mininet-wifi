@@ -5,6 +5,7 @@
 import re
 
 from threading import Thread as thread
+from datetime import datetime
 from time import sleep, time
 
 from mininet.log import error
@@ -112,6 +113,12 @@ class BitZigBeeEnergy(object):
 
         # Convert Joules to Watt-hours
         energy_in_wh = energy_in_joules * self.joules_to_wh
+
+        # Produce log
+        current_datetime = datetime.now()
+        formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        node.pexec('echo {},{},{} >> /tmp/net-consumption.log'.format(formatted_datetime, tx_diff, rx_diff, energy_in_wh), shell=True)
+
         return energy_in_wh
 
     def shutdown_intfs(self, node):
