@@ -56,7 +56,7 @@ class BitZigBeeEnergy(object):
                 for node in nodes:
                     for intf in node.wintfs.values():
                         # Calculate energy based on bytes transferred
-                        energy_consumed = self.get_bytes_consumption(intf)
+                        energy_consumed = self.get_bytes_consumption(node, intf)
                         intf.consumption += energy_consumed
                         node.consumption += energy_consumed
         except Exception as e:
@@ -88,7 +88,7 @@ class BitZigBeeEnergy(object):
         """
         return self.get_cat_dev(intf, 10)  # Column 10: TX bytes
 
-    def get_bytes_consumption(self, intf):
+    def get_bytes_consumption(self, node, intf):
         """
         Calculates the energy consumption based on bytes transmitted and received.
         Args:
