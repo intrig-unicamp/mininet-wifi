@@ -117,7 +117,7 @@ class BitZigBeeEnergy(object):
         # Produce log
         current_datetime = datetime.now()
         formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        node.pexec('echo {},{},{} >> /tmp/net-consumption.log'.format(formatted_datetime, tx_diff, rx_diff, energy_in_wh), shell=True)
+        node.pexec('echo {},{},{},{} >> /tmp/net-consumption.log'.format(formatted_datetime, tx_diff, rx_diff, energy_in_wh), shell=True)
 
         return energy_in_wh
 
