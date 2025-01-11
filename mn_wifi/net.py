@@ -881,6 +881,16 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             info(node.name + ' ')
             node.terminate()
         info('\n')
+        info('*** Clearing variables\n')
+        Mac80211Hwsim.prefix = ""
+        Mac80211Hwsim.hwsim_ids = []
+        Mac80211Hwsim.externally_managed = False
+        Mac80211Hwsim.devices_created_dynamically = False
+        Mac80211Hwsim.phyWlans = None
+        mob.aps = []
+        mob.stations = []
+        mob.mobileNodes = []
+        info('\n')
         self.closeMininetWiFi()
         info('\n*** Done\n')
 
