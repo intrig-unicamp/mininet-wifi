@@ -1434,12 +1434,12 @@ class _4addrAP(WirelessLink):
 
 
 class wmediumd(object):
-    positions = []
-    txpowers = []
-    links = []
-    mac_list = []
 
     def __init__(self, **kwargs):
+        self.positions = []
+        self.txpowers = []
+        self.links = []
+        self.mac_list = []
         self.configWmediumd(**kwargs)
 
     def configWmediumd(self, wlinks, fading_cof, noise_th, stations,
@@ -1451,6 +1451,7 @@ class wmediumd(object):
         intf_ids = {}
         nodes = stations + aps + cars
         intf_id = 0
+
         for node in nodes:
             node.wmIfaces = []
 

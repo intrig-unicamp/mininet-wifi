@@ -266,3 +266,12 @@ class Mac80211Hwsim(object):
         wlan_list = sorted(wlan_list)
         wlan_list.sort(key=len, reverse=False)
         return wlan_list
+
+    @classmethod
+    def reset(cls):
+        """Method to reset all class attributes"""
+        cls.prefix = ""
+        cls.hwsim_ids = []
+        cls.externally_managed = False
+        cls.devices_created_dynamically = False
+        cls.phyWlans = None

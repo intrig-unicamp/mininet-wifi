@@ -15,6 +15,7 @@ from mn_wifi.sixLoWPAN.clean import Cleanup as CleanLowpan
 from mn_wifi.wwan.clean import Cleanup as CleanWwan
 from mn_wifi.btvirt.clean import Cleanup as CleanBTVirt
 from mn_wifi.wmediumdConnector import w_server
+from mn_wifi.module import Mac80211Hwsim
 
 
 class Cleanup(object):
@@ -63,6 +64,7 @@ class Cleanup(object):
         if cls.plot:
             cls.plot.close_plot()
 
+        Mac80211Hwsim.reset()
         cls.killprocs('simple_switch_grpc')
         cls.killprocs('sumo-gui')
         cls.killprocs('olsrd2_static')

@@ -1537,6 +1537,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
     @classmethod
     def closeMininetWiFi(self):
         "Close Mininet-WiFi"
+        mob.aps = []
+        mob.stations = []
+        mob.mobileNodes = []
         CleanupWifi.kill_mod_proc()
 
 
