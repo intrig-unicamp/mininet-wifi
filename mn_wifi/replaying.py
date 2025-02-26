@@ -13,6 +13,7 @@ from mininet.log import info
 from mn_wifi.plot import PlotGraph
 from mn_wifi.mobility import Mobility, ConfigMobLinks
 from mn_wifi.node import Station, AP
+from mn_wifi.frequency import Frequency as Getfreq
 
 
 class ReplayingMobility(Mobility):
@@ -138,7 +139,7 @@ class ReplayingNetworkConditions(Mobility):
         currentTime = time()
         stations = self.net.stations
         for sta in stations:
-            sta.wintfs[0].freq = sta.wintfs[0].get_freq()
+            sta.wintfs[0].freq = Getfreq(sta.wintfs[0].mode, sta.wintfs[0].channel).freq
         while self.thread_._keep_alive:
             if len(stations) == 0:
                 break
@@ -186,7 +187,7 @@ class ReplayingRSSI(Mobility):
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
-            sta.wintfs[0].freq = sta.wintfs[0].get_freq()
+            sta.wintfs[0].freq = Getfreq(sta.wintfs[0].mode, sta.wintfs[0].channel).freq
         while self.thread_._keep_alive:
             if len(staList) == 0:
                 break
