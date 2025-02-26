@@ -4,7 +4,7 @@
 """
 
 from threading import Thread as thread
-from time import sleep, time
+from time import sleep, time, monotonic_ns
 from os import system as sh, getpid
 from glob import glob
 import numpy as np
@@ -383,7 +383,9 @@ class model(Mobility):
 
 class TimedModel(model):
     def __init__(self, **kwargs):
-        self.tick_time = kwargs.get('timed_model_mob_tick', 1)
+        # In order to use nanosecond resolution with the monotonic clock, 
+        # we need to convert to nanoseconds
+        self.tick_time = kwargs.get('timed_model_mob_tick', 1) * 1e9
         super().__init__(**kwargs)
 
     def start_mob_mod(self, mob, nodes, draw):
@@ -391,7 +393,7 @@ class TimedModel(model):
         :param mob: mobility params
         :param nodes: list of nodes
         """
-        next_tick_time = time() + self.tick_time
+        next_tick_time = monotonic_ns() + self.tick_time
         for xy in mob:
             for idx, node in enumerate(nodes):
                 pos = round(xy[idx][0], 2), round(xy[idx][1], 2), 0.0
@@ -404,16 +406,16 @@ class TimedModel(model):
                 while self.pause_simulation:
                     pass
                 # When resuming simulation, reset the tick timing
-                next_tick_time = time() + self.tick_time
+                next_tick_time = monotonic_ns() + self.tick_time
                 continue
             # We try to use "best effort" scheduling- we want to have
             # done as many ticks as there are elapsed seconds since we last
             # performed a mobility tick and try to iterate the loop as consistently
             # as possible
             else:
-                while time() < next_tick_time:
+                while monotonic_ns() < next_tick_time:
                     # If time() has been exceeded since the while loop check, don't sleep
-                    sleep(max(next_tick_time - time(), 0))
+                    sleep(max((next_tick_time - monotonic_ns()) / 1e9, 0))
             next_tick_time = next_tick_time + self.tick_time
 
 
