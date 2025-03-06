@@ -179,6 +179,13 @@ function wifi_deps {
             iproute telnet python-setuptools libcgroup-tools openssl-devel \
             ethtool help2man python3-pyflakes pylint python-pep8 python-pexpect libevent-devel \
             dbus-devel libconfig-devel epel-release ${PYPKG}-six
+    elif [ "$DIST" = "Kali" ]; then
+        $install gcc make socat psmisc xterm openssh-server iperf \
+          iproute2 telnet ${PYPKG}-setuptools cgroup-tools \
+          ethtool help2man ${PYPKG}-pyflakes \
+          ${PYPKG}-pexpect ${PYPKG}-tk
+          pip install pep8 --break-system-packages
+          pip install pylint --break-system-packages
     elif [ "$DIST" = "SUSE LINUX"  ]; then
         $install gcc make socat psmisc xterm openssh iperf \
           iproute telnet ${PYPKG}-setuptools libcgroup-tools \
