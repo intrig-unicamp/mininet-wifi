@@ -6,7 +6,7 @@ import re
 
 from threading import Thread as thread
 from datetime import datetime
-from time import sleep, time
+from time import sleep
 
 from mininet.log import error
 
@@ -61,7 +61,7 @@ class BitZigBeeEnergy(object):
                         node.consumption += energy_consumed
         except Exception as e:
             # Log errors during the monitoring process
-            error(f"Error with the energy consumption function: {e}\n")
+            error("Error with the energy consumption function: %s\n" % e)
 
     def get_cat_dev(self, intf, col):
         """
@@ -136,7 +136,7 @@ class BitZigBeeEnergy(object):
         Args:
             intf: Interface name or object.
         """
-        self.pexec(f'ip link set {intf.name} down', shell=True)
+        self.pexec('ip link set %s down' % intf.name, shell=True)
 
 
 class Energy(object):
