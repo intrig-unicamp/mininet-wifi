@@ -725,8 +725,10 @@ class HostapdConfig(IntfWireless):
                 for vwlan, id in enumerate(intf.vifaces):
                     cmd += self.virtual_intf(intf, vwlan)
 
-            cmd += "\nctrl_interface=/var/run/hostapd"
-            cmd += "\nctrl_interface_group=0"
+            if "ctrl_interface=/var/run/hostapd" not in cmd:
+               cmd += "\nctrl_interface=/var/run/hostapd"
+               cmd += "\nctrl_interface_group=0"
+            
             self.ap_config_file(cmd, intf)
 
             if '-' in intf.name: intf.setMAC(intf.mac)
