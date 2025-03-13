@@ -429,16 +429,18 @@ class IntfWireless(Intf):
         else:
             if 'wpasup_globals' in self.node.params:
                 cmd += self.node.params['wpasup_globals'] + '\n'
-            cmd += 'network={\n'
 
-            if self.config:
+            if self.config or self.config == "":
                 config = self.config
-                if config != []:
+                if config != [] and self.config != "":
+                    cmd += 'network={\n'
                     config = self.config.split(',')
                     self.node.params.pop("config", None)
                     for conf in config:
                         cmd += "   " + conf + "\n"
+                    cmd += '}'
             else:
+                cmd += 'network={\n'
                 cmd += '   ssid=\"{}\"\n'.format(ap_intf.ssid)
                 if not ap_intf.authmode:
                     if passwd:
@@ -470,7 +472,7 @@ class IntfWireless(Intf):
                     cmd += '   identity=\"{}\"\n'.format(self.radius_identity)
                     cmd += '   password=\"{}\"\n'.format(self.radius_passwd)
                     cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
-            cmd += '}'
+                cmd += '}'
 
         pattern = '{}_{}.staconf'.format(self.name, self.id)
         self.cmd('echo \'{}\' > {}'.format(cmd, pattern))
