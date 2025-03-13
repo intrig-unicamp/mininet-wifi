@@ -447,7 +447,7 @@ class IntfWireless(Intf):
                     if ap_intf.encrypt == 'wpa3':
                         encrypt = 'wpa2'
                     cmd += '   proto={}\n'.format(encrypt.upper())
-                    if pairwise:
+                    if ap_intf.rsn_pairwise:
                         cmd += '   pairwise={}\n'.format(ap_intf.rsn_pairwise)
                     if self.active_scan:
                         cmd += '   scan_ssid=1\n'
