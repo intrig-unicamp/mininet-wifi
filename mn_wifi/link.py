@@ -441,12 +441,14 @@ class IntfWireless(Intf):
             else:
                 cmd += '   ssid=\"{}\"\n'.format(ap_intf.ssid)
                 if not ap_intf.authmode:
-                    cmd += '   psk=\"{}\"\n'.format(passwd)
+                    if passwd:
+                        cmd += '   psk=\"{}\"\n'.format(passwd)
                     encrypt = ap_intf.encrypt
                     if ap_intf.encrypt == 'wpa3':
                         encrypt = 'wpa2'
                     cmd += '   proto={}\n'.format(encrypt.upper())
-                    cmd += '   pairwise={}\n'.format(ap_intf.rsn_pairwise)
+                    if pairwise:
+                        cmd += '   pairwise={}\n'.format(ap_intf.rsn_pairwise)
                     if self.active_scan:
                         cmd += '   scan_ssid=1\n'
                     if self.scan_freq:
