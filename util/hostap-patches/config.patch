@@ -74,8 +74,8 @@ index a9eab4d..fdc4dab 100644
  # Send debug messages to syslog instead of stdout
  #CONFIG_DEBUG_SYSLOG=y
 @@ -317,13 +318,13 @@ CONFIG_IPV6=y
- -#CONFIG_INTERWORKING=y
- +CONFIG_INTERWORKING=y
+-#CONFIG_INTERWORKING=y
++CONFIG_INTERWORKING=y
  
  # Hotspot 2.0
 -#CONFIG_HS20=y
