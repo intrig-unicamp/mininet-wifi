@@ -4,11 +4,12 @@
 """
 
 from threading import Thread as thread
-from time import sleep, time, monotonic_ns
+from time import sleep, time
 from os import system as sh, getpid
 from glob import glob
 import numpy as np
 from numpy.random import rand
+from sys import version_info
 
 from mininet.log import debug
 from mn_wifi.link import mesh, adhoc, ITSLink, master
@@ -385,15 +386,39 @@ class TimedModel(model):
     def __init__(self, **kwargs):
         # In order to use nanosecond resolution with the monotonic clock, 
         # we need to convert to nanoseconds
-        self.tick_time = kwargs.get('timed_model_mob_tick', 1) * 1e9
+        self.time_func, self.time_multiple = self.get_most_accurate_time_func()
+        self.tick_time = kwargs.get('timed_model_mob_tick', 1) * self.time_multiple
         super().__init__(**kwargs)
+
+    def get_most_accurate_time_func(self):
+        time_func = time
+        time_multiple = 1
+        import_fail = False
+        # if 3.7 or greater
+        if version_info[0] == 3 and version_info[1] >= 7:
+            try:
+                from time import monotonic_ns
+                time_func = monotonic_ns
+                time_multiple = 1e9
+            except ImportError:
+                debug("Attempted to import monotonic_ns with Python 3.7 but failed, please check config. Defaulting to time.time...")
+                pass
+        # if 3.3 or greater
+        elif version_info[0] == 3 and version_info[1] >= 3:
+            try:
+                from time import monotonic
+                time_func = monotonic
+            except ImportError:
+                debug("Attempted to import monotonic with Python 3.3 but failed, please check config. Defaulting to time.time...")
+                pass
+        return (time_func, time_multiple)
 
     def start_mob_mod(self, mob, nodes, draw):
         """
         :param mob: mobility params
         :param nodes: list of nodes
         """
-        next_tick_time = monotonic_ns() + self.tick_time
+        next_tick_time = self.time_func() + self.tick_time
         for xy in mob:
             for idx, node in enumerate(nodes):
                 pos = round(xy[idx][0], 2), round(xy[idx][1], 2), 0.0
@@ -406,16 +431,16 @@ class TimedModel(model):
                 while self.pause_simulation:
                     pass
                 # When resuming simulation, reset the tick timing
-                next_tick_time = monotonic_ns() + self.tick_time
+                next_tick_time = self.time_func() + self.tick_time
                 continue
             # We try to use "best effort" scheduling- we want to have
             # done as many ticks as there are elapsed seconds since we last
             # performed a mobility tick and try to iterate the loop as consistently
             # as possible
             else:
-                while monotonic_ns() < next_tick_time:
+                while self.time_func() < next_tick_time:
                     # If time() has been exceeded since the while loop check, don't sleep
-                    sleep(max((next_tick_time - monotonic_ns()) / 1e9, 0))
+                    sleep(max((next_tick_time - self.time_func()) / self.time_multiple, 0))
             next_tick_time = next_tick_time + self.tick_time
 
 
