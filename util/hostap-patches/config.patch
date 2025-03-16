@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index a9eab4d..fdc4dab 100644
+index 550db697b..7d4781a13 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -115,11 +115,11 @@ CONFIG_EAP_TTLS=y
@@ -17,7 +17,7 @@ index a9eab4d..fdc4dab 100644
  
  # EAP-IKEv2
  #CONFIG_EAP_IKEV2=y
-@@ -136,13 +136,14 @@ CONFIG_PKCS12=y
+@@ -136,7 +136,7 @@ CONFIG_PKCS12=y
  
  # RADIUS authentication server. This provides access to the integrated EAP
  # server from external hosts using RADIUS.
@@ -26,6 +26,8 @@ index a9eab4d..fdc4dab 100644
  
  # Build IPv6 support for RADIUS operations
  CONFIG_IPV6=y
+@@ -145,7 +145,8 @@ CONFIG_IPV6=y
+ #CONFIG_RADIUS_TLS=y
  
  # IEEE Std 802.11r-2008 (Fast BSS Transition)
 -#CONFIG_IEEE80211R=y
@@ -34,7 +36,7 @@ index a9eab4d..fdc4dab 100644
  
  # Use the hostapd's IEEE 802.11 authentication (ACL), but without
  # the IEEE 802.11 Management capability (e.g., FreeBSD/net80211)
-@@ -150,13 +151,13 @@ CONFIG_IPV6=y
+@@ -153,13 +154,13 @@ CONFIG_IPV6=y
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
@@ -51,7 +53,7 @@ index a9eab4d..fdc4dab 100644
  
  # IEEE 802.11be EHT support
  # CONFIG_IEEE80211AX is mandatory for setting CONFIG_IEEE80211BE.
-@@ -166,10 +167,10 @@ CONFIG_IPV6=y
+@@ -169,10 +170,10 @@ CONFIG_IPV6=y
  #CONFIG_IEEE80211BE=y
  
  # Simultaneous Authentication of Equals (SAE), WPA3-Personal
@@ -64,7 +66,7 @@ index a9eab4d..fdc4dab 100644
  
  # Remove debugging code that is printing out debug messages to stdout.
  # This can be used to reduce the size of the hostapd considerably if debugging
-@@ -178,7 +179,7 @@ CONFIG_IPV6=y
+@@ -181,7 +182,7 @@ CONFIG_IPV6=y
  
  # Add support for writing debug log to a file: -f /tmp/hostapd.log
  # Disabled by default.
@@ -73,7 +75,10 @@ index a9eab4d..fdc4dab 100644
  
  # Send debug messages to syslog instead of stdout
  #CONFIG_DEBUG_SYSLOG=y
-@@ -317,13 +318,13 @@ CONFIG_IPV6=y
+@@ -317,16 +318,16 @@ CONFIG_IPV6=y
+ # Interworking (IEEE 802.11u)
+ # This can be used to enable functionality to improve interworking with
+ # external networks.
 -#CONFIG_INTERWORKING=y
 +CONFIG_INTERWORKING=y
  
@@ -90,7 +95,7 @@ index a9eab4d..fdc4dab 100644
  
  # Enable CLI commands for FST testing
  #CONFIG_FST_TEST=y
-@@ -358,7 +359,7 @@ CONFIG_IPV6=y
+@@ -361,12 +362,12 @@ CONFIG_IPV6=y
  # For more details refer to:
  # https://wireless.wiki.kernel.org/en/users/documentation/acs
  #
@@ -99,7 +104,13 @@ index a9eab4d..fdc4dab 100644
  
  # Multiband Operation support
  # These extensions facilitate efficient use of multiple frequency bands
-@@ -378,7 +379,7 @@ CONFIG_IPV6=y
+ # available to the AP and the devices that may associate with it.
+-#CONFIG_MBO=y
++CONFIG_MBO=y
+ 
+ # Client Taxonomy
+ # Has the AP retain the Probe Request and (Re)Association Request frames from
+@@ -381,7 +382,7 @@ CONFIG_IPV6=y
  
  # Include internal line edit mode in hostapd_cli. This can be used to provide
  # limited command line editing and history support.
@@ -108,7 +119,7 @@ index a9eab4d..fdc4dab 100644
  
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
-@@ -397,7 +398,7 @@ CONFIG_IPV6=y
+@@ -400,7 +401,7 @@ CONFIG_IPV6=y
  # functionality needed to use WEP is available in the current hostapd
  # release under this optional build parameter. This functionality is subject to
  # be completely removed in a future release.
@@ -118,7 +129,7 @@ index a9eab4d..fdc4dab 100644
  # Remove all TKIP functionality
  # TKIP is an old cryptographic data confidentiality algorithm that is not
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index a4f20d4..0981598 100644
+index 52befd8f1..011df13f0 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
 @@ -172,12 +172,12 @@ CONFIG_EAP_TNC=y
@@ -137,7 +148,7 @@ index a4f20d4..0981598 100644
  
  # EAP-IKEv2
  CONFIG_EAP_IKEV2=y
-@@ -232,7 +232,7 @@ CONFIG_CTRL_IFACE=y
+@@ -235,7 +235,7 @@ CONFIG_CTRL_IFACE=y
  
  # Include internal line edit mode in wpa_cli. This can be used as a replacement
  # for GNU Readline to provide limited command line editing and history support.
@@ -146,7 +157,12 @@ index a4f20d4..0981598 100644
  
  # Remove debugging code that is printing out debug message to stdout.
  # This can be used to reduce the size of the wpa_supplicant considerably
-@@ -495,7 +495,7 @@ CONFIG_IEEE80211AX=y
+@@ -510,11 +510,11 @@ CONFIG_IEEE80211AX=y
+ # Note: This is experimental and work in progress. The definitions are still
+ # subject to change and this should not be expected to interoperate with the
+ # final IEEE 802.11be version.
+-#CONFIG_IEEE80211BE=y
++CONFIG_IEEE80211BE=y
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
@@ -155,7 +171,7 @@ index a4f20d4..0981598 100644
  
  # Interworking (IEEE 802.11u)
  # This can be used to enable functionality to improve interworking with
-@@ -585,7 +585,7 @@ CONFIG_WIFI_DISPLAY=y
+@@ -604,10 +604,10 @@ CONFIG_WIFI_DISPLAY=y
  #
  # For more details refer to:
  # http://wireless.kernel.org/en/users/Documentation/acs
@@ -163,8 +179,12 @@ index a4f20d4..0981598 100644
 +CONFIG_ACS=y
  
  # Support Multi Band Operation
- #CONFIG_MBO=y
-@@ -606,7 +606,7 @@ CONFIG_IBSS_RSN=y
+-#CONFIG_MBO=y
++CONFIG_MBO=y
+ 
+ # Fast Initial Link Setup (FILS) (IEEE 802.11ai)
+ #CONFIG_FILS=y
+@@ -625,7 +625,7 @@ CONFIG_IBSS_RSN=y
  #CONFIG_PMKSA_CACHE_EXTERNAL=y
  
  # Mesh Networking (IEEE 802.11s)
@@ -173,7 +193,7 @@ index a4f20d4..0981598 100644
  
  # Background scanning modules
  # These can be used to request wpa_supplicant to perform background scanning
-@@ -616,7 +616,7 @@ CONFIG_IBSS_RSN=y
+@@ -635,7 +635,7 @@ CONFIG_IBSS_RSN=y
  CONFIG_BGSCAN_SIMPLE=y
  # Learn channels used by the network and try to avoid bgscans on other
  # channels (experimental)
@@ -183,10 +203,10 @@ index a4f20d4..0981598 100644
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
 diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
-index e60beda..b092431 100644
+index 6d2551b89..8ae9a1c52 100644
 --- wpa_supplicant/p2p_supplicant.c
 +++ wpa_supplicant/p2p_supplicant.c
-@@ -96,7 +96,7 @@
+@@ -98,7 +98,7 @@
  #define P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE 15
  #endif /* P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE */
  
