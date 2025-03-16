@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index 550db697b..7d4781a13 100644
+index 550db697b..f4f1e0715 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -115,11 +115,11 @@ CONFIG_EAP_TTLS=y
@@ -36,7 +36,7 @@ index 550db697b..7d4781a13 100644
  
  # Use the hostapd's IEEE 802.11 authentication (ACL), but without
  # the IEEE 802.11 Management capability (e.g., FreeBSD/net80211)
-@@ -153,13 +154,13 @@ CONFIG_IPV6=y
+@@ -153,26 +154,26 @@ CONFIG_IPV6=y
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
@@ -53,8 +53,11 @@ index 550db697b..7d4781a13 100644
  
  # IEEE 802.11be EHT support
  # CONFIG_IEEE80211AX is mandatory for setting CONFIG_IEEE80211BE.
-@@ -169,10 +170,10 @@ CONFIG_IPV6=y
- #CONFIG_IEEE80211BE=y
+ # Note: This is experimental and work in progress. The definitions are still
+ # subject to change and this should not be expected to interoperate with the
+ # final IEEE 802.11be version.
+-#CONFIG_IEEE80211BE=y
++CONFIG_IEEE80211BE=y
  
  # Simultaneous Authentication of Equals (SAE), WPA3-Personal
 -#CONFIG_SAE=y
