@@ -14,7 +14,7 @@ def topology(args):
 
     info("*** Creating nodes\n")
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mac='00:00:00:00:00:01',
-                             mode='ax', channel='21', encrypt='wpa3',
+                             mode='be', channel='21', encrypt='wpa3',
                              failMode="standalone", datapath='user',
                              passwd='123456789a', ieee80211w='2',
                              position='50,50,0')
@@ -41,5 +41,5 @@ def topology(args):
 
 
 if __name__ == '__main__':
-    setLogLevel('info')
+    setLogLevel('debug')
     topology(sys.argv)

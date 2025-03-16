@@ -206,12 +206,14 @@ class IntfWireless(Intf):
 
     def getCustomRate(self):
         mode_rate = {'a': 11, 'b': 3, 'g': 11, 'n': 600, 'n2': 600,
-                     'ac': 1000, 'ax2': 500, 'ax5': 700, 'ax': 1000, 'ad': 1000}
+                     'ac': 1000, 'ax2': 500, 'ax5': 700, 'ax': 1000,
+                     'ad': 1000, 'be': 1000}
         return mode_rate.get(self.mode)
 
     def getRate(self):
         mode_rate = {'a': 54, 'b': 11, 'g': 54, 'n': 300, 'n2': 300,
-                     'ac': 600, 'ax2': 500, 'ax5': 700, 'ax': 1000, 'ad': 1000}
+                     'ac': 600, 'ax2': 500, 'ax5': 700, 'ax': 1000,
+                     'ad': 1000, 'be': 1000}
         return mode_rate.get(self.mode)
 
     def rec_rssi(self):
@@ -768,7 +770,7 @@ class HostapdConfig(IntfWireless):
 
     @staticmethod
     def get_mode_config(intf, cmd=''):
-        if intf.mode == 'ax':
+        if intf.mode == 'ax' or intf.mode == 'be':
             intf.country_code = 'DE'
         if 'n' in intf.mode:
             cmd += "\ncountry_code={}".format(intf.country_code)
@@ -776,7 +778,7 @@ class HostapdConfig(IntfWireless):
         elif intf.mode == 'a':
             cmd += "\ncountry_code={}".format(intf.country_code)
             cmd += "\nhw_mode={}".format(intf.mode)
-        elif intf.mode == 'ac' or 'ax' in intf.mode:
+        elif intf.mode == 'ac' or 'ax' in intf.mode or intf.mode == 'be':
             cmd += "\ncountry_code={}".format(intf.country_code)
             if intf.mode == 'ax2':
                 cmd += "\nhw_mode=g"
@@ -849,6 +851,7 @@ class HostapdConfig(IntfWireless):
                 cmd += "\nauth_server_shared_secret={}".format(intf.shared_secret)
             else:
                 if intf.ieee80211w: cmd += "\nieee80211w={}".format(intf.ieee80211w)
+                if intf.mld_ap: cmd += '\nmld_ap={}'.format(intf.mld_ap)
                 if intf.encrypt:
                     if 'wpa' in intf.encrypt:
                         cmd += "\nauth_algs={}".format(intf.auth_algs)
@@ -874,13 +877,15 @@ class HostapdConfig(IntfWireless):
                     cmd += '\nwps_pin_requests=/var/run/hostapd.pin-req'
                     cmd += '\nap_setup_locked=0'
 
-                if intf.mode == 'ac' or 'ax' in intf.mode or 'n' in intf.mode:
+                if intf.mode == 'ac' or intf.mode == 'be' or 'ax' in intf.mode or 'n' in intf.mode:
                     cmd += '\nwmm_enabled=1'
                     if intf.mode != 'ax2':
                         cmd += '\nieee80211n=1'
+                    if intf.mode == 'be':
+                        cmd += '\nieee80211be=1'
                     if intf.mode == 'ac':
                         cmd += '\nieee80211ac=1'
-                    if 'ax' in intf.mode:
+                    if 'ax' in intf.mode or intf.mode == 'be':
                         cmd += '\nieee80211ax=1'
                         if intf.ieee80211w:
                             cmd += '\nop_class=131'
@@ -1251,6 +1256,7 @@ class master(WirelessLink):
         self.ifb = None
         self.ieee80211r = None
         self.ieee80211w = None
+        self.mld_ap = None
         self.ignore_broadcast_ssid = None
         self.macaddr_acl = None
         self.mobility_domain = None
@@ -1294,6 +1300,7 @@ class VirtualMaster(master):
         self.vht_capab = None
         self.ieee80211r = None
         self.ieee80211w = None
+        self.mld_ap = None
         self.client_isolation = None
         self.mobility_domain = None
         self.passwd = None
@@ -1335,6 +1342,7 @@ class phyAP(WirelessLink):
         self.vht_capab = None
         self.ieee80211r = None
         self.ieee80211w = None
+        self.mld_ap = None
         self.client_isolation = None
         self.mobility_domain = None
         self.passwd = None
@@ -1370,6 +1378,7 @@ class managed(WirelessLink):
         self.encrypt = None
         self.freq_list = None
         self.ieee80211w = None
+        self.mld_ap = None
         self.ieee80211r = None
         self.ifb = None
         self.wps_state = None

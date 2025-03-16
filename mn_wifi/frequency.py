@@ -8,7 +8,7 @@ class Frequency(object):
         freq = 'get_freq_2ghz'
         if mode == 'ax5' or mode == 'a' or mode == 'n' or mode == 'ac':
             freq = 'get_freq_5ghz'
-        elif mode == 'ax':
+        elif mode == 'ax' or mode == 'be':
             freq = 'get_freq_6ghz'
         if freq in dir(self):
             self.__getattribute__(freq)(channel)
