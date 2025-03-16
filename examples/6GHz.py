@@ -9,15 +9,6 @@ from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 
 
-"""
-We are still trying to enable 6GHz on hwsim
-Initial code has been submitted to the Linux Kernel:
-https://github.com/torvalds/linux/commit/28881922abd786a1e62a4ca77394a84373dd5279
-
-Both wpa3 and ieee80211w are requirements for 6GHz
-"""
-
-
 def topology(args):
 
     "Starting network"
@@ -36,9 +27,6 @@ def topology(args):
 
     info("*** Configuring propagation model\n")
     net.setPropagationModel(model="logDistance", exp=4.5)
-
-    # modified module
-    #net.setModule('./mac80211_hwsim.ko')
 
     info("*** Configuring nodes\n")
     net.configureNodes()
