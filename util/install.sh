@@ -558,7 +558,8 @@ function of {
 
     # Patch controller to handle more than 16 switches
     patch -p1 < $MININET_DIR/mininet-wifi/util/openflow-patches/controller.patch
-
+    sed -i 's/void strlcpy(char \*dst, const char \*src, size_t size)/size_t strlcpy(char *dst, const char *src, size_t size)/g' $BUILD_DIR/openflow/lib/util.h
+    sed -i ':a;N;$!ba;s/void\nstrlcpy(char \*dst, const char \*src, size_t size)/size_t\nstrlcpy(char *dst, const char *src, size_t size)/g' $BUILD_DIR/openflow/lib/util.c
     # Resume the install:
     ./boot.sh
     ./configure
