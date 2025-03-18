@@ -82,6 +82,16 @@ fi
 # More distribution info
 DIST_LC=`echo $DIST | tr [A-Z] [a-z]` # as lower case
 
+# Create the virtual environment path
+VENV_INSTALL=false
+if grep -q docker /proc/1/cgroup || [ -f /.dockerenv ]; then
+    VENV_DIR="/root/venv/mininet"
+    user="root"
+else
+    user=${SUDO_USER:-$(whoami)}
+    VENV_DIR="/home/${user}/venv/mininet"
+fi
+
 
 # Determine whether version $1 >= version $2
 # usage: if version_ge 1.20 1.2.3; then echo "true!"; fi
@@ -112,6 +122,18 @@ if [ "$PYTHON_VERSION" == unknown ]; then
 fi
 echo "Detected Python (${PYTHON}) version ${PYTHON_VERSION}"
 
+function python_venv {
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "Creating virtual environment..."
+        $PYTHON -m venv "$VENV_DIR" || { echo "Failed to create venv"; exit 1; }
+    fi
+    echo "Activating virtual environment..."
+    source "$VENV_DIR/bin/activate" || { echo "Failed to activate venv"; exit 1; }
+    echo "Python version in virtual environment:"
+    $PYTHON --version
+    $PYTHON -m pip install six numpy matplotlib
+    PYTHON="${VENV_DIR}/bin/python"
+}
 
 DRIVERS_DIR=/lib/modules/${KERNEL_NAME}/kernel/drivers/net
 
@@ -137,6 +159,22 @@ function mn_deps {
 
     sudo git clone --depth=1 https://github.com/mininet/mininet.git
     pushd $MININET_DIR/mininet-wifi/mininet
+    if [ "$VENV_INSTALL" = true ]; then
+        formatted_string=$(cat <<EOF
+:a;N;\$!ba;s|PYTHON=\\\${PYTHON:-python}|echo "Activating virtual environment..."\\
+source ${VENV_DIR}/bin/activate\\
+PYTHON=\\\${PYTHON:-python}|
+EOF
+)
+        sed -i "$formatted_string" "$MININET_DIR/mininet-wifi/mininet/util/install.sh"
+
+        formatted_string=$(cat <<EOF
+s|^PYTHON \?= python|PYTHON = ${VENV_DIR}/bin/python|
+EOF
+)
+        sed -i -E "$formatted_string" "$MININET_DIR/mininet-wifi/mininet/Makefile"
+        sed -i -E "$formatted_string" "$MININET_DIR/mininet-wifi/Makefile"
+    fi
     sudo PYTHON=${PYTHON} make install
     popd
     echo "Installing Mininet-wifi core"
@@ -526,7 +564,10 @@ function of {
 
     # Patch controller to handle more than 16 switches
     patch -p1 < $MININET_DIR/mininet-wifi/util/openflow-patches/controller.patch
-
+    if [ "$DIST" = "Ubuntu" ] &&  [ `expr $RELEASE '>=' 24.04` = "1" ]; then
+        sed -i 's/void strlcpy(char \*dst, const char \*src, size_t size)/size_t strlcpy(char *dst, const char *src, size_t size)/g' $BUILD_DIR/openflow/lib/util.h
+        sed -i ':a;N;$!ba;s/void\nstrlcpy(char \*dst, const char \*src, size_t size)/size_t\nstrlcpy(char *dst, const char *src, size_t size)/g' $BUILD_DIR/openflow/lib/util.c
+    fi
     # Resume the install:
     ./boot.sh
     ./configure
@@ -845,6 +886,7 @@ function usage {
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
     printf -- ' -W: install Mininet-WiFi dependencies\n' >&2
+    printf -- ' -x: install Mininet-WiFi in a python virtual environment\n' >&2
     printf -- ' -0: (default) -0[fx] installs OpenFlow 1.0 versions\n' >&2
     printf -- ' -3: -3[fx] installs OpenFlow 1.3 versions\n' >&2
     printf -- ' -6: install wpan tools\n' >&2
@@ -890,6 +932,8 @@ else
       t)    btvirt;;
       v)    ovs;;
       W)    wifi_deps;;
+      x)    VENV_INSTALL=true;
+            python_venv;;
       0)    OF_VERSION=1.0;;
       3)    OF_VERSION=1.3;;
       6)    wpan_tools;;
