@@ -112,6 +112,25 @@ if [ "$PYTHON_VERSION" == unknown ]; then
 fi
 echo "Detected Python (${PYTHON}) version ${PYTHON_VERSION}"
 
+function python_venv {
+    # Create the virtual environment if it doesn't exist
+    if [ "$SUDO_USER" ]; then
+        user=$SUDO_USER
+    else
+        user=$(whoami)
+    fi
+    VENV_DIR="/home/${user}/venv/mininet"
+    echo $VENV_DIR
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "Creating virtual environment..."
+        $PYTHON -m venv "$VENV_DIR"
+    fi
+    echo "Activating virtual environment..."
+    source $VENV_DIR/bin/activate
+    echo "Python version in virtual environment:"
+    $PYTHON --version
+    PYTHON=${PYTHON:-python}
+}
 
 DRIVERS_DIR=/lib/modules/${KERNEL_NAME}/kernel/drivers/net
 
@@ -137,10 +156,23 @@ function mn_deps {
 
     sudo git clone --depth=1 https://github.com/mininet/mininet.git
     pushd $MININET_DIR/mininet-wifi/mininet
+    formatted_string=$(cat <<EOF
+:a;N;\$!ba;s|PYTHON=\\\${PYTHON:-python}|echo "Activating virtual environment..."\\
+source ${VENV_DIR}/bin/activate\\
+PYTHON=\\\${PYTHON:-python}|
+EOF
+)
+    sed -i "$formatted_string" "$MININET_DIR/mininet-wifi/mininet/util/install.sh"
+    formatted_string=$(cat <<EOF
+s|^PYTHON \?= python|PYTHON = ${VENV_DIR}/bin/python|
+EOF
+)
+    sed -i -E "$formatted_string" "$MININET_DIR/mininet-wifi/mininet/Makefile"
     sudo PYTHON=${PYTHON} make install
     popd
     echo "Installing Mininet-wifi core"
     pushd $MININET_DIR/mininet-wifi
+    sed -i -E "$formatted_string" "$MININET_DIR/mininet-wifi/Makefile"
     sudo PYTHON=${PYTHON} make install
     popd
 }
@@ -845,6 +877,7 @@ function usage {
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
     printf -- ' -W: install Mininet-WiFi dependencies\n' >&2
+    printf -- ' -x: install Mininet-WiFi in a python virtual environment\n' >&2
     printf -- ' -0: (default) -0[fx] installs OpenFlow 1.0 versions\n' >&2
     printf -- ' -3: -3[fx] installs OpenFlow 1.3 versions\n' >&2
     printf -- ' -6: install wpan tools\n' >&2
@@ -890,6 +923,7 @@ else
       t)    btvirt;;
       v)    ovs;;
       W)    wifi_deps;;
+      x)    python_venv;;
       0)    OF_VERSION=1.0;;
       3)    OF_VERSION=1.3;;
       6)    wpan_tools;;
