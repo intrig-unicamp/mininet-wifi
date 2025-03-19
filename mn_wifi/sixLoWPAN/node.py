@@ -65,6 +65,9 @@ class LowPANNode(Node_wifi):
         self.master, self.slave = None, None  # pylint
         self.startShell()
         self.mountPrivateDirs()
+        if 'battery_capacity' in params:
+            self.battery_capacity = params.get('battery_capacity')
+        self.remaining_capacity = 1000
 
     # File descriptor to node mapping support
     # Class variables and methods
@@ -289,8 +292,8 @@ class OVSSensor(APSensor, OVSSwitch):
     "Open vSwitch Sensor. Depends on ovs-vsctl."
 
     def __init__(self, name, failMode='secure', datapath='kernel',
-                 inband=False, protocols=None,
-                 reconnectms=1000, stp=False, batch=False, **params):
+                 inband=False, protocols=None, reconnectms=1000, stp=False,
+                 batch=False, **params):
         """name: name for switch
            failMode: controller loss behavior (secure|open)
            datapath: userspace or kernel mode (kernel|user)

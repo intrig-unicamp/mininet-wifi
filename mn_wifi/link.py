@@ -1273,6 +1273,8 @@ class master(WirelessLink):
         self.band = 20  # bandwidth channel
         self.consumption = 0.0
         self.voltage = 10.0
+        self.battery_capacity = 100000
+        self.remaining_capacity = self.battery_capacity - self.consumption
         self.assign_params_to_intf(intf, wlan)
 
 
@@ -1398,6 +1400,8 @@ class managed(WirelessLink):
         self.bgscan_threshold = 0
         self.consumption = 0.0
         self.voltage = 10.0
+        self.battery_capacity = 100000
+        self.remaining_capacity = self.battery_capacity - self.consumption
         self.band = 20  # bandwidth channel
         self.rssi = -60
         self.assign_params_to_intf(intf, wlan)
@@ -1576,6 +1580,8 @@ class LinkAttrs(WirelessLink):
         self.static_range = intf.static_range
         self.consumption = 0.0
         self.voltage = 10.0
+        self.battery_capacity = 100000
+        self.remaining_capacity = self.battery_capacity - self.consumption
 
     def check_channel_band(self, ht_cap):
         if '40' in ht_cap:

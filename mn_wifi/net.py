@@ -3,7 +3,6 @@
     author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
-import re
 import socket
 
 from itertools import chain, groupby
@@ -23,7 +22,7 @@ from mininet.util import (macColonHex, ipStr, ipParse, ipAdd,
 from six import string_types
 
 from mn_wifi.clean import Cleanup as CleanupWifi
-from mn_wifi.energy import Energy
+from mn_wifi.energy import Energy, EnergyMonitor
 from mn_wifi.link import IntfWireless, wmediumd, _4address, HostapdConfig, \
     WirelessLink, TCWirelessLink, ITSLink, WifiDirectLink, adhoc, mesh, \
     master, managed, physicalMesh, PhysicalWifiDirectLink, _4addrClient, \
@@ -174,6 +173,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.epoch = []
         self.velocity = ()
         self.initial_mediums = []
+        self.isEnergyMonitor = False
+        self.energyMonitorKwargs = {}
 
         if autoSetPositions and link == wmediumd:
             self.wmediumd_mode = interference
@@ -746,6 +747,11 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         else:
             if self.draw and not self.isReplaying:
                 self.check_dimension(self.get_mn_wifi_nodes())
+            if self.isEnergyMonitor:
+                monitor = EnergyMonitor()
+                CleanupWifi.plotEnergyMonitor = monitor
+                monitor.plotEnergy(**self.energyMonitorKwargs)
+                monitor.pause()
 
     def staticArp(self):
         "Add all-pairs ARP entries to remove the need to handle broadcast."
@@ -1203,6 +1209,10 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         node.configDefault()
         self.configIFB(node)
 
+    def plotEnergyMonitor(self, **kwargs):
+        self.isEnergyMonitor = True
+        self.energyMonitorKwargs = kwargs
+
     def plotGraph(self, **kwargs):
         "Plots Graph"
         self.draw = True
@@ -1531,6 +1541,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             mob.thread_._keep_alive = False
         if Energy.thread_:
             Energy.thread_._keep_alive = False
+            sleep(1)
+        if EnergyMonitor.thread_:
+            EnergyMonitor.thread_._keep_alive = False
             sleep(1)
         sleep(0.5)
 

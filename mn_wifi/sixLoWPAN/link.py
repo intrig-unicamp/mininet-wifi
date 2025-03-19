@@ -240,6 +240,8 @@ class LowPANLink(Link, IntfSixLoWPAN):
         self.voltage = 10.0
         self.current = 3.0
         self.consumption = 0.0
+        self.battery_capacity = 100000
+        self.remaining_capacity = self.battery_capacity - self.consumption
         self.ip6 = None
         self.set_attr(node, wpan)
 

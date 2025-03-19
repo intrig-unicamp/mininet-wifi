@@ -2,13 +2,133 @@
    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
    @author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
-import re
+
+import warnings
+import time
+import numpy as np
+import matplotlib.pyplot as plt
 
 from threading import Thread as thread
 from datetime import datetime
 from time import sleep
 
 from mininet.log import error
+from mn_wifi.clean import Cleanup as CleanupWifi
+
+
+class PlotEnergy:
+    def __init__(self, nodes, title="Battery Consumption", **kwargs):
+        warnings.filterwarnings("ignore")
+        self.nodes = nodes
+        self.running = True
+
+        for node in self.nodes:
+            node.down = False
+
+        plt.ion()
+        self.fig, self.ax = plt.subplots(figsize=(9, 6))
+
+        self.bars = self.ax.bar(
+            range(len(self.nodes)),
+            [node.remaining_capacity for node in self.nodes],
+            color=self.get_colors()
+        )
+
+        self.labels = [
+            self.ax.text(i, self.nodes[i].remaining_capacity + 1,
+                         self.get_percentage(self.nodes[i]),
+                         ha='center', fontsize=12)
+            for i in range(len(self.nodes))
+        ]
+
+        max_capacity = max(node.battery_capacity for node in self.nodes)
+        self.ax.set_title(title)
+        self.ax.set_ylabel("Battery Remaining (mAh)")
+        self.ax.set_ylim(0, max_capacity * 1.1)
+        self.ax.set_xticks(range(len(self.nodes)))
+        self.ax.set_xticklabels([f'{node.name}' for node in self.nodes])
+        self.fig.canvas.mpl_connect("close_event", self.on_close)
+        self.run(nodes)
+
+    def get_percentage(self, node):
+        percentage = (node.remaining_capacity / node.battery_capacity) * 100
+        return max(round(percentage, 1), 0)
+
+    def get_colors(self):
+        colors = []
+        for node in self.nodes:
+            if self.get_percentage(node) < 20:
+                colors.append('red')
+            elif self.get_percentage(node) < 50:
+                colors.append('orange')
+            else:
+                colors.append('green')
+        return colors
+
+    def update(self):
+        if not plt.fignum_exists(self.fig.number):
+            self.stop()
+            return
+
+        for i, bar in enumerate(self.bars):
+            bar.set_height(self.nodes[i].remaining_capacity)
+            bar.set_color(self.get_colors()[i])
+
+            self.labels[i].set_y(max(self.nodes[i].remaining_capacity, 0))
+            self.labels[i].set_text("{}%".format(self.get_percentage(self.nodes[i])))
+
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+
+    def run(self, nodes):
+        while self.running:
+            for node in nodes:
+                if node.remaining_capacity == 0 and not node.down:
+                    self.node_down(node)
+                    node.down = True
+            self.update()
+            time.sleep(1)
+
+    def on_close(self, event):
+        self.stop()
+
+    def node_down(self, node):
+        for intf in node.wintfs.values():
+            node.pexec('ip link set {} down'.format(intf.name), shell=True)
+
+    def node_up(self, node):
+        for intf in node.wintfs.values():
+            node.pexec('ip link set {} up'.format(intf.name), shell=True)
+
+    def stop(self):
+        self.running = False
+        plt.close(self.fig)
+
+
+class EnergyMonitor:
+
+    def plotEnergy(self, **kwargs):
+        EnergyMonitor.thread_ = thread(target=self.run_plot, kwargs=kwargs)
+        EnergyMonitor.thread_.daemon = True
+        EnergyMonitor.thread_._keep_alive = True
+        EnergyMonitor.thread_.start()
+
+    @classmethod
+    def pause(cls):
+        try:
+            plt.pause(0.001)
+        except:
+            pass
+
+    @classmethod
+    def close(cls):
+        try:
+            plt.close()
+        except:
+            pass
+
+    def run_plot(self, **kwargs):
+        PlotEnergy(**kwargs)
 
 
 class BitZigBeeEnergy(object):
@@ -59,6 +179,7 @@ class BitZigBeeEnergy(object):
                         energy_consumed = self.get_bytes_consumption(node, intf)
                         intf.consumption += energy_consumed
                         node.consumption += energy_consumed
+                        node.remaining_capacity = node.battery_capacity - node.consumption
         except Exception as e:
             # Log errors during the monitoring process
             error("Error with the energy consumption function: %s\n" % e)
@@ -157,6 +278,13 @@ class Energy(object):
             for intf in node.wintfs.values():
                 intf.rx, intf.tx = 0, 0
 
+        while self.thread_._keep_alive:
+            sleep(1)  # set sleep time to 1 second
+            for node in nodes:
+                for intf in node.wintfs.values():
+                    intf.consumption += float(self.getTotalEnergyConsumption(intf))
+                    node.consumption += float(self.getTotalEnergyConsumption(intf))
+                    node.remaining_capacity = node.battery_capacity - node.consumption
         try:
             while self.thread_._keep_alive:
                 sleep(1)  # set sleep time to 1 second
@@ -164,6 +292,7 @@ class Energy(object):
                     for intf in node.wintfs.values():
                         intf.consumption += float(self.getTotalEnergyConsumption(intf))
                         node.consumption += float(self.getTotalEnergyConsumption(intf))
+                        node.remaining_capacity = node.battery_capacity - node.consumption
         except:
             error("Error with the energy consumption function\n")
 

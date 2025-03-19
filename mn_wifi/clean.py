@@ -22,6 +22,7 @@ class Cleanup(object):
     "Wrapper for cleanup()"
     socket_port = 0
     plot = None
+    plotEnergyMonitor = None
 
     @classmethod
     def sh(cls, cmd):
@@ -63,6 +64,8 @@ class Cleanup(object):
     def kill_mod_proc(cls):
         if cls.plot:
             cls.plot.close_plot()
+        if cls.plotEnergyMonitor:
+            cls.plotEnergyMonitor.close()
 
         Mac80211Hwsim.reset()
         cls.killprocs('simple_switch_grpc')
