@@ -106,6 +106,7 @@ class PlotEnergy:
 
 
 class EnergyMonitor:
+    thread_ = None
 
     def plotEnergy(self, **kwargs):
         EnergyMonitor.thread_ = thread(target=self.run_plot, kwargs=kwargs)
