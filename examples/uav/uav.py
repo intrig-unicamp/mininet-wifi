@@ -62,7 +62,7 @@ def topology():
 
     info("*** Starting CoppeliaSim\n")
     path = os.path.dirname(os.path.abspath(__file__))
-    os.system('{}/CoppeliaSim_Edu_V4_1_0_Ubuntu/coppeliaSim.sh -s {}'
+    os.system('{}/CoppeliaSim_Edu/coppeliaSim.sh -s 100000 {}'
               '/simulation.ttt -gGUIITEMS_2 &'.format(path, path))
     time.sleep(10)
 
@@ -85,10 +85,11 @@ def topology():
 
 
 def kill_process():
+    path = os.path.dirname(os.path.abspath(__file__))
     os.system('pkill -9 -f coppeliaSim')
     os.system('pkill -9 -f simpleTest.py')
     os.system('pkill -9 -f setNodePosition.py')
-    os.system('rm examples/uav/data/*')
+    os.system('rm {}/data/*'.format(path))
 
 
 if __name__ == '__main__':
