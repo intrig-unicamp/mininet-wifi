@@ -829,6 +829,8 @@ class HostapdConfig(IntfWireless):
                 # ap.params.pop("config", None)
                 for conf in config: cmd += "\n" + conf
                 if intf.ieee80211w and "ieee80211w=" not in cmd: cmd += "\nieee80211w={}".format(intf.ieee80211w)
+                if intf.encrypt and 'wpa=' not in cmd:
+                    cmd += "\nwpa=1" if intf.encrypt == 'wpa' else "\nwpa=2"
         else:
             if intf.authmode == '8021x':
                 cmd += "\nieee8021x=1"
