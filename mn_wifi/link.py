@@ -729,8 +729,10 @@ class HostapdConfig(IntfWireless):
                 for vwlan, id in enumerate(intf.vifaces):
                     cmd += self.virtual_intf(intf, vwlan)
 
-            cmd += "\nctrl_interface=/var/run/hostapd"
-            cmd += "\nctrl_interface_group=0"
+            if "ctrl_interface=/var/run/hostapd" not in cmd:
+               cmd += "\nctrl_interface=/var/run/hostapd"
+               cmd += "\nctrl_interface_group=0"
+            
             self.ap_config_file(cmd, intf)
 
             if '-' in intf.name: intf.setMAC(intf.mac)
@@ -830,6 +832,9 @@ class HostapdConfig(IntfWireless):
                 config = config.split(',')
                 # ap.params.pop("config", None)
                 for conf in config: cmd += "\n" + conf
+                if intf.ieee80211w and "ieee80211w=" not in cmd: cmd += "\nieee80211w={}".format(intf.ieee80211w)
+                if intf.encrypt and 'wpa=' not in cmd:
+                    cmd += "\nwpa=1" if intf.encrypt == 'wpa' else "\nwpa=2"
         else:
             if intf.authmode == '8021x':
                 cmd += "\nieee8021x=1"
