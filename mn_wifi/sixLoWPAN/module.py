@@ -13,43 +13,38 @@ class module(object):
     externally_managed = False
     devices_created_dynamically = False
 
-    def __init__(self, nodes, nwpan, iot_module):
-        self.start(nodes, nwpan, iot_module)
+    def __init__(self, nodes, nwpan, alt_module):
+        self.start(nodes, nwpan, alt_module)
 
-    def start(self, nodes, nwpan, iot_module):
+    def start(self, nodes, nwpan, alt_module):
         """
         :param nodes: list of nodes
-        :param nwpan: number of wifi radios
-        :param iot_module: dir of a fakelb alternative module
+        :param nwpan: number of radios
         :param **params: ifb -  Intermediate Functional Block device"""
         wm = subprocess.call(['which', 'iwpan'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if wm == 0:
-            self.load_module(nwpan, iot_module)  # Initatilize WiFi Module
-            if iot_module == 'mac802154_hwsim':
-                n = 0
-                for sensor in nodes:
-                    for _ in range(0, len(sensor.params['wpan'])):
-                        n += 1
-                        if n > 2:
-                            os.system('wpan-hwsim add >/dev/null 2>&1')
+            self.load_module(nwpan, alt_module)  # Initatilize Module
+            n = 0
+            for sensor in nodes:
+                for _ in range(0, len(sensor.params['wpan'])):
+                    n += 1
+                    if n > 2:
+                        os.system('wpan-hwsim add >/dev/null 2>&1')
             self.assign_iface(nodes)  # iface assign
         else:
             info('*** iwpan will be used, but it is not installed.\n' \
                  '*** Please install iwpan with sudo util/install.sh -6.\n')
             exit(1)
 
-    def load_module(self, nwpan, iot_module):
-        """ Load WiFi Module
-        :param nwpan: number of radios
-        :param iot_module: dir of a fakelb alternative module"""
+    def load_module(self, nwpan, alt_module):
+        """ Load Module
+        :param nwpan: number of radios"""
         debug('Loading %s virtual interfaces\n' % nwpan)
-        if iot_module == 'fakelb':
-            os.system('modprobe fakelb numlbs=%s' % nwpan)
-        elif iot_module == 'mac802154_hwsim':
-            os.system('modprobe mac802154_hwsim')
+        if alt_module:
+            os.system('insmod %s' % alt_module)
         else:
-            os.system('insmod %s' % iot_module)
+            os.system('modprobe mac802154_hwsim')
 
     @classmethod
     def kill_mod(cls, module):
@@ -69,7 +64,6 @@ class module(object):
     @classmethod
     def stop(cls):
         'Stop wireless Module'
-        cls.kill_mod('fakelb')
         cls.kill_mod('mac802154_hwsim')
 
     def get_virtual_wpan(self):

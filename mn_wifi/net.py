@@ -59,8 +59,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                  configWiFiDirect=False, config4addr=False, noise_th=-91, cca_th=-90,
                  disable_tcp_checksum=False, ifb=False, client_isolation=False,
                  plot=False, plot3d=False, docker=False, container='mininet-wifi',
-                 ssh_user='alpha', rec_rssi=False, iot_module='mac802154_hwsim',
-                 wwan_module='wwan_hwsim', json_file=None, ac_method=None, btdevice=BTNode, **kwargs):
+                 ssh_user='alpha', rec_rssi=False, wwan_module='wwan_hwsim',
+                 json_file=None, ac_method=None, btdevice=BTNode, **kwargs):
         """Create Mininet object.
 
            accessPoint: default Access Point class
@@ -91,7 +91,6 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
            client_isolation: enables client isolation
            plot: plot graph
            plot3d: plot3d graph
-           iot_module: default iot module
            wwan_module: default wwan module
            rec_rssi: sends rssi to mac80211_hwsim by using hwsim_mgmt
            json_file: json file dir - useful for P4
@@ -140,7 +139,6 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.plot = Plot2D
         self.rec_rssi = rec_rssi
         self.roads = roads
-        self.iot_module = iot_module
         self.wwan_module = wwan_module
         self.ifbIntf = 0
         self.mob_object = None
@@ -1386,13 +1384,13 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         if self.ifb: Mac80211Hwsim.load_ifb(nradios)
 
         if self.nwpans:
-            self.sensors, self.apsensors = self.init_6lowpan_module(self.iot_module)
+            self.sensors, self.apsensors = self.init_6lowpan_module(self.alt_module)
             sensors = self.sensors + self.apsensors
             self.addSensors(sensors)
             self.configure6LowPANLink()
 
         if self.nbtdevices:
-            self.btdevices = self.init_btvirt(self.iot_module)
+            self.btdevices = self.init_btvirt(self.alt_module)
             self.addBTdevices(self.btdevices)
             self.configure6LowPANLink()
 

@@ -21,9 +21,7 @@ sensor2      sensor3
 
 def topology():
     "Create a network."
-    net = Mininet_wifi(iot_module='mac802154_hwsim')
-    # iot_module: fakelb or mac802154_hwsim
-    # mac802154_hwsim is supported from kernel 4.18
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
     # There is no need to set the node position.

@@ -13,7 +13,7 @@ from mn_wifi.energy import Energy
 
 def topology(args):
     "Create a network."
-    net = Mininet_wifi(iot_module='mac802154_hwsim')
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
     net.addSensor('sensor1', ip6='2001::1/64', voltage=3.7,
