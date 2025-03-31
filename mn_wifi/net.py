@@ -1081,12 +1081,16 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             if src in nodes:
                 dst = self.nameToNode[dst]
                 if dst in nodes:
+                    if not hasattr(src, 'position') or not hasattr(dst, 'position'):
+                        raise AttributeError("Node {} or/and node {} does not have a defined position.".format(src, dst))
+                    
                     dist = src.get_distance_to(dst)
                     info("The distance between {} and "
                          "{} is {} meters\n".format(src, dst, dist))
         except KeyError:
-            info("node {} or/and node {} does not exist or "
-                 "there is no position defined\n".format(dst, src))
+            info("node {} or/and node {} does not exist\n".format(dst, src))
+        except AttributeError as e:
+            info(str(e) + "\n")
 
     def mobility(self, *args, **kwargs):
         "Configure mobility parameters"
