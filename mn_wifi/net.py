@@ -1088,8 +1088,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                     info("The distance between {} and "
                          "{} is {} meters\n".format(src, dst, dist))
         except KeyError:
-            info("node {} or/and node {} does not exist or "
-                 "there is no position defined\n".format(dst, src))
+            info("node {} or/and node {} does not exist\n".format(dst, src))
         except AttributeError as e:
             info(str(e) + "\n")
 
