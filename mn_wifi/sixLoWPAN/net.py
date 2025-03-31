@@ -29,9 +29,9 @@ class Mininet_IoT(object):
         self.sensors = []
         self.nwpans = 0
 
-    def init_6lowpan_module(self, iot_module):
+    def init_6lowpan_module(self, alt_module):
         sensors = self.sensors + self.apsensors
-        module(sensors, self.nwpans, iot_module)
+        module(sensors, self.nwpans, alt_module)
         return self.sensors, self.apsensors
 
     def pos_to_array(self, node):
