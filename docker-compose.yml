@@ -1,0 +1,22 @@
+services:
+  mininet-wifi:
+    image: ramonfontes/mn-wifi:latest
+    hostname: mininet-wifi
+    container_name: mininet-wifi
+    privileged: true
+    tty: true
+    stdin_open: true
+    volumes:
+      - /sys/:/sys
+      - /lib/modules:/lib/modules
+      - /sys/kernel/debug:/sys/kernel/debug
+      - /var/run/netns:/var/run/netns
+      - ./tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./p4_run_time_setup:/p4_run_time_setup
+      - ./util:/util
+    entrypoint: "/bin/bash"
+    network_mode: "host"
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+
