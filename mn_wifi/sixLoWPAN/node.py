@@ -100,6 +100,10 @@ class LowPANNode(Node_wifi):
         if 'secret_key' in self.params:
             cmd += '        secret_key = \"{}\",\n'.format(self.params['secret_key'])
 
+        dodagid = 'fd3c:be8a:173f:8e80::1'
+        if 'dodagid' in self.params:
+            dodagid = self.params['dodagid']
+
         if 'dodag_root' in self.params and self.params['dodag_root']:
             cmd += '        dodag_root = true,\n'
         else:
@@ -111,8 +115,8 @@ class LowPANNode(Node_wifi):
             cmd += '               instance = 1,\n'
             cmd += '               dags = { {\n'
             cmd += '                       mode_of_operation = {},\n'.format(self.params['storing_mode'])
-            cmd += '                       dest_prefix = \"fd3c:be8a:173f:8e80::/64\",\n'
-            cmd += '                       dodagid = \"fd3c:be8a:173f:8e80::1\",\n'
+            cmd += '                       dest_prefix = \"{}\",\n'.format(dodagid[:-1]+'/64')
+            cmd += '                       dodagid = \"{}\",\n'.format(dodagid)
             cmd += '               }, }\n'
             cmd += '        }, }\n'
         cmd += '}, }'
