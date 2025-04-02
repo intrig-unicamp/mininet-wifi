@@ -72,6 +72,7 @@ class Cleanup(object):
         cls.killprocs('sumo-gui')
         cls.killprocs('olsrd2_static')
         cls.killprocs('hostapd')
+        cls.killprocs('rpld')
         cls.killprocs('btvirt')
         sleep(0.1)
         cls.sh('pkill babel')
@@ -109,6 +110,8 @@ class Cleanup(object):
             sh('rm *wifiDirect.conf')
         if glob('*.nodeParams'):
             sh('rm *.nodeParams')
+        if glob('lowpan-sensor*'):
+            sh('rm lowpan-sensor*')
 
         if cls.socket_port:
             info('\n*** Done\n')
