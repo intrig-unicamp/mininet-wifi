@@ -18,27 +18,10 @@ Please, let us know if you are doing research with Mininet-WiFi. A list of citat
 
 ## Installation  
 **We highly recommend using Ubuntu version 16.04 or higher. Some new hostapd features might not work on Ubuntu 14.04.**  
-1. **Install Git**  
-```bash
-sudo apt-get install git
-```
-2. Clone the repository
-```bash
-git clone https://github.com/intrig-unicamp/mininet-wifi
-```
-3. Navigate into the project directory
-```bash
-cd mininet-wifi
-```
-4. Run the installer script
-```bash
-sudo util/install.sh -Wlnfv
-```
-For installing inside a virtual environment (for Ubuntu versions 24.04 and higher)
-```bash
-sudo util/install.sh -xWlnfv
-```
-
+step 1: $ sudo apt-get install git  
+step 2: $ git clone https://github.com/intrig-unicamp/mininet-wifi  
+step 3: $ cd mininet-wifi  
+step 4: $ sudo util/install.sh -Wlnfv  
 #### install.sh options:   
 -W: wireless dependencies   
 -n: mininet-wifi dependencies    
@@ -47,8 +30,7 @@ sudo util/install.sh -xWlnfv
 -l: wmediumd   
 _optional_:  
 -P: P4 dependencies    
--6: wpan tools    
--x: install inside a python virtual environment located in `/home/${user}/venv/mininet` or if inside a docker container then `/root/venv/mininet`
+-6: wpan tools
 
 #### Docker
 **This is recommended if you are using a different linux distribution from the ones supported by the installation script.** 
