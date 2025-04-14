@@ -135,8 +135,10 @@ function mn_deps {
       rm -r mininet
     fi
 
-    sudo git clone --depth=1 https://github.com/mininet/mininet.git
+    sudo git clone https://github.com/mininet/mininet.git
     pushd $MININET_DIR/mininet-wifi/mininet
+    git reset --hard 6eb8973
+    patch -p0 < $MININET_DIR/mininet-wifi/util/mininet-patches/mininet.patch
     sudo PYTHON=${PYTHON} make install
     popd
     echo "Installing Mininet-wifi core"
