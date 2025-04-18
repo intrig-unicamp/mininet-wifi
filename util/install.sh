@@ -393,13 +393,15 @@ function sumo {
       echo "Removing sumo dir..."
       rm -r sumo
     fi
-    git clone --depth=1 https://github.com/eclipse/sumo
+    git clone --depth=1 https://github.com/eclipse-sumo/sumo
     cd sumo
     export SUMO_HOME="$PWD"
-    mkdir build/cmake-build && cd build/cmake-build
-    cmake ../..
-    make -j$(nproc)
-    sudo make install
+    cmake -B build .
+    cmake --build build -j$(nproc)
+    #mkdir build/cmake-build && cd build/cmake-build
+    #cmake ../..
+    #make -j$(nproc)
+    #sudo make install
 }
 
 # Install btvirt
