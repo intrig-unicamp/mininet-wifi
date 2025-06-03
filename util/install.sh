@@ -137,8 +137,10 @@ function mn_deps {
 
     sudo git clone https://github.com/mininet/mininet.git
     pushd $MININET_DIR/mininet-wifi/mininet
-    git reset --hard 6eb8973
-    patch -p0 < $MININET_DIR/mininet-wifi/util/mininet-patches/mininet.patch
+    if [ "$DIST" = "Ubuntu" ] &&  [ `expr $RELEASE '>=' 24.04` = "1" ]; thenAdd commentMore actions
+        git reset --hard 6eb8973
+        patch -p0 < $MININET_DIR/mininet-wifi/util/mininet-patches/mininet.patch
+    fi
     sudo PYTHON=${PYTHON} make install
     popd
     echo "Installing Mininet-wifi core"
@@ -525,7 +527,11 @@ function of {
     else
         $install git-core autotools-dev pkg-config libc6-dev
     fi
-    git clone --depth=1 https://github.com/ramonfontes/openflow
+    if [ "$DIST" = "Ubuntu" ] &&  [ `expr $RELEASE '>=' 24.04` = "1" ]; thenAdd commentMore actions
+        git clone --depth=1 https://github.com/ramonfontes/openflow
+    else
+        git clone --depth=1 https://github.com/mininet/openflow
+    fi
     cd $BUILD_DIR/openflow
 
     # Patch controller to handle more than 16 switches
