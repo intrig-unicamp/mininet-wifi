@@ -24,7 +24,7 @@ class module(object):
         wm = subprocess.call(['which', 'iwpan'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if wm == 0:
-            self.load_module(nwpan, alt_module)  # Initatilize Module
+            self.load_module(nwpan, alt_module, len(nodes))  # Initatilize Module
             n = 0
             for sensor in nodes:
                 for _ in range(0, len(sensor.params['wpan'])):
@@ -37,12 +37,12 @@ class module(object):
                  '*** Please install iwpan with sudo util/install.sh -6.\n')
             exit(1)
 
-    def load_module(self, nwpan, alt_module):
+    def load_module(self, nwpan, alt_module, len_nodes):
         """ Load Module
         :param nwpan: number of radios"""
         debug('Loading %s virtual interfaces\n' % nwpan)
         if alt_module:
-            os.system('insmod %s' % alt_module)
+            os.system('insmod %s radios=%s' % (alt_module, len_nodes))
         else:
             os.system('modprobe mac802154_hwsim')
 

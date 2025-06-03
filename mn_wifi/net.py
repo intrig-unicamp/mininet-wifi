@@ -33,10 +33,11 @@ from mn_wifi.module import Mac80211Hwsim
 from mn_wifi.node import AP, Station, Car, OVSKernelAP, physicalAP
 from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.propagationModels import PropagationModel as ppm
-from mn_wifi.sixLoWPAN.link import LowPANLink, LoWPAN
+from mn_wifi.sixLoWPAN.link import LowPANLink, LoWPAN, wmediumd_802154
 from mn_wifi.sixLoWPAN.net import Mininet_IoT
 from mn_wifi.sixLoWPAN.node import OVSSensor, LowPANNode
 from mn_wifi.sixLoWPAN.util import ipAdd6
+from mn_wifi.sixLoWPAN.wmediumdConnector import interference as interference_802154
 from mn_wifi.btvirt.node import BTNode
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.vanet import vanet
@@ -54,13 +55,14 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
     def __init__(self, accessPoint=OVSKernelAP, station=Station, car=Car,
                  sensor=LowPANNode, apsensor=OVSSensor, modem=WWANNode, link=WirelessLink,
                  ssid="new-ssid", mode="g", encrypt="", passwd=None, ieee80211w=None,
-                 channel=1, freq=2.4, band=20, wmediumd_mode=snr, roads=0, fading_cof=0,
-                 autoAssociation=True, allAutoAssociation=True, autoSetPositions=False,
-                 configWiFiDirect=False, config4addr=False, noise_th=-91, cca_th=-90,
-                 disable_tcp_checksum=False, ifb=False, client_isolation=False,
-                 plot=False, plot3d=False, docker=False, container='mininet-wifi',
-                 ssh_user='alpha', rec_rssi=False, wwan_module='wwan_hwsim',
-                 json_file=None, ac_method=None, btdevice=BTNode, **kwargs):
+                 channel=1, freq=2.4, band=20, wmediumd_mode=snr, wmediumd_802154_mode=interference_802154,
+                 roads=0, fading_cof=0, autoAssociation=True, allAutoAssociation=True,
+                 autoSetPositions=False, configWiFiDirect=False, config4addr=False,
+                 noise_th=-91, cca_th=-90, disable_tcp_checksum=False, ifb=False,
+                 client_isolation=False, plot=False, plot3d=False, docker=False,
+                 container='mininet-wifi', ssh_user='alpha', rec_rssi=False,
+                 wwan_module='wwan_hwsim', json_file=None, ac_method=None,
+                 btdevice=BTNode, **kwargs):
         """Create Mininet object.
 
            accessPoint: default Access Point class
@@ -80,6 +82,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
            freq: wifi freq
            band: bandwidth channel
            wmediumd_mode: default wmediumd mode
+           wmediumd_802154_mode: default wmediumd_802154 mode
            roads: number of roads
            fading_cof: fadding coefficient
            autoSetPositions: auto set positions
@@ -110,6 +113,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.freq = freq
         self.band = band
         self.wmediumd_mode = wmediumd_mode
+        self.wmediumd_802154_mode = wmediumd_802154_mode
         self.aps = []
         self.cars = []
         self.stations = []
@@ -176,6 +180,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
         if autoSetPositions and link == wmediumd:
             self.wmediumd_mode = interference
+        if autoSetPositions and link == wmediumd_802154:
+            self.wmediumd_802154_mode = interference_802154
 
         if not allAutoAssociation:
             self.autoAssociation = False
@@ -351,6 +357,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                 intf.setMAC(intf.mac)
                 intf.setIP(intf.ip, intf.prefixLen)
             if self.link == wmediumd:
+                intf.sendIntfTowmediumd()
+            if self.link == wmediumd_802154:
                 intf.sendIntfTowmediumd()
             if self.draw or hasattr(node, 'position'):
                 intf.setTxPower(intf.txpower)
@@ -1317,6 +1325,11 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                  noise_th=self.noise_th, stations=self.stations,
                  aps=self.aps, cars=self.cars, ppm=ppm, mediums=self.initial_mediums)
 
+    def start_wmediumd_802154(self):
+        wmediumd_802154(wlinks=self.wlinks, fading_cof=self.fading_cof,
+                        noise_th=self.noise_th, sensors=self.sensors,
+                        ppm=ppm, mediums=self.initial_mediums)
+
     def init_wmediumd(self):
         self.start_wmediumd()
         if self.wmediumd_mode != error_prob:
@@ -1425,6 +1438,10 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                     and self.wmediumd_mode != error_prob:
                 self.start_wmediumd()
 
+        if self.link == wmediumd_802154:
+            self.wmediumd_802154_mode()
+            self.start_wmediumd_802154()
+
         for ap in self.aps:
             for intf in list(ap.wintfs.values()):
                 HostapdConfig(intf)
@@ -1489,6 +1506,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                         ConfigMobLinks(node)
                     # we need this cause wmediumd is struggling
                     # with some associations e.g. wpa
+
                     if self.wmediumd_mode == interference:
                         self.wmediumd_workaround(node)
                         self.wmediumd_workaround(node, -1)

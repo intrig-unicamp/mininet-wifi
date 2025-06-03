@@ -5,6 +5,8 @@ import re
 
 from mininet.link import Intf, TCIntf, Link
 from mininet.log import error, debug
+from mn_wifi.sixLoWPAN.wmediumdConnector import interference, wmediumd_mode as wmediumd_802154_mode, \
+    ERRPROBLink, WStarter, SNRLink, DynamicIntfRef, w_cst, w_txpower, w_pos
 
 
 class IntfSixLoWPAN(Intf):
@@ -244,6 +246,7 @@ class LowPANLink(Link, IntfSixLoWPAN):
         self.remaining_capacity = self.battery_capacity - self.consumption
         self.ip6 = None
         self.set_attr(node, wpan)
+        self.txpower = 20
 
         wpan = '{}-wpan{}'.format(node.name, wpan)
         self.name = wpan
@@ -260,7 +263,13 @@ class LowPANLink(Link, IntfSixLoWPAN):
             params['port'] = port
         if 'port' not in params:
             params['port'] = node.newPort()
-        if not self.name:
+        if self.name:
+            if 'mac' in self.node.params:
+                self.mac = self.node.params['mac']
+            if wmediumd_802154_mode.mode:
+                self.wmIface = DynamicIntfRef(node, intf=self.name)
+                node.wmIfaces[wpan] = self.wmIface
+        else:
             ifacename = 'pan%s' % wpan
             self.name = self.wpanName(node, ifacename, node.newPort())
         if not cls:
@@ -308,3 +317,95 @@ class LowPANLink(Link, IntfSixLoWPAN):
     def status(self):
         "Return link status as a string"
         return "(%s %s)" % (self.intf1.status(), self.intf2)
+
+
+class wmediumd_802154(object):
+
+    def __init__(self, **kwargs):
+        self.positions = []
+        self.txpowers = []
+        self.links = []
+        self.mac_list = []
+        self.configWmediumd(**kwargs)
+
+    def configWmediumd(self, wlinks, fading_cof, noise_th, sensors, ppm, mediums):
+        "Configure wmediumd"
+        intfrefs = []
+        isnodeaps = []
+        intfs = {}
+        intf_ids = {}
+        nodes = sensors
+        intf_id = 0
+
+        for node in nodes:
+            node.wmIfaces = []
+
+            for id, intf in enumerate(node.wintfs.values()):
+                if not intf.mac:
+                    intf.mac = node.wintfs[0].mac[:-1] + str(id)
+
+                if intf.mac not in self.mac_list:
+                    intf.wmIface = DynamicIntfRef(node, intf=intf.name)
+                    intfrefs.append(intf.wmIface)
+                    node.wmIfaces.append(intf.wmIface)
+                    intfs[intf.name] = intf
+                    intf_ids[intf.name] = intf_id
+                    intf_id += 1
+                    isnodeaps.append(0)
+                    self.mac_list.append(intf.mac)
+
+        if wmediumd_802154_mode.mode == w_cst.INTERFERENCE_MODE:
+            self.interference(nodes)
+        elif wmediumd_802154_mode.mode == w_cst.SPECPROB_MODE:
+            pass
+        elif wmediumd_802154_mode.mode == w_cst.ERRPROB_MODE:
+            self.error_prob(wlinks)
+        else:
+            self.snr(wlinks, noise_th)
+        mediums_id_list = []
+        for medium_index, medium_elements in enumerate(mediums):
+            medium_id = medium_index + 1  # Default one is 0
+            medium_intf_ids = []
+            for node in medium_elements:
+                if isinstance(node, str):
+                    # Node is a interface
+                    medium_intf_ids.append(intf_ids[node])
+                    intfs[node].medium_id = medium_id
+                else:
+                    # Node is station or AP
+                    for interface in node.wintfs.values():
+                        medium_intf_ids.append(intf_ids[interface.name])
+                        interface.medium_id = medium_id
+            mediums_id_list.append(medium_intf_ids)
+        WStarter(intfrefs=intfrefs, links=self.links, pos=self.positions,
+                 fading_cof=fading_cof, noise_th=noise_th, txpowers=self.txpowers,
+                 isnodeaps=isnodeaps, ppm=ppm, mediums=mediums_id_list)
+
+    @staticmethod
+    def get_position(pos=None):
+        if pos: return float(pos[0]), float(pos[1]), float(pos[2])
+        return 0, 0, 0
+
+    def interference(self, nodes):
+        for node in nodes:
+            posX, posY, posZ = self.get_position(node.position) \
+                if hasattr(node, 'position') else self.get_position()
+            node.lastpos = [posX, posY, posZ]
+
+            for wlan, intf in enumerate(node.wintfs.values()):
+                if intf.mac in self.mac_list:
+                    if wlan >= 1: posX += 0.1
+                    self.positions.append(w_pos(intf.wmIface, [posX, posY, posZ]))
+                    self.txpowers.append(w_txpower(intf.wmIface, int(intf.txpower)))
+
+    def error_prob(self, wlinks):
+        for link in wlinks:
+            link0, link1 = link[0].wmIface, link[1].wmIface
+            self.links.append(ERRPROBLink(link0, link1, link[2]))
+            self.links.append(ERRPROBLink(link1, link0, link[2]))
+
+    def snr(self, wlinks, noise_th):
+        for link in wlinks:
+            link0, link1 = link[0].wmIface, link[1].wmIface
+            self.links.append(SNRLink(link0, link1, link[0].rssi - noise_th))
+            self.links.append(SNRLink(link1, link0, link[0].rssi - noise_th))

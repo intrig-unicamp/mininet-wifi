@@ -44,6 +44,7 @@ from mn_wifi.topo import (SingleAPTopo, LinearWirelessTopo,
                           MinimalWirelessTopo)
 from mn_wifi.link import WirelessLink, wmediumd
 from mn_wifi.node import (Station, UserAP, OVSAP, CPULimitedStation)
+from mn_wifi.sixLoWPAN.link import wmediumd_802154
 
 
 # built in topologies, created only when run
@@ -101,6 +102,7 @@ LINKS = { 'default': Link,  # Note: overridden below
           'tc': TCLink,
           'wtc': WirelessLink,
           'wmediumd': wmediumd,
+          'wmediumd_802154': wmediumd_802154,
           'tcu': TCULink,
           'ovs': OVSLink}
 
