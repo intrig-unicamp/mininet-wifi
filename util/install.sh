@@ -684,25 +684,6 @@ function oftest {
     git clone https://github.com/floodlight/oftest.git
 }
 
-# Install cbench
-function cbench {
-    echo "Installing cbench..."
-
-    if [ "$DIST" = "Fedora" ]; then
-        $install net-snmp-devel libpcap-devel libconfig-devel
-    else
-        $install libsnmp-dev libpcap-dev libconfig-dev
-    fi
-    cd $BUILD_DIR/
-    git clone --depth=1 https://github.com/mininet/oflops
-    cd oflops
-    sh boot.sh || true # possible error in autoreconf, so run twice
-    sh boot.sh
-    ./configure --with-openflow-src-dir=$BUILD_DIR/openflow
-    make
-    sudo make install || true # make install fails; force past this
-}
-
 # Script to copy built OVS kernel module to where modprobe will
 # find them automatically.  Removes the need to keep an environment variable
 # for insmod usage, and works nicely with multiple kernel versions.
@@ -737,6 +718,20 @@ function wmediumd {
     popd
 }
 
+# Script for installing wmediumd_802154 from git to /usr/bin/wmediumd_802154
+function wmediumd_802154 {
+    echo "Installing wmediumd_802154 sources into $BUILD_DIR/wmediumd_802154"
+    cd $BUILD_DIR
+    if [ -d wmediumd_802154 ]; then
+      echo "Removing wmediumd_802154..."
+      rm -r wmediumd_802154
+    fi
+    $install git make libevent-dev libconfig-dev libnl-3-dev libnl-genl-3-dev
+    git clone --depth=1 -b mininet-wifi https://github.com/ramonfontes/wmediumd_802154.git
+    pushd $BUILD_DIR/wmediumd_802154
+    sudo make install
+    popd
+}
 
 # Script for installing wpan tools
 function wpan_tools {
@@ -775,10 +770,10 @@ function all {
     wifi_deps
     p4_deps
     oftest
-    cbench
     iproute2
     modem_manager
     wmediumd
+    wmediumd_802154
     babeld
     olsrd
     olsrdv2
@@ -831,7 +826,6 @@ function usage {
 
     printf 'options:\n' >&2
     printf -- ' -a: (default) install (A)ll packages - good luck!\n' >&2
-    printf -- ' -b: install controller (B)enchmark (oflops)\n' >&2
     printf -- ' -B: install B.A.T.M.A.N\n' >&2
     printf -- ' -d: (D)elete some sensitive files from a VM image\n' >&2
     printf -- ' -e: install Mininet d(E)veloper dependencies\n' >&2
@@ -855,6 +849,7 @@ function usage {
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
     printf -- ' -W: install Mininet-WiFi dependencies\n' >&2
+    printf -- ' -z: insta(L)l wmediumd_802154\n' >&2
     printf -- ' -0: (default) -0[fx] installs OpenFlow 1.0 versions\n' >&2
     printf -- ' -3: -3[fx] installs OpenFlow 1.3 versions\n' >&2
     printf -- ' -6: install wpan tools\n' >&2
@@ -867,11 +862,10 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abBdeEfhiklmMnNoOPrSstvWx036' OPTION
+    while getopts 'aBdeEfhiklmMnNoOPrSstvWxz036' OPTION
     do
       case $OPTION in
       a)    all;;
-      b)    cbench;;
       B)    batman;;
       d)    vm_clean;;
       e)    mn_dev;;
@@ -900,6 +894,7 @@ else
       t)    btvirt;;
       v)    ovs;;
       W)    wifi_deps;;
+      z)    wmediumd_802154;;
       0)    OF_VERSION=1.0;;
       3)    OF_VERSION=1.3;;
       6)    wpan_tools;;
