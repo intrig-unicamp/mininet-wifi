@@ -2294,7 +2294,7 @@ class MiniEdit(Frame):
         Label( toolbar, text='' ).pack()
 
         # Commands
-        for cmd, color in [ ( 'Stop', 'darkRed' ), ( 'Run', 'darkGreen' ) ]:
+        for cmd, color in [('Clean','darkblue'), ( 'Stop', 'darkRed' ), ( 'Run', 'darkGreen' ) ]:
             doCmd = getattr( self, 'do' + cmd )
             b = Button( toolbar, text=cmd, font=self.smallFont,
                         fg=color, command=doCmd )
@@ -2314,6 +2314,17 @@ class MiniEdit(Frame):
         self.stop()
         for tool in self.tools:
             self.buttons[ tool ].config( state='normal' )
+        os.system("sudo mn -c")
+    import os
+
+    def doClean(self):
+        "Clean up Mininet environment."
+        # Execute the cleanup command for Mininet
+        os.system("sudo mn -c")
+        print("Mininet environment cleaned.")
+    
+        # Show confirmation message
+        messagebox.showinfo("Cleanup", "Mininet environment cleaned.")
 
     def addNode( self, node, nodeNum, x, y, name=None):
         "Add a new node to our canvas."
