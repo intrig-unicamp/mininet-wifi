@@ -137,7 +137,7 @@ index 550db697b..41e5200e9 100644
  # Remove all TKIP functionality
  # TKIP is an old cryptographic data confidentiality algorithm that is not
 diff --git a/wpa_supplicant/defconfig b/wpa_supplicant/defconfig
-index 52befd8f1..bb45fcf3a 100644
+index 52befd8f1..961ebd812 100644
 --- a/wpa_supplicant/defconfig
 +++ b/wpa_supplicant/defconfig
 @@ -172,12 +172,12 @@ CONFIG_EAP_TNC=y
@@ -165,6 +165,15 @@ index 52befd8f1..bb45fcf3a 100644
  
  # Remove debugging code that is printing out debug message to stdout.
  # This can be used to reduce the size of the wpa_supplicant considerably
+@@ -323,7 +323,7 @@ CONFIG_BACKEND=file
+ #CONFIG_NO_LINUX_PACKET_SOCKET_WAR=y
+ 
+ # Support Operating Channel Validation
+-#CONFIG_OCV=y
++CONFIG_OCV=y
+ 
+ # Select TLS implementation
+ # openssl = OpenSSL (default)
 @@ -510,11 +510,11 @@ CONFIG_IEEE80211AX=y
  # Note: This is experimental and work in progress. The definitions are still
  # subject to change and this should not be expected to interoperate with the
