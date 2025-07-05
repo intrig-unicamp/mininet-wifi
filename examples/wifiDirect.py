@@ -18,17 +18,14 @@ def topology(args):
                        configWiFiDirect=True)
 
     info("*** Creating nodes\n")
-    sta1 = net.addStation('sta1', ip='10.0.0.1/8', position='10,10,0')
-    sta2 = net.addStation('sta2', ip='10.0.0.2/8', position='20,20,0')
+    sta1 = net.addStation('sta1', ip='10.0.0.1/8', position='0,0,0')
+    sta2 = net.addStation('sta2', ip='10.0.0.2/8', position='0,0,0')
 
     info("*** Configuring Propagation Model\n")
     net.setPropagationModel(model="logDistance", exp=3.5)
 
     info("*** Configuring nodes\n")
     net.configureNodes()
-
-    if '-p' not in args:
-        net.plotGraph(max_x=200, max_y=200)
 
     info("*** Starting WiFi Direct\n")
     net.addLink(sta1, intf='sta1-wlan0', cls=WifiDirectLink)
@@ -39,16 +36,20 @@ def topology(args):
 
     sta1.cmd('wpa_cli -ista1-wlan0 p2p_find')
     sta2.cmd('wpa_cli -ista2-wlan0 p2p_find')
-    sta2.cmd('wpa_cli -ista2-wlan0 p2p_peers')
-    sleep(3)
-    sta1.cmd('wpa_cli -ista1-wlan0 p2p_peers')
-    sleep(3)
-    pin = sta1.cmd('wpa_cli -ista1-wlan0 p2p_connect %s pin auth'
-                   % sta2.wintfs[0].mac)
-    sleep(3)
-    sta2.cmd('wpa_cli -ista2-wlan0 p2p_connect %s %s'
-             % (sta1.wintfs[0].mac, pin))
+    sleep(5)
 
+    # For some reason, we need to set the position
+    # first and then run wpa_cli commands with some delays in between.
+    sta1.setPosition("10,20,0")
+    sta2.setPosition("10,30,0")
+
+    sta1.cmd('wpa_cli -ista1-wlan0 p2p_peers')
+    sta2.cmd('wpa_cli -ista2-wlan0 p2p_peers')
+    sleep(10)
+    sta1.cmd('wpa_cli -ista1-wlan0 p2p_connect {} pbc'.format(sta2.wintfs[0].mac))
+    sleep(2)
+    sta2.cmd('wpa_cli -ista2-wlan0 p2p_connect {} pbc'.format(sta1.wintfs[0].mac))
+    
     info("*** Running CLI\n")
     CLI(net)
 
