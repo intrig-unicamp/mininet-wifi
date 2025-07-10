@@ -1,7 +1,7 @@
-diff --git a/hostapd/defconfig b/hostapd/defconfig
+diff --git hostapd/defconfig hostapd/defconfig
 index 550db697b..41e5200e9 100644
---- a/hostapd/defconfig
-+++ b/hostapd/defconfig
+--- hostapd/defconfig
++++ hostapd/defconfig
 @@ -115,11 +115,11 @@ CONFIG_EAP_TTLS=y
  #CONFIG_EAP_TEAP=y
  
@@ -136,10 +136,10 @@ index 550db697b..41e5200e9 100644
  
  # Remove all TKIP functionality
  # TKIP is an old cryptographic data confidentiality algorithm that is not
-diff --git a/wpa_supplicant/defconfig b/wpa_supplicant/defconfig
+diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
 index 52befd8f1..961ebd812 100644
---- a/wpa_supplicant/defconfig
-+++ b/wpa_supplicant/defconfig
+--- wpa_supplicant/defconfig
++++ wpa_supplicant/defconfig
 @@ -172,12 +172,12 @@ CONFIG_EAP_TNC=y
  # Wi-Fi Protected Setup (WPS)
  CONFIG_WPS=y
@@ -224,10 +224,10 @@ index 52befd8f1..961ebd812 100644
  
  # Device Provisioning Protocol (DPP) (also known as Wi-Fi Easy Connect)
  CONFIG_DPP=y
-diff --git a/wpa_supplicant/p2p_supplicant.c b/wpa_supplicant/p2p_supplicant.c
+diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
 index 300e118f3..e6420d33a 100644
---- a/wpa_supplicant/p2p_supplicant.c
-+++ b/wpa_supplicant/p2p_supplicant.c
+--- wpa_supplicant/p2p_supplicant.c
++++ wpa_supplicant/p2p_supplicant.c
 @@ -98,7 +98,7 @@
  #define P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE 15
  #endif /* P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE */
