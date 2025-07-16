@@ -308,8 +308,8 @@ class IntfWireless(Intf):
                      'for more information\n')
         else:
             info('*** {}: signal range of {}m requires tx power equals '
-                 'to {}dBm.\n'.format(self.name, self.range, (int(txpower) + 1)))
-            info(f'*** {self.name} Effective Range: {SetSignalRange(self).range} m\n')
+                 'to {}dBm. Effective range is equal to {} meters\n'
+                 .format(self.name, self.range, (int(txpower) + 1), SetSignalRange(self).range))
 
     def setDefaultRange(self):
         if not self.static_range:
