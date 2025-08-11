@@ -15,6 +15,7 @@ from subprocess import check_output as co, PIPE
 import numpy
 
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import matplotlib.animation as animation
 
 from matplotlib import style
@@ -42,7 +43,7 @@ class telemetry(object):
         parseData.thread_.start()
 
     def start(self, nodes=None, data_type='tx_packets', single=False,
-              min_x=0, min_y=0, max_x=100, max_y=100, **kwargs):
+              min_x=0, min_y=0, max_x=100, max_y=100, image=None, **kwargs):
         ax = 'axes'
         arr = ''
         for node in nodes:
@@ -64,6 +65,14 @@ class telemetry(object):
                 self.axes.set_xlabel('meters')
                 self.axes.set_xlim([min_x, max_x])
                 self.axes.set_ylim([min_y, max_y])
+                if image:
+                    bg_img = mpimg.imread(image)
+                    self.axes.imshow(
+                        bg_img,
+                        extent=[min_x, max_x, min_y, max_y],
+                        aspect='auto',
+                        zorder=0
+                    )
             else:
                 if single:
                     fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 4))
@@ -71,7 +80,7 @@ class telemetry(object):
                     fig, (self.axes) = plt.subplots(1, (len(nodes)), figsize=(10, 4))
                 #fig.canvas.set_window_title('Mininet-WiFi Graph')
         self.nodes = nodes
-        parseData(nodes, self.axes, single, data_type=data_type, fig=fig, **kwargs)
+        parseData(nodes, self.axes, single, data_type=data_type, fig=fig, image=image, **kwargs)
 
     @classmethod
     def calc(cls, tx_bytes, n):
@@ -168,14 +177,15 @@ class parseData(object):
     fig = None
     filename = None
     single = None
+    image = None
     thread_ = None
     ieee80211_dir = '/sys/class/ieee80211'
     net_dir = '/{}/device/net'
     stats_dir = '/{}/statistics/{}'
     echo_cmd = 'echo \'{},{}\' >> {}'
 
-    def __init__(self, nodes, axes, single, data_type, fig, **kwargs):
-        self.start(nodes, axes, single, data_type, fig, **kwargs)
+    def __init__(self, nodes, axes, single, data_type, fig, image, **kwargs):
+        self.start(nodes, axes, single, data_type, fig, image, **kwargs)
 
     @classmethod
     def fig_exists(cls):
@@ -223,6 +233,14 @@ class parseData(object):
             axes.clear()
             axes.set_xlim([self.min_x, self.max_x])
             axes.set_ylim([self.min_y, self.max_y])
+            if self.image:
+                bg_img = mpimg.imread(self.image)
+                self.axes.imshow(
+                    bg_img,
+                    extent=[self.min_x, self.max_x, self.min_y, self.max_y],
+                    aspect='auto',
+                    zorder=0
+                )
             for node in self.nodes:
                 if node.name not in names:
                     names.append(node.name)
@@ -283,10 +301,11 @@ class parseData(object):
 
         node.plt_node, = self.axes.plot(1, 1, marker='.', ms=5, color='black')
 
-    def start(self, nodes, axes, single, data_type, fig, **kwargs):
+    def start(self, nodes, axes, single, data_type, fig, image, **kwargs):
         self.nodes = nodes
         self.fig = fig
         self.axes = axes
+        self.image = image
         self.single = single
         self.data_type = data_type
         self.filename = data_type + '-{}-mn-telemetry.txt'
