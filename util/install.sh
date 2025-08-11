@@ -434,6 +434,26 @@ function network_manager {
     sudo make install
 }
 
+# Install rpld
+function rpld {
+    echo "Installing rpld..."
+
+    # Install deps
+    $install meson cmake libev-dev lua5.3 liblua5.3-dev libmnl-dev
+
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d rpld ]; then
+      echo "Removing rpld dir..."
+      rm -r rpld
+    fi
+    git clone --depth=1 https://github.com/ramonfontes/rpld
+    cd rpld
+    mkdir build
+    meson build
+    ninja -C build
+    cp build/rpld /usr/bin
+}
+
 # Install ModemManager
 function modem_manager {
     echo "Installing Modem Manager..."
@@ -843,6 +863,7 @@ function usage {
     printf -- ' -O: install olsrd\n' >&2
     printf -- ' -p: install P4 dependencies\n' >&2
     printf -- ' -r: remove existing Open vSwitch packages\n' >&2
+    printf -- ' -R: install RPLD\n' >&2
     printf -- ' -s <dir>: place dependency (S)ource/build trees in <dir>\n' >&2
     printf -- ' -S: install SUMO\n' >&2
     printf -- ' -t: install btvirt dependencies\n' >&2
@@ -862,7 +883,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'aBdeEfhiklmMnNoOPrSstvWxz036' OPTION
+    while getopts 'aBdeEfhiklmMnNoOPrRSstvWxz036' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -887,6 +908,7 @@ else
       O)    olsrd;;
       P)    p4_deps;;
       r)    remove_ovs;;
+      R)    rpld;;
       s)    mkdir -p $OPTARG; # ensure the directory is created
             BUILD_DIR="$( cd -P "$OPTARG" && pwd )"; # get the full path
             echo "Dependency installation directory: $BUILD_DIR";;
