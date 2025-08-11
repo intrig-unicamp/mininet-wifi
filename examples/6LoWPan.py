@@ -16,6 +16,19 @@ sensor2      sensor3
                |
                |
              sensor4
+
+Note: To establish MQTT communication over IPv6, you must ensure 
+that your broker is configured to support it. For example, if 
+you're using Mosquitto, add the following line to your mosquitto.conf file:
+
+listener 1883 ::
+
+This allows Mosquitto to listen on all available IPv6 interfaces.
+
+Then, you can use the mosquitto_pub and mosquitto_sub commands like this:
+
+sensor2$ mosquitto_pub -h fe80::1%sensor2-pan0 -t topic -m message
+sensor3$ mosquitto_sub -h fe80::1%sensor3-pan0 -t topic
 """
 
 
