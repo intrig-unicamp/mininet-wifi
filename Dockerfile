@@ -6,7 +6,7 @@ WORKDIR /app/mininet-wifi
 
 # Install dependencies for mininet wifi over debian which is the base OS for python:3.9 image
 RUN apt update 
-RUN apt install -y sudo git make help2man pyflakes3 python3-pep8 tcpdump wpan-tools inetutils-ping
+RUN apt install -y sudo git make help2man pyflakes3 python3-pycodestyle tcpdump wpan-tools inetutils-ping
 RUN pip install six numpy matplotlib
 
 # Copy project into the image
