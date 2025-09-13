@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index 550db697b..41e5200e9 100644
+index 550db69..b0e6ca7 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -115,11 +115,11 @@ CONFIG_EAP_TTLS=y
@@ -113,7 +113,7 @@ index 550db697b..41e5200e9 100644
  
  # Client Taxonomy
  # Has the AP retain the Probe Request and (Re)Association Request frames from
-@@ -381,11 +382,11 @@ CONFIG_IPV6=y
+@@ -381,14 +382,14 @@ CONFIG_IPV6=y
  
  # Include internal line edit mode in hostapd_cli. This can be used to provide
  # limited command line editing and history support.
@@ -126,7 +126,11 @@ index 550db697b..41e5200e9 100644
 +CONFIG_OWE=y
  
  # Airtime policy support
- #CONFIG_AIRTIME_POLICY=y
+-#CONFIG_AIRTIME_POLICY=y
++CONFIG_AIRTIME_POLICY=y
+ 
+ # Override default value for the wpa_disable_eapol_key_retries configuration
+ # parameter. See that parameter in hostapd.conf for more details.
 @@ -400,7 +401,7 @@ CONFIG_IPV6=y
  # functionality needed to use WEP is available in the current hostapd
  # release under this optional build parameter. This functionality is subject to
@@ -137,7 +141,7 @@ index 550db697b..41e5200e9 100644
  # Remove all TKIP functionality
  # TKIP is an old cryptographic data confidentiality algorithm that is not
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index 52befd8f1..961ebd812 100644
+index 52befd8..961ebd8 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
 @@ -172,12 +172,12 @@ CONFIG_EAP_TNC=y
@@ -225,7 +229,7 @@ index 52befd8f1..961ebd812 100644
  # Device Provisioning Protocol (DPP) (also known as Wi-Fi Easy Connect)
  CONFIG_DPP=y
 diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
-index 300e118f3..e6420d33a 100644
+index 9ee8955..845df97 100644
 --- wpa_supplicant/p2p_supplicant.c
 +++ wpa_supplicant/p2p_supplicant.c
 @@ -98,7 +98,7 @@
