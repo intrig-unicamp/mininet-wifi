@@ -1,7 +1,16 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index 550db69..b0e6ca7 100644
+index 550db697b..ecd69c6a8 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
+@@ -48,7 +48,7 @@ CONFIG_LIBNL32=y
+ CONFIG_RSN_PREAUTH=y
+ 
+ # Support Operating Channel Validation
+-#CONFIG_OCV=y
++CONFIG_OCV=y
+ 
+ # Integrated EAP server
+ CONFIG_EAP=y
 @@ -115,11 +115,11 @@ CONFIG_EAP_TTLS=y
  #CONFIG_EAP_TEAP=y
  
@@ -141,7 +150,7 @@ index 550db69..b0e6ca7 100644
  # Remove all TKIP functionality
  # TKIP is an old cryptographic data confidentiality algorithm that is not
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index 52befd8..961ebd8 100644
+index 52befd8f1..961ebd812 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
 @@ -172,12 +172,12 @@ CONFIG_EAP_TNC=y
@@ -229,7 +238,7 @@ index 52befd8..961ebd8 100644
  # Device Provisioning Protocol (DPP) (also known as Wi-Fi Easy Connect)
  CONFIG_DPP=y
 diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
-index 9ee8955..845df97 100644
+index 9ee8955f2..845df97d8 100644
 --- wpa_supplicant/p2p_supplicant.c
 +++ wpa_supplicant/p2p_supplicant.c
 @@ -98,7 +98,7 @@
