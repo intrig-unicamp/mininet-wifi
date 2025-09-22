@@ -530,7 +530,8 @@ class Tracked(Mobility):
                             if draw:
                                 node_update = getattr(node, dim)
                                 node_update()
-                    PlotGraph.pause()
+                    if draw:
+                        PlotGraph.pause()
                     i += 0.1
                 while self.pause_simulation:
                     pass
