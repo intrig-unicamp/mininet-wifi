@@ -1509,7 +1509,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
                     if self.wmediumd_mode == interference:
                         self.wmediumd_workaround(node)
-                        self.wmediumd_workaround(node, -1)
+                        self.wmediumd_workaround(node, -0.00001)
 
         self.restore_links()
 
