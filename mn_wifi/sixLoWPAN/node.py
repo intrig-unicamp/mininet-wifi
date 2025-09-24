@@ -87,8 +87,11 @@ class LowPANNode(Node_wifi):
         return self.intf(intf).IP6()
 
     def configRPLD(self):
+        iface = '{}-pan0'.format(self.name)
+        if 'phy' in self.params:
+            iface = 'lo'+self.params['phy']
         cmd = 'ifaces = { {\n'
-        cmd += '        ifname = \"{}-pan0\",\n'.format(self.name)
+        cmd += '        ifname = \"{}\",\n'.format(iface)
         if 'storing_mode' not in self.params:
             self.params['storing_mode'] = 2
         if 'trickle_t' not in self.params:

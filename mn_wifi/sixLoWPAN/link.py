@@ -235,6 +235,8 @@ class LowPANLink(Link, IntfSixLoWPAN):
            node: node
            intf: default interface class/constructor"""
         self.pan = '{}-pan{}'.format(node.name, wpan)
+        if 'phy' in node.params:
+            self.pan = 'lo{}'.format(node.params['phy'])
         self.name = self.pan
         self.node = node
         node.addWAttr(self, port=wpan)
@@ -249,6 +251,9 @@ class LowPANLink(Link, IntfSixLoWPAN):
         self.txpower = 20
 
         wpan = '{}-wpan{}'.format(node.name, wpan)
+        if 'phy' in self.node.params:
+            os.system('ip link del lo{}'.format(self.node.params['phy']))
+            wpan = self.node.params['phy']
         self.name = wpan
         self.ipLink('down')
         self.set_pan_id(wpan, '0xbeef')

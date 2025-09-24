@@ -4,6 +4,8 @@
 import os
 import subprocess
 import logging
+
+from subprocess import check_output as co
 from mininet.log import debug, info
 
 
@@ -14,6 +16,7 @@ class module(object):
     devices_created_dynamically = False
 
     def __init__(self, nodes, nwpan, alt_module):
+        self.physicalIfaces = []
         self.start(nodes, nwpan, alt_module)
 
     def start(self, nodes, nwpan, alt_module):
@@ -23,14 +26,17 @@ class module(object):
         :param **params: ifb -  Intermediate Functional Block device"""
         wm = subprocess.call(['which', 'iwpan'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        self.physicalIfaces = self.get_wpan_iface()
         if wm == 0:
             self.load_module(nwpan, alt_module, len(nodes))  # Initatilize Module
             n = 0
             for sensor in nodes:
                 for _ in range(0, len(sensor.params['wpan'])):
-                    n += 1
-                    if n > 2:
-                        os.system('wpan-hwsim add >/dev/null 2>&1')
+                    if 'phy' not in sensor.params:
+                        n += 1
+                        if n > 2:
+                            os.system('wpan-hwsim add >/dev/null 2>&1')
             self.assign_iface(nodes)  # iface assign
         else:
             info('*** iwpan will be used, but it is not installed.\n' \
@@ -79,8 +85,21 @@ class module(object):
         wlan_list.sort(key=len, reverse=False)
         return wlan_list
 
+    @staticmethod
+    def get_wpan_iface():
+        "Gets physical wpans"
+        wpan_list = []
+        iface_list = co("iwpan dev 2>&1 | grep Interface | awk '{print $2}'",
+                        shell=True).decode('utf-8').split('\n')
+        for iface in iface_list:
+            wpan_list.append(iface)
+        wpan_list = sorted(wpan_list)
+        wpan_list.pop(0)
+        wpan_list.sort(key=len, reverse=False)
+        return wpan_list
+
     def getPhy(self):
-        'Gets the list of virtual wlans that already exist'
+        'Gets the list of virtual wpans that already exist'
         cmd = "iwpan dev | grep phy | sed -ne 's/phy#\([0-9]\)/\\1/p'"
 
         phy = subprocess.check_output\
@@ -88,6 +107,11 @@ class module(object):
 
         phy = sorted(phy)
         phy.pop(0)
+
+        phy_len = len(self.physicalIfaces)
+        for _ in range(phy_len):
+            phy.pop(0)
+
         return phy
 
     def assign_iface(self, nodes):
@@ -98,15 +122,26 @@ class module(object):
         debug("\n*** Configuring interfaces with appropriated network"
               "-namespaces...\n")
         phy = self.getPhy()
-        wlan_list = self.get_virtual_wpan()
+        wlan_list = [x for x in self.get_virtual_wpan() if x not in self.physicalIfaces]
         for id, node in enumerate(nodes):
             node.id = id
-            for wlan in range(0, len(node.params['wpan'])):
-                os.system('iwpan phy phy{} set netns {}'.format(phy[0], node.pid))
-                node.cmd('ip link set {} down'.format(wlan_list[0]))
-                node.cmd('ip link set {} name {}'.format(wlan_list[0], node.params['wpan'][wlan]))
-                wlan_list.pop(0)
-                phy.pop(0)
+            for wpan in range(0, len(node.params['wpan'])):
+                if 'phy' in node.params:
+                    iface = f"lo{self.physicalIfaces[0]}"
+                    result = subprocess.run(["ip", "link", "show", iface],
+                                            stdout=subprocess.DEVNULL,
+                                            stderr=subprocess.DEVNULL)
+                    if result.returncode == 0:
+                        os.system(f"ip link del {iface}")
+                    os.system('ip link add link {} name lo{} type lowpan'.format(self.physicalIfaces[0], self.physicalIfaces[0]))
+                    os.system('ip link set lo{} up'.format(self.physicalIfaces[0]))
+                    self.physicalIfaces.pop(0)
+                else:
+                    os.system('iwpan phy phy{} set netns {}'.format(phy[0], node.pid))
+                    node.cmd('ip link set {} down'.format(wlan_list[0]))
+                    node.cmd('ip link set {} name {}'.format(wlan_list[0], node.params['wpan'][wpan]))
+                    wlan_list.pop(0)
+                    phy.pop(0)
 
     def logging_to_file(self, filename):
         logging.basicConfig(filename=filename,
