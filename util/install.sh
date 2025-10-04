@@ -219,6 +219,7 @@ function wifi_deps {
             sudo ${PYTHON} get-pip.py
             rm get-pip.py
         fi
+        ${PYTHON} -m pip install FlightRadarAPI --break-system-packages
         $install iproute2 || $install iproute
         $install cgroup-tools || $install cgroup-bin
     fi

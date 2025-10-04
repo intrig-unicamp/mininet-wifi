@@ -10,6 +10,7 @@ from threading import Thread as thread
 from time import sleep
 from sys import exit
 
+from FlightRadar24 import FlightRadar24API
 from mininet.cli import CLI
 from mininet.link import Link, TCLink, TCULink
 from mininet.log import info, error, debug, output, warn
@@ -30,7 +31,7 @@ from mn_wifi.link import IntfWireless, wmediumd, _4address, HostapdConfig, \
 from mn_wifi.mobility import Tracked as TrackedMob, model as MobModel, \
     Mobility as mob, ConfigMobility, ConfigMobLinks, TimedModel
 from mn_wifi.module import Mac80211Hwsim
-from mn_wifi.node import AP, Station, Car, OVSKernelAP, physicalAP
+from mn_wifi.node import AP, Station, Car, OVSKernelAP, physicalAP, Aircraft
 from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.propagationModels import PropagationModel as ppm
 from mn_wifi.sixLoWPAN.link import LowPANLink, LoWPAN, wmediumd_802154
@@ -52,7 +53,7 @@ VERSION = "2.6"
 
 class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
-    def __init__(self, accessPoint=OVSKernelAP, station=Station, car=Car,
+    def __init__(self, accessPoint=OVSKernelAP, station=Station, aircraft=Aircraft, car=Car,
                  sensor=LowPANNode, apsensor=OVSSensor, modem=WWANNode, link=WirelessLink,
                  ssid="new-ssid", mode="g", encrypt="", passwd=None, ieee80211w=None,
                  channel=1, freq=2.4, band=20, wmediumd_mode=snr, wmediumd_802154_mode=interference_802154,
@@ -67,6 +68,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
            accessPoint: default Access Point class
            station: default Station class/constructor
+           aircraft: default Aircraft class/constructor
            car: default Car class/constructor
            sensor: default Sensor class/constructor
            apsensor: default AP Sensor class/constructor
@@ -99,6 +101,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
            json_file: json file dir - useful for P4
            ac_method: association control method"""
         self.station = station
+        self.aircraft = aircraft
         self.accessPoint = accessPoint
         self.car = car
         self.nextPos_sta = 1  # start for sta position allocation
@@ -367,6 +370,36 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                 if self.draw:
                     self.plot.instantiate_attrs(node)
 
+    def configureAircrafts(self, lat, long, range):
+        fr_api = FlightRadar24API()
+        #zone = fr_api.get_zones()["europe"]
+        #airlines = fr_api.get_airlines()
+        bounds = fr_api.get_bounds_by_point(lat, long, range)
+
+        mob.thread_ = thread(
+            name='mobModel',
+            target=self.init_FlightRadar24API,
+            kwargs={'fr_api': fr_api, 'bounds': bounds}
+        )
+        mob.thread_.daemon = True
+        mob.thread_._keep_alive = True
+        mob.thread_.start()
+
+    def init_FlightRadar24API(self, fr_api, bounds):
+        flights = fr_api.get_flights(bounds=bounds)
+        selected_ids = [flight.id for flight in flights[:len(self.stations)]]
+        for id, airCrafit in enumerate (self.stations):
+            airCrafit.registration = flights[id].registration
+            airCrafit.model = flights[id].aircraft_code
+        while True:
+            flights = fr_api.get_flights(bounds=bounds)
+            selected = [f for f in flights if f.id in selected_ids]
+            for station in self.stations:
+                flight = next((f for f in selected if f.id in selected_ids[self.stations.index(station)]), None)
+                if flight:
+                    station.setPosition(f"{flight.latitude},{flight.longitude},{flight.altitude}")
+            sleep(5)
+
     def addWlans(self, node):
         node.params['wlan'] = []
         wlans = node.params.get('wlans', 1)
@@ -409,6 +442,52 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
         if self.autoSetPositions and 'position' not in params:
             defaults['position'] = [round(self.nextPos_sta, 2), 0, 0]
+        if self.autoSetMacs:
+            defaults['mac'] = macColonHex(self.nextIP)
+        if self.autoPinCpus:
+            defaults['cores'] = self.nextCore
+            self.nextCore = (self.nextCore + 1) % self.numCores
+        self.nextIP += 1
+        self.nextIP6 += 1
+        self.nextPos_sta += 2
+
+        if not cls:
+            cls = self.station
+        sta = cls(name, **defaults)
+
+        if 'position' in params or self.autoSetPositions:
+            self.pos_to_array(sta)
+
+        self.addWlans(sta)
+        self.stations.append(sta)
+        self.nameToNode[name] = sta
+        return sta
+
+    def addAircraft(self, name, cls=None, **params):
+        """Add Aircraft.
+           name: name of aircraft to add
+           cls: custom host class/constructor (optional)
+           params: parameters for station
+           returns: added station"""
+        # Default IP and MAC addresses
+        defaults = {'ip': ipAdd(self.nextIP,
+                                ipBaseNum=self.ipBaseNum,
+                                prefixLen=self.prefixLen) +
+                          '/{}'.format(self.prefixLen),
+                    'ip6': ipAdd6(self.nextIP6,
+                                  ipBaseNum=self.ip6BaseNum,
+                                  prefixLen=self.prefixLen6) +
+                          '/{}'.format(self.prefixLen6),
+                    'channel': self.channel,
+                    'band': self.band,
+                    'freq': self.freq,
+                    'mode': self.mode,
+                    'encrypt': self.encrypt,
+                    'passwd': self.passwd,
+                    'ieee80211w': self.ieee80211w
+                   }
+        defaults.update(params)
+        defaults['position'] = [round(self.nextPos_sta, 2), 0, 0]
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)
         if self.autoPinCpus:
@@ -662,12 +741,14 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             return link
         elif cls == physicalMesh:
             cls(node=node1, **params)
+            return None
         elif cls == LowPANLink:
             link = cls(node=node1, port=port1, **params)
             self.links.append(link)
             return link
         elif cls == LoWPAN:
             cls(node1=node1, node2=node2, **params)
+            return None
         elif cls == WWANLink:
             link = cls(node=node1, port=port1, **params)
             self.links.append(link)
@@ -682,12 +763,15 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                 link = cls(node1, node2, **params)
                 self.links.append(link)
                 return link
+            return None
         elif ((node1 in self.stations and node2 in self.aps)
               or (node2 in self.stations and node1 in self.aps)) and cls != TCLink:
             if cls == wmediumd:
                 self.infra_wmediumd_link(node1, node2, port1, port2, **params)
+                return None
             else:
                 self.infra_tc(node1, node2, port1, port2, cls, **params)
+                return None
         else:
             if not cls or cls == wmediumd or cls == WirelessLink:
                 cls = TCLink
@@ -696,6 +780,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
             Mininet.addLink(self, node1, node2, port1=port1, port2=port2,
                             cls=cls, **params)
+            return None
 
     def configHosts(self):
         "Configure a set of nodes."

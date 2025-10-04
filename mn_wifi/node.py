@@ -464,6 +464,11 @@ class Station(Node_wifi):
     pass
 
 
+class Aircraft(Node_wifi):
+    "A aircraft is simply a Node"
+    pass
+
+
 class Car(Node_wifi):
     "A car is simply a Node"
     pass
