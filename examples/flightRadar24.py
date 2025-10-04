@@ -36,7 +36,7 @@ def topology():
     net.build()
 
     info("*** ConfigureAircrafts\n")
-    net.configureAircrafts(38.715994, -9.128210, 2000000)
+    net.configureAircrafts(38.715994, -9.128210, 2000000) # lat, long, range
 
     info("*** Running CLI\n")
     CLI(net)
