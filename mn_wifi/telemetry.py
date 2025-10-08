@@ -11,8 +11,10 @@ telemetry(nodes, **params)
 
 import time
 import warnings
+import math
+from PIL import Image
 from subprocess import check_output as co, PIPE
-import numpy
+import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -185,6 +187,9 @@ class parseData(object):
     echo_cmd = 'echo \'{},{}\' >> {}'
 
     def __init__(self, nodes, axes, single, data_type, fig, image, **kwargs):
+        self.icon = kwargs.get("icon", None)
+        self.icon_width = kwargs.get("icon_width", 10)
+        self.icon_height = kwargs.get("icon_height", 10)
         self.start(nodes, axes, single, data_type, fig, image, **kwargs)
 
     @classmethod
@@ -250,7 +255,27 @@ class parseData(object):
                 x = node.position[0]
                 y = node.position[1]
                 plt.scatter(x, y, color='black')
-                axes.annotate(node.plttxt.get_text(), (x, y))
+
+                if self.icon and not isinstance(node, AP):
+                    # we need it to rename the annotate
+                    new_name = node.name
+                    if hasattr(node, "registration"):
+                        new_name = node.name + '-' + node.registration
+                    node.plttxt = self.axes.annotate(new_name, xy=(x, y), color='blue', zorder=2)
+
+                    plane_img = mpimg.imread(self.icon)
+                    img = Image.fromarray((plane_img * 255).astype(np.uint8))
+                    rotated_img = img.rotate(45, expand=False)
+                    rotated_arr = np.array(rotated_img)
+
+                    axes.imshow(
+                        rotated_arr,
+                        extent=[x - self.icon_width/2, x + self.icon_width/2, y -
+                                self.icon_height/2, y + self.icon_height/2],
+                        zorder=1
+                    )
+
+                axes.annotate(node.plttxt.get_text(), (x, y), color='blue', zorder=2)
                 node.circle.center = x, y
                 axes.add_artist(node.circle)
         elif self.data_type == 'rssi':
@@ -312,7 +337,7 @@ class parseData(object):
 
         inNamespaceNodes = []
         for node in nodes:
-            self.colors.append(numpy.random.rand(3,))
+            self.colors.append(np.random.rand(3,))
             if not isinstance(node, AP):
                 inNamespaceNodes.append(node)
             if single or data_type == 'position':

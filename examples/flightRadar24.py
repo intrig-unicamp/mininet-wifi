@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
-'This example is implemented using the FlightRadar24 API'
+"""This example is implemented using the FlightRadar24 API
+
+Additional attributes:
+node.registration
+node.aircraft_code
+node.icao_24bit
+"""
 
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI
@@ -19,24 +25,29 @@ def topology():
     net.addAircraft('aircraft2', ip='10.0.0.2/8')
     net.addAircraft('aircraft3', ip='10.0.0.3/8')
     net.addAircraft('aircraft4', ip='10.0.0.4/8')
-    net.addAccessPoint('ap1', ssid="ads-b", mode="g", channel="1",
-                       position='0,0,10000')
+    decoder1 = net.addHost('decoder1', ip='10.0.0.5/8')
+    ap1 = net.addAccessPoint('LIS1', ssid="ads-b", mode="g", channel="1",
+                             position='-9.13, 38.73, 0', failMode='standalone')
 
     info("*** Configuring propagation model\n")
-    net.setPropagationModel(model="logDistance", exp=3.5)
+    net.setPropagationModel(model="logDistance", exp=1)
 
     info("*** Configuring nodes\n")
     net.configureNodes()
 
+    info("*** Creating Link\n")
+    net.addLink(decoder1, ap1)
+
     nodes = net.stations + net.aps
     net.telemetry(nodes=nodes, data_type='position',
-                  min_x=-180, max_x=180, min_y=-180, max_y=180)
+                  icon='plane.png', icon_width=2, icon_height=2,
+                  min_x=-20, max_x=5, min_y=30, max_y=45)
 
     info("*** Starting network\n")
-    net.build()
+    net.start()
 
-    info("*** ConfigureAircrafts\n")
-    net.configureAircrafts(38.715994, -9.128210, 2000000) # lat, long, range
+    info("*** Configure Aircrafts\n")
+    net.configureAircrafts(38.715994, -9.128210, 500000) # lat, long, range
 
     info("*** Running CLI\n")
     CLI(net)

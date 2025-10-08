@@ -23,6 +23,7 @@ from mininet.util import (macColonHex, ipStr, ipParse, ipAdd,
 from six import string_types
 
 from mn_wifi.clean import Cleanup as CleanupWifi
+from mn_wifi.aviation import adsbTransmitter
 from mn_wifi.energy import Energy, EnergyMonitor
 from mn_wifi.link import IntfWireless, wmediumd, _4address, HostapdConfig, \
     WirelessLink, TCWirelessLink, ITSLink, WifiDirectLink, adhoc, mesh, \
@@ -377,7 +378,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         bounds = fr_api.get_bounds_by_point(lat, long, range)
 
         mob.thread_ = thread(
-            name='mobModel',
+            name='flightRadar',
             target=self.init_FlightRadar24API,
             kwargs={'fr_api': fr_api, 'bounds': bounds}
         )
@@ -388,17 +389,20 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
     def init_FlightRadar24API(self, fr_api, bounds):
         flights = fr_api.get_flights(bounds=bounds)
         selected_ids = [flight.id for flight in flights[:len(self.stations)]]
-        for id, airCrafit in enumerate (self.stations):
-            airCrafit.registration = flights[id].registration
-            airCrafit.model = flights[id].aircraft_code
+        for id, airCraft in enumerate (self.stations):
+            airCraft.registration = flights[id].registration
+            airCraft.aircraft_code = flights[id].aircraft_code
+            airCraft.icao_24bit = flights[id].icao_24bit
         while True:
-            flights = fr_api.get_flights(bounds=bounds)
-            selected = [f for f in flights if f.id in selected_ids]
-            for station in self.stations:
-                flight = next((f for f in selected if f.id in selected_ids[self.stations.index(station)]), None)
-                if flight:
-                    station.setPosition(f"{flight.latitude},{flight.longitude},{flight.altitude}")
-            sleep(5)
+            if mob.thread_:
+                flights = fr_api.get_flights(bounds=bounds)
+                selected = [f for f in flights if f.id in selected_ids]
+                for airCraft in self.stations:
+                    flight = next((f for f in selected if f.id in selected_ids[self.stations.index(airCraft)]), None)
+                    if flight:
+                        airCraft.setPosition(f"{flight.longitude},{flight.latitude},{flight.altitude}")
+                        adsbTransmitter.send_adsb_scapy(airCraft, flight)
+                sleep(5)
 
     def addWlans(self, node):
         node.params['wlan'] = []
