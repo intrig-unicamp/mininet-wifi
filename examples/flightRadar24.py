@@ -40,7 +40,6 @@ def topology():
 
     nodes = net.stations + net.aps
     net.telemetry(nodes=nodes, data_type='position',
-                  icon='plane.png', icon_width=2, icon_height=2,
                   min_x=-20, max_x=5, min_y=30, max_y=45)
 
     info("*** Starting network\n")

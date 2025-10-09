@@ -502,7 +502,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.nextPos_sta += 2
 
         if not cls:
-            cls = self.station
+            cls = self.aircraft
         sta = cls(name, **defaults)
 
         if 'position' in params or self.autoSetPositions:

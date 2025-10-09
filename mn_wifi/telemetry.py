@@ -24,7 +24,7 @@ from matplotlib import style
 from os import path, system as sh
 from threading import Thread as thread
 from datetime import date
-from mn_wifi.node import AP
+from mn_wifi.node import AP, Aircraft
 
 
 today = date.today()
@@ -246,38 +246,82 @@ class parseData(object):
                     aspect='auto',
                     zorder=0
                 )
+
             for node in self.nodes:
-                if node.name not in names:
-                    names.append(node.name)
-                x, y, z = get_position(node)
-                sh(self.echo_cmd.format(x, y, self.filename.format(node)))
+                if isinstance(node, Aircraft):
+                    if not hasattr(node, 'prev_position'):
+                        if node.position[2] != 0:
+                            node.prev_position = tuple(node.position)
+                    if not hasattr(node, 'angle'):
+                        node.angle = 0
 
-                x = node.position[0]
-                y = node.position[1]
-                plt.scatter(x, y, color='black')
+            for node in self.nodes:
+                if isinstance(node, Aircraft):
+                    if node.position[2] != 0:
+                        # Updates the node's position (overrides its move method)
+                        if hasattr(node, 'vx') and hasattr(node, 'vy'):
+                            node.position[0] += node.vx
+                            node.position[1] += node.vy
 
-                if self.icon and not isinstance(node, AP):
-                    # we need it to rename the annotate
-                    new_name = node.name
-                    if hasattr(node, "registration"):
-                        new_name = node.name + '-' + node.registration
-                    node.plttxt = self.axes.annotate(new_name, xy=(x, y), color='blue', zorder=2)
+                        x, y = node.position[:2]
+                        plt.scatter(x, y, color='black')
 
-                    plane_img = mpimg.imread(self.icon)
-                    img = Image.fromarray((plane_img * 255).astype(np.uint8))
-                    rotated_img = img.rotate(45, expand=False)
-                    rotated_arr = np.array(rotated_img)
+                        new_name = node.name
+                        if hasattr(node, "registration"):
+                            new_name += '-' + node.registration
+                        node.plttxt = self.axes.annotate(new_name, xy=(x, y), color='blue', zorder=2)
 
-                    axes.imshow(
-                        rotated_arr,
-                        extent=[x - self.icon_width/2, x + self.icon_width/2, y -
-                                self.icon_height/2, y + self.icon_height/2],
-                        zorder=1
-                    )
+                        # Rotates the plane if there is an icon and it is not AP
+                        if self.icon and not isinstance(node, AP):
+                            # Calculate displacement using only x and y
+                            x_prev, y_prev = node.prev_position[:2]
+                            dx = x - x_prev
+                            dy = y - y_prev
 
-                axes.annotate(node.plttxt.get_text(), (x, y), color='blue', zorder=2)
-                node.circle.center = x, y
-                axes.add_artist(node.circle)
+                            # Update angle only if there is displacement
+                            if dx != 0 or dy != 0:
+                                node.angle = math.degrees(math.atan2(dy, dx))
+
+                            # Load and rotate image
+                            plane_img = mpimg.imread(self.icon)
+                            img = Image.fromarray((plane_img * 255).astype('uint8'))
+                            rotated_img = img.rotate(-node.angle+45, expand=True)
+                            rotated_arr = np.array(rotated_img)
+
+                            # Plot rotated image
+                            self.axes.imshow(
+                                rotated_arr,
+                                extent=[x - self.icon_width / 2, x + self.icon_width / 2,
+                                        y - self.icon_height / 2, y + self.icon_height / 2],
+                                zorder=1
+                            )
+
+                            # Update previous position to next frame
+                            node.prev_position = (x, y)
+                        elif isinstance(node, AP):
+                            x, y, z = get_position(node)
+                            sh(self.echo_cmd.format(x, y, self.filename.format(node)))
+
+                            x = node.position[0]
+                            y = node.position[1]
+                            plt.scatter(x, y, color='black')
+
+                        # Keeps note and circle
+                        self.axes.annotate(node.plttxt.get_text(), (x, y), color='blue', zorder=2)
+                        node.circle.center = x, y
+                        self.axes.add_artist(node.circle)
+                else:
+                    if node.name not in names:
+                        names.append(node.name)
+                    x, y, z = get_position(node)
+                    sh(self.echo_cmd.format(x, y, self.filename.format(node)))
+
+                    x = node.position[0]
+                    y = node.position[1]
+                    plt.scatter(x, y, color='black')
+                    axes.annotate(node.plttxt.get_text(), (x, y))
+                    node.circle.center = x, y
+                    axes.add_artist(node.circle)
         elif self.data_type == 'rssi':
             for node in self.nodes:
                 for wlan in range(len(node.params['wlan'])):
