@@ -190,6 +190,7 @@ class parseData(object):
         self.icon = kwargs.get("icon", None)
         self.icon_width = kwargs.get("icon_width", 10)
         self.icon_height = kwargs.get("icon_height", 10)
+        self.icon_text_size = kwargs.get("icon_text_size", 10)
         self.start(nodes, axes, single, data_type, fig, image, **kwargs)
 
     @classmethod
@@ -219,6 +220,30 @@ class parseData(object):
                 ax.clear()
                 node = self.nodes[id]
                 ax.plot(nodes_x[node], nodes_y[node], color=self.colors[id])
+
+    def on_hover(self, event):
+        """Detects if the mouse is over an aircraft and shows a tooltip"""
+        vis = self.annot.get_visible()
+        if event.inaxes == self.axes:
+            for node in self.nodes:
+                x, y = node.position[:2]
+                if abs(event.xdata - x) < 3 and abs(event.ydata - y) < 3:
+                    info = f"✈️ {node.name}"
+                    if hasattr(node, "registration"):
+                        info += f"\nRegistration: {node.registration}"
+                    if hasattr(node, "position"):
+                        info += f"\nAltitude: {node.position[2]} m"
+                    if hasattr(node, "aircraft_code"):
+                        info += f"\nCode: {node.aircraft_code}"
+
+                    self.annot.xy = (x, y)
+                    self.annot.set_text(info)
+                    self.annot.set_visible(True)
+                    self.axes.figure.canvas.draw_idle()
+                    return
+        if vis:
+            self.annot.set_visible(False)
+            self.axes.figure.canvas.draw_idle()
 
     def animate(self, i):
         axes = self.axes
@@ -257,7 +282,7 @@ class parseData(object):
 
             for node in self.nodes:
                 if isinstance(node, Aircraft):
-                    if node.position[2] != 0:
+                    if hasattr(node, 'prev_position'):
                         # Updates the node's position (overrides its move method)
                         if hasattr(node, 'vx') and hasattr(node, 'vy'):
                             node.position[0] += node.vx
@@ -269,10 +294,24 @@ class parseData(object):
                         new_name = node.name
                         if hasattr(node, "registration"):
                             new_name += '-' + node.registration
-                        node.plttxt = self.axes.annotate(new_name, xy=(x, y), color='blue', zorder=2)
+                        node.plttxt = self.axes.annotate(new_name, xy=(x, y),
+                                                         color='blue', zorder=2,
+                                                         fontsize=self.icon_text_size)
+
+                        # Tooltip (hover)
+                        self.annot = self.axes.annotate(
+                            "",
+                            xy=(0, 0),
+                            xytext=(10, 10),
+                            textcoords="offset points",
+                            bbox=dict(boxstyle="round", fc="lightyellow", alpha=0.9),
+                            arrowprops=dict(arrowstyle="->")
+                        )
+                        self.annot.set_visible(False)
+                        self.axes.figure.canvas.mpl_connect("motion_notify_event", self.on_hover)
 
                         # Rotates the plane if there is an icon and it is not AP
-                        if self.icon and not isinstance(node, AP):
+                        if self.icon:
                             # Calculate displacement using only x and y
                             x_prev, y_prev = node.prev_position[:2]
                             dx = x - x_prev
@@ -285,7 +324,7 @@ class parseData(object):
                             # Load and rotate image
                             plane_img = mpimg.imread(self.icon)
                             img = Image.fromarray((plane_img * 255).astype('uint8'))
-                            rotated_img = img.rotate(-node.angle+45, expand=True)
+                            rotated_img = img.rotate(-node.angle+45, expand=False)
                             rotated_arr = np.array(rotated_img)
 
                             # Plot rotated image
@@ -296,18 +335,7 @@ class parseData(object):
                                 zorder=1
                             )
 
-                            # Update previous position to next frame
-                            node.prev_position = (x, y)
-                        elif isinstance(node, AP):
-                            x, y, z = get_position(node)
-                            sh(self.echo_cmd.format(x, y, self.filename.format(node)))
-
-                            x = node.position[0]
-                            y = node.position[1]
-                            plt.scatter(x, y, color='black')
-
                         # Keeps note and circle
-                        self.axes.annotate(node.plttxt.get_text(), (x, y), color='blue', zorder=2)
                         node.circle.center = x, y
                         self.axes.add_artist(node.circle)
                 else:
@@ -319,7 +347,7 @@ class parseData(object):
                     x = node.position[0]
                     y = node.position[1]
                     plt.scatter(x, y, color='black')
-                    axes.annotate(node.plttxt.get_text(), (x, y))
+                    axes.annotate(node.plttxt.get_text(), (x, y), fontsize=10)
                     node.circle.center = x, y
                     axes.add_artist(node.circle)
         elif self.data_type == 'rssi':

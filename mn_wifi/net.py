@@ -393,16 +393,15 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             airCraft.registration = flights[id].registration
             airCraft.aircraft_code = flights[id].aircraft_code
             airCraft.icao_24bit = flights[id].icao_24bit
-        while True:
-            if mob.thread_:
-                flights = fr_api.get_flights(bounds=bounds)
-                selected = [f for f in flights if f.id in selected_ids]
-                for airCraft in self.stations:
-                    flight = next((f for f in selected if f.id in selected_ids[self.stations.index(airCraft)]), None)
-                    if flight:
-                        airCraft.setPosition(f"{flight.longitude},{flight.latitude},{flight.altitude}")
-                        adsbTransmitter.send_adsb_scapy(airCraft, flight)
-                sleep(5)
+        while mob.thread_._keep_alive:
+            flights = fr_api.get_flights(bounds=bounds)
+            selected = [f for f in flights if f.id in selected_ids]
+            for airCraft in self.stations:
+                flight = next((f for f in selected if f.id in selected_ids[self.stations.index(airCraft)]), None)
+                if flight:
+                    airCraft.setPosition(f"{flight.longitude},{flight.latitude},{flight.altitude}")
+                    adsbTransmitter.send_adsb_scapy(airCraft, flight)
+            sleep(5)
 
     def addWlans(self, node):
         node.params['wlan'] = []
