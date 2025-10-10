@@ -335,9 +335,8 @@ class parseData(object):
                                 zorder=1
                             )
 
-                        # Keeps note and circle
-                        node.circle.center = x, y
-                        self.axes.add_artist(node.circle)
+                        #node.circle.center = x, y
+                        #self.axes.add_artist(node.circle)
                 else:
                     if node.name not in names:
                         names.append(node.name)
