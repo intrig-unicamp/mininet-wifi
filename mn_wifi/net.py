@@ -437,6 +437,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         compute_interval = 1
         last_tle_time = 0
 
+        for satellite in self.stations:
+            satellite.catnr = satellite.params['catnr']
+
         while mob.thread_._keep_alive:
             now = time()
             if now - last_tle_time > tle_update_interval:
@@ -454,6 +457,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                     try:
                         t = ts.now()
                         geocentric = satellite.sat.at(t)
+                        velocity = geocentric.velocity.km_per_s
+                        speed = (velocity[0] ** 2 + velocity[1] ** 2 + velocity[2] ** 2) ** 0.5 * 3600
+                        satellite.speed = speed
                         subpoint = wgs84.subpoint(geocentric)
                         lat = subpoint.latitude.degrees
                         lon = subpoint.longitude.degrees

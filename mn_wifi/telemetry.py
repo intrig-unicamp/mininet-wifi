@@ -232,6 +232,10 @@ class parseData(object):
                         info = f"✈️ {node.name}"
                     else:
                         info = f"{node.name}"
+                    if hasattr(node, "speed"):
+                        info += f"\nSpeed: {node.speed:.2f} km/h"
+                    if hasattr(node, "catnr"):
+                        info += f"\nCATNR: {node.catnr}"
                     if hasattr(node, "registration"):
                         info += f"\nRegistration: {node.registration}"
                     if hasattr(node, "position"):
