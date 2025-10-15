@@ -4,10 +4,11 @@
 """
 
 import socket
+import requests
 
 from itertools import chain, groupby
 from threading import Thread as thread
-from time import sleep
+from time import sleep, time
 from sys import exit
 
 from FlightRadar24 import FlightRadar24API
@@ -32,7 +33,7 @@ from mn_wifi.link import IntfWireless, wmediumd, _4address, HostapdConfig, \
 from mn_wifi.mobility import Tracked as TrackedMob, model as MobModel, \
     Mobility as mob, ConfigMobility, ConfigMobLinks, TimedModel
 from mn_wifi.module import Mac80211Hwsim
-from mn_wifi.node import AP, Station, Car, OVSKernelAP, physicalAP, Aircraft
+from mn_wifi.node import AP, Station, Car, OVSKernelAP, physicalAP, Aircraft, Satellite
 from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.propagationModels import PropagationModel as ppm
 from mn_wifi.sixLoWPAN.link import LowPANLink, LoWPAN, wmediumd_802154
@@ -54,10 +55,11 @@ VERSION = "2.6"
 
 class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
-    def __init__(self, accessPoint=OVSKernelAP, station=Station, aircraft=Aircraft, car=Car,
-                 sensor=LowPANNode, apsensor=OVSSensor, modem=WWANNode, link=WirelessLink,
-                 ssid="new-ssid", mode="g", encrypt="", passwd=None, ieee80211w=None,
-                 channel=1, freq=2.4, band=20, wmediumd_mode=snr, wmediumd_802154_mode=interference_802154,
+    def __init__(self, accessPoint=OVSKernelAP, station=Station, aircraft=Aircraft,
+                 satellite=Satellite, car=Car, sensor=LowPANNode, apsensor=OVSSensor,
+                 modem=WWANNode, link=WirelessLink, ssid="new-ssid", mode="g",
+                 encrypt="", passwd=None, ieee80211w=None, channel=1, freq=2.4, band=20,
+                 wmediumd_mode=snr, wmediumd_802154_mode=interference_802154,
                  roads=0, fading_cof=0, autoAssociation=True, allAutoAssociation=True,
                  autoSetPositions=False, configWiFiDirect=False, config4addr=False,
                  noise_th=-91, cca_th=-90, disable_tcp_checksum=False, ifb=False,
@@ -70,6 +72,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
            accessPoint: default Access Point class
            station: default Station class/constructor
            aircraft: default Aircraft class/constructor
+           satellite: default Satellite class/constructor
            car: default Car class/constructor
            sensor: default Sensor class/constructor
            apsensor: default AP Sensor class/constructor
@@ -103,6 +106,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
            ac_method: association control method"""
         self.station = station
         self.aircraft = aircraft
+        self.satellite = satellite
         self.accessPoint = accessPoint
         self.car = car
         self.nextPos_sta = 1  # start for sta position allocation
@@ -404,6 +408,64 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                         adsbTransmitter.send_adsb_scapy(airCraft, flight)
             sleep(5)
 
+    def configureSatellites(self):
+        mob.thread_ = thread(
+            name='skyfield',
+            target=self.init_skyfield
+        )
+        mob.thread_.daemon = True
+        mob.thread_._keep_alive = True
+        mob.thread_.start()
+
+    def fetch_tle(self, url):
+        """Download and return (line1, line2, name) of a TLE"""
+        data = requests.get(url).text.strip().splitlines()
+        if len(data) >= 2:
+            if len(data) == 3:
+                name, line1, line2 = data
+            else:
+                name = "UNKNOWN"
+                line1, line2 = data[:2]
+            return line1, line2, name
+        raise ValueError("Invalid TLE")
+
+    def init_skyfield(self):
+        from skyfield.api import EarthSatellite, load, wgs84
+
+        ts = load.timescale()
+        tle_update_interval = 60 * 60
+        compute_interval = 1
+        last_tle_time = 0
+
+        while mob.thread_._keep_alive:
+            now = time()
+            if now - last_tle_time > tle_update_interval:
+                for satellite in self.stations:
+                    url = 'https://celestrak.org/NORAD/elements/gp.php?CATNR={}&FORMAT=TLE'.format(satellite.params['catnr'])
+                    try:
+                        line1, line2, tle_name = self.fetch_tle(url)
+                        sat = EarthSatellite(line1, line2, tle_name)
+                        satellite.sat = sat
+                    except Exception as e:
+                        print(f"⚠️ Error while getting {satellite.name}: {e}")
+                last_tle_time = now
+            try:
+                for satellite in self.stations:
+                    try:
+                        t = ts.now()
+                        geocentric = satellite.sat.at(t)
+                        subpoint = wgs84.subpoint(geocentric)
+                        lat = subpoint.latitude.degrees
+                        lon = subpoint.longitude.degrees
+                        alt = subpoint.elevation.km
+                        satellite.setPosition(f"{lon},{lat},{alt:.2f}")
+                    except Exception as e:
+                        print(f"Error with {satellite.name}: {e}")
+            except Exception as e:
+                print("Error:", e)
+
+            sleep(compute_interval)
+
     def addWlans(self, node):
         node.params['wlan'] = []
         wlans = node.params.get('wlans', 1)
@@ -503,6 +565,52 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
         if not cls:
             cls = self.aircraft
+        sta = cls(name, **defaults)
+
+        if 'position' in params or self.autoSetPositions:
+            self.pos_to_array(sta)
+
+        self.addWlans(sta)
+        self.stations.append(sta)
+        self.nameToNode[name] = sta
+        return sta
+
+    def addSatellite(self, name, cls=None, **params):
+        """Add Satellite.
+           name: name of satellite to add
+           cls: custom host class/constructor (optional)
+           params: parameters for station
+           returns: added station"""
+        # Default IP and MAC addresses
+        defaults = {'ip': ipAdd(self.nextIP,
+                                ipBaseNum=self.ipBaseNum,
+                                prefixLen=self.prefixLen) +
+                          '/{}'.format(self.prefixLen),
+                    'ip6': ipAdd6(self.nextIP6,
+                                  ipBaseNum=self.ip6BaseNum,
+                                  prefixLen=self.prefixLen6) +
+                          '/{}'.format(self.prefixLen6),
+                    'channel': self.channel,
+                    'band': self.band,
+                    'freq': self.freq,
+                    'mode': self.mode,
+                    'encrypt': self.encrypt,
+                    'passwd': self.passwd,
+                    'ieee80211w': self.ieee80211w
+                   }
+        defaults.update(params)
+        defaults['position'] = [round(self.nextPos_sta, 2), 0, 0]
+        if self.autoSetMacs:
+            defaults['mac'] = macColonHex(self.nextIP)
+        if self.autoPinCpus:
+            defaults['cores'] = self.nextCore
+            self.nextCore = (self.nextCore + 1) % self.numCores
+        self.nextIP += 1
+        self.nextIP6 += 1
+        self.nextPos_sta += 2
+
+        if not cls:
+            cls = self.satellite
         sta = cls(name, **defaults)
 
         if 'position' in params or self.autoSetPositions:

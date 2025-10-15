@@ -402,7 +402,8 @@ class Node_wifi(Node):
         # the superclass config method here as follows:
         # r = Parent.config( **_params )
         r = {}
-        if not isinstance(self, Station) and not isinstance(self, Car) and not isinstance(self, Aircraft):
+        if (not isinstance(self, Station) and not isinstance(self, Car)
+                and not isinstance(self, Aircraft) and not isinstance(self, Satellite)):
             self.setParam(r, 'setMAC', mac=mac)
         self.setParam(r, 'setIP', ip=ip)
         self.setParam(r, 'setIP6', ip=ip6)
@@ -467,6 +468,11 @@ class Station(Node_wifi):
 
 class Aircraft(Node_wifi):
     "A aircraft is simply a Node"
+    pass
+
+
+class Satellite(Node_wifi):
+    "A satellite is simply a Node"
     pass
 
 

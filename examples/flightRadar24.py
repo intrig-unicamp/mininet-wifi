@@ -17,8 +17,7 @@ from mn_wifi.wmediumdConnector import interference
 
 def topology():
     "Create a network."
-    net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference,
-                       noise_th=-91, fading_cof=3)
+    net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
     net.addAircraft('aircraft1', ip='10.0.0.1/8')

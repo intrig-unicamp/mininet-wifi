@@ -24,7 +24,7 @@ from matplotlib import style
 from os import path, system as sh
 from threading import Thread as thread
 from datetime import date
-from mn_wifi.node import AP, Aircraft
+from mn_wifi.node import AP, Aircraft, Satellite
 
 
 today = date.today()
@@ -228,7 +228,10 @@ class parseData(object):
             for node in self.nodes:
                 x, y = node.position[:2]
                 if abs(event.xdata - x) < 3 and abs(event.ydata - y) < 3:
-                    info = f"✈️ {node.name}"
+                    if isinstance(node, Aircraft):
+                        info = f"✈️ {node.name}"
+                    else:
+                        info = f"{node.name}"
                     if hasattr(node, "registration"):
                         info += f"\nRegistration: {node.registration}"
                     if hasattr(node, "position"):
@@ -273,7 +276,7 @@ class parseData(object):
                 )
 
             for node in self.nodes:
-                if isinstance(node, Aircraft):
+                if isinstance(node, Aircraft) or isinstance(node, Satellite):
                     if not hasattr(node, 'prev_position'):
                         if node.position[2] != 0:
                             node.prev_position = tuple(node.position)
@@ -281,7 +284,7 @@ class parseData(object):
                         node.angle = 0
 
             for node in self.nodes:
-                if isinstance(node, Aircraft):
+                if isinstance(node, Aircraft) or isinstance(node, Satellite):
                     if hasattr(node, 'prev_position'):
                         # Updates the node's position (overrides its move method)
                         if hasattr(node, 'vx') and hasattr(node, 'vy'):
