@@ -393,10 +393,13 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
     def init_FlightRadar24API(self, fr_api, bounds):
         flights = fr_api.get_flights(bounds=bounds)
         selected_ids = [flight.id for flight in flights[:len(self.stations)]]
+        compute_interval = 5
+
         for id, airCraft in enumerate (self.stations):
             airCraft.registration = flights[id].registration
             airCraft.aircraft_code = flights[id].aircraft_code
             airCraft.icao_24bit = flights[id].icao_24bit
+
         while mob.thread_._keep_alive:
             flights = fr_api.get_flights(bounds=bounds)
             selected = [f for f in flights if f.id in selected_ids]
@@ -406,7 +409,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                     if flight:
                         airCraft.setPosition(f"{flight.longitude},{flight.latitude},{flight.altitude}")
                         adsbTransmitter.send_adsb_scapy(airCraft, flight)
-            sleep(5)
+            sleep(compute_interval)
 
     def configureSatellites(self):
         mob.thread_ = thread(
@@ -444,7 +447,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             now = time()
             if now - last_tle_time > tle_update_interval:
                 for satellite in self.stations:
-                    url = 'https://celestrak.org/NORAD/elements/gp.php?CATNR={}&FORMAT=TLE'.format(satellite.params['catnr'])
+                    url = ('https://celestrak.org/NORAD/elements/'
+                           'gp.php?CATNR={}&FORMAT=TLE').format(satellite.catnr)
                     try:
                         line1, line2, tle_name = self.fetch_tle(url)
                         sat = EarthSatellite(line1, line2, tle_name)

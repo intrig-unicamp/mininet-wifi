@@ -17,13 +17,15 @@ from mn_wifi.wmediumdConnector import interference
 
 def topology():
     "Create a network."
-    net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
+    net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference,
+                       noise_th=-91, fading_cof=3)
 
     info("*** Creating nodes\n")
-    net.addAircraft('aircraft1', ip='10.0.0.1/8')
-    net.addAircraft('aircraft2', ip='10.0.0.2/8')
-    net.addAircraft('aircraft3', ip='10.0.0.3/8')
-    net.addAircraft('aircraft4', ip='10.0.0.4/8')
+    num_aircrafts = 20
+    for i in range(1, num_aircrafts + 1):
+        name = f'plane{i}'
+        ip = f'10.0.0.{i}/8'
+        net.addAircraft(name, ip=ip)
     decoder1 = net.addHost('decoder1', ip='10.0.0.5/8')
     ap1 = net.addAccessPoint('LIS1', ssid="ads-b", mode="g", channel="1",
                              position='-9.13, 38.73, 0', failMode='standalone')
@@ -38,14 +40,15 @@ def topology():
     net.addLink(decoder1, ap1)
 
     nodes = net.stations + net.aps
-    net.telemetry(nodes=nodes, data_type='position',
-                  min_x=-20, max_x=5, min_y=30, max_y=45)
+    net.telemetry(nodes=nodes, data_type='position', icon_text_size=8,
+                  icon='plane.png', icon_width=.8, icon_height=.8,
+                  min_x=-20, max_x=0, min_y=30, max_y=45)
 
     info("*** Starting network\n")
     net.start()
 
     info("*** Configure Aircrafts\n")
-    net.configureAircrafts(38.715994, -9.128210, 500000) # lat, long, range
+    net.configureAircrafts(38.73, -9.13, 500000) # lat, long, range
 
     info("*** Running CLI\n")
     CLI(net)
