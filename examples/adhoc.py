@@ -37,7 +37,7 @@ def topology(args):
 
     info("*** Creating links\n")
     # MANET routing protocols supported by proto:
-    # babel, batman_adv, batmand and olsr
+    # babel, batman_adv, batmand, olsr and aodv
     # WARNING: we may need to stop Network Manager if you want
     # to work with babel
     protocols = ['babel', 'batman_adv', 'batmand',
@@ -46,6 +46,9 @@ def topology(args):
     for proto in args:
         if proto in protocols:
             kwargs['proto'] = proto
+            if proto == "aodv":
+                from mn_wifi.manetRoutingProtocols import aodv
+                aodv.load_module("sta1-wlan0,sta2-wlan0,sta3-wlan0")
 
     net.addLink(sta1, cls=adhoc, intf='sta1-wlan0',
                 ssid='adhocNet', mode='g', channel=5,

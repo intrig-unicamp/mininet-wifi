@@ -1,4 +1,6 @@
-# author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+# @author: Ramon Fontes (ramon.fontes@ufrn.br)
+
+import os
 
 from re import findall
 from os import getpid
@@ -43,11 +45,12 @@ class batman_adv(object):
 
 class aodv(object):
     def __init__(self, intf, proto_args):
-        self.load_module(intf)
+        #self.load_module(intf)
         self.run_aodv(intf)
 
-    def load_module(self, intf):
-        intf.cmd('modprobe kaodv')
+    @classmethod
+    def load_module(self, ifaces):
+        os.system('modprobe kaodv ifnames={}'.format(ifaces))
 
     def run_aodv(self, intf):
         intf.cmd('aodvd -d')
