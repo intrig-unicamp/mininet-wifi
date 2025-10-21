@@ -41,6 +41,18 @@ class batman_adv(object):
         intf.cmd('modprobe batman-adv')
 
 
+class aodv(object):
+    def __init__(self, intf, proto_args):
+        self.load_module(intf)
+        self.run_aodv(intf)
+
+    def load_module(self, intf):
+        intf.cmd('modprobe kaodv')
+
+    def run_aodv(self, intf):
+        intf.cmd('aodvd -d')
+
+
 class olsrd(object):
     def __init__(self, intf, proto_args):
         cmd = 'olsrd -i %s -d 0 ' % intf.name

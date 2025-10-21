@@ -276,6 +276,20 @@ function babeld {
     sudo make install
 }
 
+function aodv {
+    echo "Installing aodv..."
+
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d aodv-uu ]; then
+          echo "Removing aodv..."
+          rm -r aodv
+        fi
+    git clone --depth=1 https://github.com/ramonfontes/aodv-uu
+    cd $BUILD_DIR/mininet-wifi/aodv-uu
+    make
+    sudo make install
+}
+
 function olsrd {
     echo "Installing olsrd..."
     $install bison flex
@@ -798,6 +812,7 @@ function all {
     wmediumd
     wmediumd_802154
     babeld
+    aodv
     olsrd
     olsrdv2
     batman
@@ -839,7 +854,7 @@ function vm_clean {
 }
 
 function usage {
-    printf '\nUsage: %s [-abBcdEfhiklmMnNOpPrStvVxy03]\n\n' $(basename $0) >&2
+    printf '\nUsage: %s [-aAbBcdEfhiklmMnNOpPrStvVxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
     printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
@@ -849,6 +864,7 @@ function usage {
 
     printf 'options:\n' >&2
     printf -- ' -a: (default) install (A)ll packages - good luck!\n' >&2
+    printf -- ' -A: install aodv\n' >&2
     printf -- ' -B: install B.A.T.M.A.N\n' >&2
     printf -- ' -d: (D)elete some sensitive files from a VM image\n' >&2
     printf -- ' -e: install Mininet d(E)veloper dependencies\n' >&2
@@ -886,10 +902,11 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'aBdeEfhiklmMnNoOPrRSstvWxz036' OPTION
+    while getopts 'aABdeEfhiklmMnNoOPrRSstvWxz036' OPTION
     do
       case $OPTION in
       a)    all;;
+      A)    aodv;;
       B)    batman;;
       d)    vm_clean;;
       e)    mn_dev;;
