@@ -3,6 +3,8 @@
 """
 This example shows on how to create wireless link between two APs with mesh
 The wireless mesh network is based on IEEE 802.11s
+
+Note: The Network Manager must be disabled to allow communication between stations.
 """
 
 from mininet.log import setLogLevel, info
