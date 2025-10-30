@@ -219,13 +219,13 @@ function wifi_deps {
             sudo ${PYTHON} get-pip.py
             rm get-pip.py
         fi
-        ${PYTHON} -m pip install FlightRadarAPI pillow bitstring skyfield requests --break-system-packages
+        ${PYTHON} -m pip install "numpy<2" FlightRadarAPI pillow bitstring skyfield requests --break-system-packages
         $install iproute2 || $install iproute
         $install cgroup-tools || $install cgroup-bin
     fi
 
     echo "Installing Mininet-WiFi dependencies"
-    $install wireless-tools rfkill ${PYPKG}-numpy pkg-config libnl-route-3-dev \
+    $install wireless-tools rfkill pkg-config libnl-route-3-dev \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
              libdbus-1-dev ${PYPKG}-psutil ${PYPKG}-matplotlib
 
