@@ -39,7 +39,7 @@ def topology():
     info("*** Creating Link\n")
     net.addLink(decoder1, ap1)
 
-    nodes = net.stations + net.aps
+    nodes = net.aircrafts + net.aps
     net.telemetry(nodes=nodes, data_type='position', icon_text_size=8,
                   icon='plane.png', icon_width=.8, icon_height=.8,
                   min_x=-20, max_x=0, min_y=30, max_y=45)

@@ -1477,13 +1477,13 @@ class wmediumd(object):
         self.configWmediumd(**kwargs)
 
     def configWmediumd(self, wlinks, fading_cof, noise_th, stations,
-                       aps, cars, ppm, mediums):
+                       aps, cars, aircrafts, satellites, ppm, mediums):
         "Configure wmediumd"
         intfrefs = []
         isnodeaps = []
         intfs = {}
         intf_ids = {}
-        nodes = stations + aps + cars
+        nodes = stations + aps + cars + aircrafts + satellites
         intf_id = 0
 
         for node in nodes:

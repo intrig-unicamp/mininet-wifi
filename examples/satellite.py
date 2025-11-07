@@ -36,7 +36,7 @@ def topology():
     net.configureNodes()
 
     path = os.path.dirname(os.path.abspath(__file__))
-    nodes = net.stations + net.aps
+    nodes = net.satellites + net.aps
     net.telemetry(nodes=nodes, data_type='position', image='{}/map.png'.format(path),
                   min_x=-180, max_x=180, min_y=-90, max_y=90)
 

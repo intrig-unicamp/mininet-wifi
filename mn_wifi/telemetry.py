@@ -33,6 +33,15 @@ start = time.time()
 util_dir = str(path.realpath(__file__))[:-21] + '/util/m'
 
 
+def plot_background_image(image, axes):
+    bg_img = mpimg.imread(image)
+    axes.imshow(
+        bg_img,
+        extent=[-180, 180, -90, 90],
+        aspect='auto',
+        zorder=0
+)
+
 class telemetry(object):
     tx = {}
     nodes = []
@@ -68,13 +77,7 @@ class telemetry(object):
                 self.axes.set_xlim([min_x, max_x])
                 self.axes.set_ylim([min_y, max_y])
                 if image:
-                    bg_img = mpimg.imread(image)
-                    self.axes.imshow(
-                        bg_img,
-                        extent=[min_x, max_x, min_y, max_y],
-                        aspect='auto',
-                        zorder=0
-                    )
+                    plot_background_image(image, self.axes)
             else:
                 if single:
                     fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 4))
@@ -271,13 +274,7 @@ class parseData(object):
             axes.set_xlim([self.min_x, self.max_x])
             axes.set_ylim([self.min_y, self.max_y])
             if self.image:
-                bg_img = mpimg.imread(self.image)
-                self.axes.imshow(
-                    bg_img,
-                    extent=[self.min_x, self.max_x, self.min_y, self.max_y],
-                    aspect='auto',
-                    zorder=0
-                )
+                plot_background_image(self.image, axes)
 
             for node in self.nodes:
                 if isinstance(node, Aircraft) or isinstance(node, Satellite):
@@ -318,7 +315,7 @@ class parseData(object):
                         self.axes.figure.canvas.mpl_connect("motion_notify_event", self.on_hover)
 
                         # Rotates the plane if there is an icon and it is not AP
-                        if self.icon:
+                        if self.icon and isinstance(node, Aircraft):
                             # Calculate displacement using only x and y
                             x_prev, y_prev = node.prev_position[:2]
                             dx = x - x_prev
