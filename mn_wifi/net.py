@@ -413,10 +413,11 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                         adsbTransmitter.send_adsb_scapy(airCraft, flight)
             sleep(compute_interval)
 
-    def configureSatellites(self):
+    def configureSatellites(self, tle_file):
         mob.thread_ = thread(
             name='skyfield',
-            target=self.init_skyfield
+            target=self.init_skyfield,
+            args=(tle_file,)
         )
         mob.thread_.daemon = True
         mob.thread_._keep_alive = True
@@ -434,35 +435,28 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             return line1, line2, name
         raise ValueError("Invalid TLE")
 
-    def init_skyfield(self):
-        from skyfield.api import EarthSatellite, load, wgs84
+    def init_skyfield(self, tle_file):
+        from skyfield.api import load, wgs84, utc
+        from datetime import datetime
 
         ts = load.timescale()
-        tle_update_interval = 60 * 60
         compute_interval = 1
-        last_tle_time = 0
+        sats = load.tle_file(tle_file)
 
         for satellite in self.satellites:
             satellite.catnr = satellite.params['catnr']
+            satellite.sat = next((s for s in sats if s.model.satnum == satellite.catnr), None)
 
         while mob.thread_._keep_alive:
-            now = time()
-            if now - last_tle_time > tle_update_interval:
-                for satellite in self.satellites:
-                    url = ('https://celestrak.org/NORAD/elements/'
-                           'gp.php?CATNR={}&FORMAT=TLE').format(satellite.catnr)
-                    try:
-                        line1, line2, tle_name = self.fetch_tle(url)
-                        sat = EarthSatellite(line1, line2, tle_name)
-                        satellite.sat = sat
-                    except Exception as e:
-                        print(f"⚠️ Error while getting {satellite.name}: {e}")
-                last_tle_time = now
+            time = ts.utc(datetime.now(utc))
             try:
                 for satellite in self.satellites:
                     try:
-                        t = ts.now()
-                        geocentric = satellite.sat.at(t)
+                        if satellite.sat is None:
+                            print(f"Error: Satellite {satellite.catnr} not found!")
+                            exit()
+                        ts = load.timescale()
+                        geocentric = satellite.sat.at(time)
                         velocity = geocentric.velocity.km_per_s
                         speed = (velocity[0] ** 2 + velocity[1] ** 2 + velocity[2] ** 2) ** 0.5 * 3600
                         satellite.speed = speed
@@ -1066,7 +1060,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             if hasattr(swclass, 'batchStartup'):
                 success = swclass.batchStartup(switches)
                 started.update({s: s for s in success})
-        info('\n')
+        if nodesL2:
+            info('\n')
         if self.waitConn:
             self.waitConnected()
 

@@ -2,6 +2,8 @@
 
 """
 This example is implemented using celestrak
+Please consider downloading a satellites.txt file from:
+https://celestrak.org/NORAD/elements/
 """
 
 import os
@@ -18,16 +20,16 @@ def topology():
     net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
-    net.addSatellite('sat1', catnr='25544') # ISS
-    net.addSatellite('sat2', catnr='48274') # Starlink
-    net.addSatellite('sat3', catnr='56393') # Starlink
-    net.addSatellite('sat4', catnr='29108') # CALIPSO
-    net.addSatellite('sat5', catnr='44874') # CHEOPS
-    net.addSatellite('sat6', catnr='41860') # GALILEO
-    net.addSatellite('sat7', catnr='42063') # SENTINEL-2B
-    net.addSatellite('sat8', catnr='43013') # NOAA-20
-    net.addSatellite('sat9', catnr='25994') # TERRA
-    net.addSatellite('sat10', catnr='27424') # AQUA
+    net.addSatellite('sat1', catnr=25544) # ISS
+    net.addSatellite('sat2', catnr=48274) # Starlink
+    net.addSatellite('sat3', catnr=56393) # Starlink
+    net.addSatellite('sat4', catnr=27426) # INTELSAT
+    net.addSatellite('sat5', catnr=44874) # CHEOPS
+    net.addSatellite('sat6', catnr=41860) # GALILEO
+    net.addSatellite('sat7', catnr=42063) # SENTINEL-2B
+    net.addSatellite('sat8', catnr=43013) # NOAA-20
+    net.addSatellite('sat9', catnr=25994) # TERRA
+    net.addSatellite('sat10', catnr=27424) # AQUA
 
     info("*** Configuring propagation model\n")
     net.setPropagationModel(model="logDistance", exp=1)
@@ -44,7 +46,7 @@ def topology():
     net.start()
 
     info("*** Configure Satellites\n")
-    net.configureSatellites()
+    net.configureSatellites('{}/satellites.txt'.format(path))
 
     info("*** Running CLI\n")
     CLI(net)
