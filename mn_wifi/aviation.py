@@ -1,3 +1,4 @@
+import base64
 from bitstring import BitArray
 
 
@@ -45,13 +46,7 @@ class adsbTransmitter(object):
                                              flight.longitude,
                                              flight.altitude,
                                              odd_flag=0)
-            cmd = (
-                f"python3 -c \""
-                f"from scapy.all import IP, UDP, Raw, send;"
-                f"pkt = IP(dst='10.255.255.255')/UDP(dport=30003)/Raw(load={msg});"
-                f"send(pkt, iface='{airCraft.name}-wlan0', verbose=0)"
-                f"\" &"
-            )
-            airCraft.pexec(cmd, shell=True)
+            encoded = base64.b64encode(msg).decode('ascii')
+            airCraft.pexec('echo {} > /tmp/mn-wifi-adsb-{}.log'.format(encoded, airCraft.name), shell=True)
         except:
             pass

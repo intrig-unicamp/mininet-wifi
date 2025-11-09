@@ -985,7 +985,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                                max_z=max_z)
         else:
             if not mob.stations:
-                for node in self.stations:
+                nodes = self.stations + self.satellites + self.aircrafts
+                for node in nodes:
                     if hasattr(node, 'position'):
                         mob.stations.append(node)
 
@@ -1544,12 +1545,13 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
     def init_wmediumd(self):
         self.start_wmediumd()
+        nodes = self.stations + self.aircrafts + self.satellites
         if self.wmediumd_mode != error_prob:
-            for sta in self.stations:
-                sta.set_pos_wmediumd(sta.position)
-        for sta in self.stations:
-            if sta in self.aps:
-                self.stations.remove(sta)
+            for node in nodes:
+                node.set_pos_wmediumd(node.position)
+        for node in nodes:
+            if node in self.aps:
+                self.stations.remove(node)
         self.config_antenna()
 
     def addSensors(self, sensors):
@@ -1688,8 +1690,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
     def auto_association(self):
         "This is useful to make the users' life easier"
         isap = []
+        nodes = self.aps + self.stations + self.cars + self.aircrafts + self.satellites
 
-        for node in self.stations:
+        for node in nodes:
             for intf in node.wintfs.values():
                 if isinstance(intf, master) or \
                         isinstance(intf, _4addrClient or isinstance(intf, _4addrAP)):
@@ -1703,7 +1706,6 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                 mob.stations.remove(sta)
 
         mob.aps = self.aps
-        nodes = self.aps + self.stations + self.cars + self.aircrafts + self.satellites
         for node in nodes:
             if hasattr(node, 'position'):
                 if isinstance(node, Car) and node.position == (0, 0, 0):
@@ -1725,7 +1727,6 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
 
         self.restore_links()
 
-        nodes = self.stations + self.cars + self.aircrafts + self.satellites
         for node in nodes:
             for wlan in range(len(node.params['wlan'])):
                 intf = node.params['wlan'][wlan]

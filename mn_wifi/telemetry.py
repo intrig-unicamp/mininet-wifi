@@ -271,6 +271,7 @@ class parseData(object):
 
         if self.data_type == 'position':
             axes.clear()
+            axes.grid(False)
             axes.set_xlim([self.min_x, self.max_x])
             axes.set_ylim([self.min_y, self.max_y])
             if self.image:
@@ -299,7 +300,7 @@ class parseData(object):
                         if hasattr(node, "registration"):
                             new_name += '-' + node.registration
                         node.plttxt = self.axes.annotate(new_name, xy=(x, y),
-                                                         color='blue', zorder=2,
+                                                         color='black', zorder=2,
                                                          fontsize=self.icon_text_size)
 
                         # Tooltip (hover)

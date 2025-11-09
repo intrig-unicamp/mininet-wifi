@@ -7,6 +7,7 @@ node.registration
 node.aircraft_code
 node.icao_24bit
 """
+import os
 
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI
@@ -39,9 +40,10 @@ def topology():
     info("*** Creating Link\n")
     net.addLink(decoder1, ap1)
 
+    path = os.path.dirname(os.path.abspath(__file__))
     nodes = net.aircrafts + net.aps
     net.telemetry(nodes=nodes, data_type='position', icon_text_size=8,
-                  icon='plane.png', icon_width=.8, icon_height=.8,
+                  icon='{}/plane.png'.format(path), icon_width=.8, icon_height=.8,
                   min_x=-20, max_x=0, min_y=30, max_y=45)
 
     info("*** Starting network\n")
