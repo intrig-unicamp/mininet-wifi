@@ -1,5 +1,17 @@
 import base64
+import time
+import json
 from bitstring import BitArray
+
+
+class aviationProtocol(object):
+
+    @classmethod
+    def load(cls, airCraft, flight, proto):
+        if proto == 'adsb':
+            adsbTransmitter.send_adsb_scapy(airCraft, flight)
+        elif proto == 'adsc':
+            adscTransmitter.send_adsc_scapy(airCraft, flight)
 
 
 class adsbTransmitter(object):
@@ -22,7 +34,13 @@ class adsbTransmitter(object):
         return lat_cpr, lon_cpr
 
     @classmethod
-    def build_adsb(cls, icao_hex="AABBCC", lat=-23.5505, lon=-46.6333, altitude=12000, odd_flag=0):
+    def build_adsb(cls, airCraft, flight, odd_flag=0):
+
+        icao_hex = airCraft.icao_24bit
+        lat = flight.latitude
+        lon = flight.longitude
+        altitude = flight.altitude
+
         df = BitArray(uint=17, length=5)
         ca = BitArray(uint=0, length=3)
         icao = BitArray(hex=icao_hex)
@@ -41,12 +59,41 @@ class adsbTransmitter(object):
     @classmethod
     def send_adsb_scapy(cls, airCraft, flight):
         try:
-            msg = adsbTransmitter.build_adsb(airCraft.icao_24bit,
-                                             flight.latitude,
-                                             flight.longitude,
-                                             flight.altitude,
-                                             odd_flag=0)
+            msg = adsbTransmitter.build_adsb(airCraft, flight, odd_flag=0)
             encoded = base64.b64encode(msg).decode('ascii')
             airCraft.pexec('echo {} > /tmp/mn-wifi-adsb-{}.log'.format(encoded, airCraft.name), shell=True)
+        except:
+            pass
+
+
+class adscTransmitter(object):
+
+    @classmethod
+    def build_adsc(cls, airCraft, flight):
+        icao_hex = airCraft.icao_24bit
+        lat = flight.latitude
+        lon = flight.longitude
+        altitude = flight.altitude
+        destination_airport_iata = flight.destination_airport_iata
+        heading = flight.heading
+        ground_speed = flight.ground_speed
+        registration = flight.registration
+
+        return {
+            "msg_type": "ADS-C_REPORT",
+            "icao": icao_hex,
+            "flight_id": registration,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "position": {"lat": lat, "lon": lon, "alt_ft": altitude},
+            "velocity": {"gs_kts": ground_speed, "heading_deg": heading},
+            "next_waypoint": destination_airport_iata
+        }
+
+    @classmethod
+    def send_adsc_scapy(cls, airCraft, flight):
+        try:
+            msg = adscTransmitter.build_adsc(airCraft, flight)
+            msg_json = json.dumps(msg)
+            airCraft.pexec(f"echo '{msg_json}' > /tmp/mn-wifi-adsc-{airCraft.name}.log", shell=True)
         except:
             pass

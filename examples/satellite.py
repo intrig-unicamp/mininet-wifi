@@ -40,7 +40,7 @@ def topology():
     path = os.path.dirname(os.path.abspath(__file__))
     nodes = net.satellites + net.aps
     net.telemetry(nodes=nodes, data_type='position', image='{}/map.png'.format(path),
-                  min_x=-180, max_x=180, min_y=-90, max_y=90)
+                  min_x=-20_015_000, max_x=20_015_000, min_y=-10_007_000, max_y=10_007_000)
 
     info("*** Starting network\n")
     net.start()

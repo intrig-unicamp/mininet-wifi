@@ -37,7 +37,7 @@ def plot_background_image(image, axes):
     bg_img = mpimg.imread(image)
     axes.imshow(
         bg_img,
-        extent=[-180, 180, -90, 90],
+        extent=[-20_015_000, 20_015_000, -10_007_000, 10_007_000],
         aspect='auto',
         zorder=0
 )
@@ -60,6 +60,8 @@ class telemetry(object):
         for node in nodes:
             i = nodes.index(node)
             arr += 'ax{}, '.format(i+1)
+            if not hasattr(node, "heading"):
+                node.heading = 0
         arr1 = (arr[:-2])
         setattr(self, ax, arr1)
 
@@ -279,15 +281,7 @@ class parseData(object):
 
             for node in self.nodes:
                 if isinstance(node, Aircraft) or isinstance(node, Satellite):
-                    if not hasattr(node, 'prev_position'):
-                        if node.position[2] != 0:
-                            node.prev_position = tuple(node.position)
-                    if not hasattr(node, 'angle'):
-                        node.angle = 0
-
-            for node in self.nodes:
-                if isinstance(node, Aircraft) or isinstance(node, Satellite):
-                    if hasattr(node, 'prev_position'):
+                    if hasattr(node, 'heading'):
                         # Updates the node's position (overrides its move method)
                         if hasattr(node, 'vx') and hasattr(node, 'vy'):
                             node.position[0] += node.vx
@@ -317,19 +311,10 @@ class parseData(object):
 
                         # Rotates the plane if there is an icon and it is not AP
                         if self.icon and isinstance(node, Aircraft):
-                            # Calculate displacement using only x and y
-                            x_prev, y_prev = node.prev_position[:2]
-                            dx = x - x_prev
-                            dy = y - y_prev
-
-                            # Update angle only if there is displacement
-                            if dx != 0 or dy != 0:
-                                node.angle = math.degrees(math.atan2(dy, dx))
-
                             # Load and rotate image
                             plane_img = mpimg.imread(self.icon)
                             img = Image.fromarray((plane_img * 255).astype('uint8'))
-                            rotated_img = img.rotate(-node.angle+45, expand=False)
+                            rotated_img = img.rotate(-node.heading+45, expand=False)
                             rotated_arr = np.array(rotated_img)
 
                             # Plot rotated image
