@@ -1914,6 +1914,9 @@ class mesh(LinkAttrs):
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
 
+        if 'ip6' in params:
+            self.setIP6(params['ip6'])
+
         self.check_channel_band(self.ht_cap)
 
         if wlan > 0 and 'vIface' in params:
