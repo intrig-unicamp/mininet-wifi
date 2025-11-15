@@ -5,10 +5,12 @@
 
 import socket
 import requests
+import math
 
 from itertools import chain, groupby
 from threading import Thread as thread
-from time import sleep, time
+from time import sleep
+from datetime import datetime, timezone
 from sys import exit
 
 from FlightRadar24 import FlightRadar24API
@@ -24,7 +26,7 @@ from mininet.util import (macColonHex, ipStr, ipParse, ipAdd,
 from six import string_types
 
 from mn_wifi.clean import Cleanup as CleanupWifi
-from mn_wifi.aviation import adsbTransmitter
+from mn_wifi.aviation import aviationProtocol
 from mn_wifi.energy import Energy, EnergyMonitor
 from mn_wifi.link import IntfWireless, wmediumd, _4address, HostapdConfig, \
     WirelessLink, TCWirelessLink, ITSLink, WifiDirectLink, adhoc, mesh, \
@@ -325,8 +327,13 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
            nodes: optional list to delete from (e.g. self.hosts)"""
         if nodes is None:
             nodes = (self.hosts if node in self.hosts else
-                     (self.switches if node in self.switches else
-                      (self.controllers if node in self.controllers else [])))
+                     (self.stations if node in self.stations else
+                      (self.satellites if node in self.satellites else
+                       (self.aircrafts if node in self.aircrafts else
+                        (self.cars if node in self.cars else
+                         (self.aps if node in self.aps else
+                          (self.switches if node in self.switches else
+                           (self.controllers if node in self.controllers else []))))))))
         node.stop(deleteIntfs=True)
         node.terminate()
         nodes.remove(node)
@@ -377,7 +384,21 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                 if self.draw:
                     self.plot.instantiate_attrs(node)
 
-    def configureAircrafts(self, lat, long, range):
+    def deg_to_meters(self, lat_deg, lon_deg, ref_lat=0.0, ref_lon=0.0):
+        lat_deg = float(lat_deg)
+        lon_deg = float(lon_deg)
+        ref_lat = float(ref_lat)
+        ref_lon = float(ref_lon)
+
+        R = 6371000.0  # average radius of the Earth in meters
+        dlat = math.radians(lat_deg - ref_lat)
+        dlon = math.radians(lon_deg - ref_lon)
+
+        dy = R * dlat
+        dx = R * math.cos(math.radians(ref_lat)) * dlon
+        return dx, dy
+
+    def configureAircrafts(self, lat, long, range, protocol=None):
         fr_api = FlightRadar24API()
         #zone = fr_api.get_zones()["europe"]
         #airlines = fr_api.get_airlines()
@@ -386,13 +407,13 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         mob.thread_ = thread(
             name='flightRadar',
             target=self.init_FlightRadar24API,
-            kwargs={'fr_api': fr_api, 'bounds': bounds}
+            kwargs={'fr_api': fr_api, 'bounds': bounds, 'protocol': protocol}
         )
         mob.thread_.daemon = True
         mob.thread_._keep_alive = True
         mob.thread_.start()
 
-    def init_FlightRadar24API(self, fr_api, bounds):
+    def init_FlightRadar24API(self, fr_api, bounds, protocol):
         flights = fr_api.get_flights(bounds=bounds)
         selected_ids = [flight.id for flight in flights[:len(self.aircrafts)]]
         compute_interval = 5
@@ -401,6 +422,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             airCraft.registration = flights[id].registration
             airCraft.aircraft_code = flights[id].aircraft_code
             airCraft.icao_24bit = flights[id].icao_24bit
+            airCraft.heading = flights[id].heading
 
         while mob.thread_._keep_alive:
             flights = fr_api.get_flights(bounds=bounds)
@@ -408,16 +430,17 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             for airCraft in self.aircrafts:
                 if mob.thread_._keep_alive:
                     flight = next((f for f in selected if f.id in selected_ids[self.aircrafts.index(airCraft)]), None)
-                    if flight:
-                        airCraft.setPosition(f"{flight.longitude},{flight.latitude},{flight.altitude}")
-                        adsbTransmitter.send_adsb_scapy(airCraft, flight)
+                    if flight and hasattr(airCraft, 'circle'):
+                        dx, dy = self.deg_to_meters(flight.latitude, flight.longitude)
+                        airCraft.setPosition(f"{dx},{dy},{flight.altitude}")
+                        aviationProtocol.load(airCraft, flight, protocol)
             sleep(compute_interval)
 
-    def configureSatellites(self, tle_file):
+    def configureSatellites(self, tle_file, start_time=None):
         mob.thread_ = thread(
             name='skyfield',
             target=self.init_skyfield,
-            args=(tle_file,)
+            args=(tle_file, start_time)
         )
         mob.thread_.daemon = True
         mob.thread_._keep_alive = True
@@ -435,9 +458,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             return line1, line2, name
         raise ValueError("Invalid TLE")
 
-    def init_skyfield(self, tle_file):
+    def init_skyfield(self, tle_file, start_time):
         from skyfield.api import load, wgs84, utc
-        from datetime import datetime
 
         ts = load.timescale()
         compute_interval = 1
@@ -447,8 +469,18 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             satellite.catnr = satellite.params['catnr']
             satellite.sat = next((s for s in sats if s.model.satnum == satellite.catnr), None)
 
+        if start_time:
+            start_sim_time = start_time
+            real_start = datetime.now(timezone.utc)
+
         while mob.thread_._keep_alive:
-            time = ts.utc(datetime.now(utc))
+            if start_time:
+                now_real = datetime.now(timezone.utc)
+                elapsed = now_real - real_start
+                sim_time = start_sim_time + elapsed
+                time = ts.utc(sim_time)
+            else:
+                time = ts.utc(datetime.now(utc))
             try:
                 for satellite in self.satellites:
                     try:
@@ -464,7 +496,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                         lat = subpoint.latitude.degrees
                         lon = subpoint.longitude.degrees
                         alt = subpoint.elevation.km
-                        satellite.setPosition(f"{lon},{lat},{alt:.2f}")
+                        if hasattr(satellite, 'circle'):
+                            dx, dy = self.deg_to_meters(lat, lon)
+                            satellite.setPosition(f"{dx},{dy},{alt:.2f}")
                     except Exception as e:
                         print(f"Error with {satellite.name}: {e}")
             except Exception as e:
