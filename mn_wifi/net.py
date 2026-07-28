@@ -1576,6 +1576,10 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.mob_object = program(self.cars, self.aps, **kwargs)
 
     def start_wmediumd(self):
+        if (self.pmsr_sigma or self.pmsr_nlos_prob or self.pmsr_crlb_alpha) \
+                and self.wmediumd_mode != interference:
+            warn('*** Warning: the PMSR/FTM ranging-error model is only '
+                 'written in interference mode; net.pmsr_* will be ignored.\n')
         wmediumd(wlinks=self.wlinks, fading_cof=self.fading_cof,
                  noise_th=self.noise_th, stations=self.stations,
                  aps=self.aps, cars=self.cars, aircrafts=self.aircrafts,
