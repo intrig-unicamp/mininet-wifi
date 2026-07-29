@@ -136,6 +136,14 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.reverse = False
         self.alt_module = None
         self.ftm = False   # create PMSR/FTM-capable radios (802.11az/mc ranging)
+        # PMSR/FTM ranging-error model (written to the wmediumd config;
+        # 0 = exact geometry). Set per bandwidth/environment.
+        self.pmsr_sigma = 0.0        # LOS jitter std dev [m]
+        self.pmsr_nlos_prob = 0.0    # probability of an NLOS measurement
+        self.pmsr_nlos_bias = 0.0    # mean of the exponential NLOS bias [m]
+        self.pmsr_seed = 1
+        self.pmsr_crlb_alpha = 0.0   # >0: derive LOS sigma from ToA CRLB (bw+SNR)
+        self.pmsr_brms_ratio = 0.0   # B_rms/B for the CRLB; 0 = wmediumd default
         self.mob_check = False
         self.mob_model = None
         self.ac_method = ac_method
@@ -1568,10 +1576,18 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.mob_object = program(self.cars, self.aps, **kwargs)
 
     def start_wmediumd(self):
+        if (self.pmsr_sigma or self.pmsr_nlos_prob or self.pmsr_crlb_alpha) \
+                and self.wmediumd_mode != interference:
+            warn('*** Warning: the PMSR/FTM ranging-error model is only '
+                 'written in interference mode; net.pmsr_* will be ignored.\n')
         wmediumd(wlinks=self.wlinks, fading_cof=self.fading_cof,
                  noise_th=self.noise_th, stations=self.stations,
                  aps=self.aps, cars=self.cars, aircrafts=self.aircrafts,
-                 satellites=self.satellites, ppm=ppm, mediums=self.initial_mediums)
+                 satellites=self.satellites, ppm=ppm, mediums=self.initial_mediums,
+                 pmsr_sigma=self.pmsr_sigma, pmsr_nlos_prob=self.pmsr_nlos_prob,
+                 pmsr_nlos_bias=self.pmsr_nlos_bias, pmsr_seed=self.pmsr_seed,
+                 pmsr_crlb_alpha=self.pmsr_crlb_alpha,
+                 pmsr_brms_ratio=self.pmsr_brms_ratio)
 
     def start_wmediumd_802154(self):
         wmediumd_802154(wlinks=self.wlinks, fading_cof=self.fading_cof,
