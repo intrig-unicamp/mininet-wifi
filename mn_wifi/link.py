@@ -1352,6 +1352,8 @@ class phyAP(WirelessLink):
         self.config_methods = None
         self.country_code = 'US'
         self.encrypt = None
+        self.macaddr_acl = None
+        self.ignore_broadcast_ssid = None
         self.ht_capab = None
         self.vht_capab = None
         self.ieee80211r = None

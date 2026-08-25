@@ -1637,7 +1637,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                     intf.setAntennaGain(intf.antennaGain)
 
     def configMasterIntf(self, node, wlan):
-        TCWirelessLink(node)
+        if not node.params.get('phywlan', None):
+            TCWirelessLink(node)
         master(node, wlan, port=wlan)
         phy = node.params.get('phywlan', None)
         if phy:
