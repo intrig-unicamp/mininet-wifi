@@ -13,7 +13,7 @@ from time import sleep
 from datetime import datetime, timezone
 from sys import exit
 
-from FlightRadar24 import FlightRadar24API
+from FlightRadarAPI import FlightRadar24API
 from mininet.cli import CLI
 from mininet.link import Link, TCLink, TCULink
 from mininet.log import info, error, debug, output, warn

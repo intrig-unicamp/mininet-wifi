@@ -482,10 +482,11 @@ class IntfWireless(Intf):
                            (self.bgscan_module, self.s_inverval,
                             self.bgscan_threshold, self.l_interval)
                 if ap_intf.authmode == '8021x':
-                    cmd += '   eap=PEAP\n'
+                    cmd += '   eap={}\n'.format(self.node.params['eap']) if self.node.params['eap'] else '   eap=PEAP\n'
                     cmd += '   identity=\"{}\"\n'.format(self.radius_identity)
                     cmd += '   password=\"{}\"\n'.format(self.radius_passwd)
-                    cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
+                    if 'eap' not in self.node.params or 'eap' in self.node.params and self.node.params['eap'] != "GTC":
+                        cmd += '   phase2=\"autheap={}\n'.format(self.node.params['phase2']) if 'phase2' in self.node.params else '   phase2=\"autheap=MSCHAPV2\"\n'
                 cmd += '}'
 
         pattern = '{}_{}.staconf'.format(self.name, self.id)
