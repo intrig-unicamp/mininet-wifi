@@ -476,6 +476,8 @@ class IntfWireless(Intf):
                     cmd += "   ieee80211w={}\n".format(ap_intf.ieee80211w)
                 if ap_intf.encrypt == 'wpa3':
                     wpa_key_mgmt = 'SAE'
+                if 'eap' in self.node.params and self.node.params['eap'] == "GTC":
+                    wpa_key_mgmt = "IEEE8021X"
                 cmd += '   key_mgmt={}\n'.format(wpa_key_mgmt)
                 if self.bgscan_module:
                     cmd += '   bgscan=\"%s:%d:%d:%d\"\n' % \
@@ -487,6 +489,9 @@ class IntfWireless(Intf):
                     cmd += '   password=\"{}\"\n'.format(self.radius_passwd)
                     if 'eap' not in self.node.params or 'eap' in self.node.params and self.node.params['eap'] != "GTC":
                         cmd += '   phase2=\"autheap={}\n'.format(self.node.params['phase2']) if 'phase2' in self.node.params else '   phase2=\"autheap=MSCHAPV2\"\n'
+                    if 'eap' in self.node.params and self.node.params['eap'] == "GTC":
+                        cmd += '   eapol_flags=0\n'
+
                 cmd += '}'
 
         pattern = '{}_{}.staconf'.format(self.name, self.id)
@@ -846,15 +851,20 @@ class HostapdConfig(IntfWireless):
         else:
             if intf.authmode == '8021x':
                 cmd += "\nieee8021x=1"
-                cmd += "\nwpa_key_mgmt=WPA-EAP"
+                if 'eap' not in intf.node.params:
+                    cmd += "\nwpa_key_mgmt=WPA-EAP"
                 if intf.encrypt:
                     cmd += "\nauth_algs={}".format(intf.auth_algs)
-                    cmd += "\nwpa=2"
+                    if 'eap' in intf.node.params:
+                        cmd += "\nwpa=0"
+                    else:
+                        cmd += "\nwpa=2"
                 cmd += '\neap_server=0'
                 cmd += '\neapol_version=2'
 
                 if not intf.radius_server: intf.radius_server = '127.0.0.1'
-                cmd += "\nwpa_pairwise=TKIP CCMP"
+                if 'eap' not in intf.node.params:
+                    cmd += "\nwpa_pairwise=TKIP CCMP"
                 cmd += "\neapol_key_index_workaround=0"
                 cmd += "\nown_ip_addr={}".format(intf.radius_server)
                 cmd += "\nnas_identifier={}.example.com".format(intf.node.name)
