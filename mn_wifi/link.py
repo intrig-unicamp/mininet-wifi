@@ -484,7 +484,7 @@ class IntfWireless(Intf):
                            (self.bgscan_module, self.s_inverval,
                             self.bgscan_threshold, self.l_interval)
                 if ap_intf.authmode == '8021x':
-                    cmd += '   eap={}\n'.format(self.node.params['eap']) if self.node.params['eap'] else '   eap=PEAP\n'
+                    cmd += '   eap={}\n'.format(self.node.params['eap']) if 'eap' in self.node.params and self.node.params['eap'] else '   eap=PEAP\n'
                     cmd += '   identity=\"{}\"\n'.format(self.radius_identity)
                     cmd += '   password=\"{}\"\n'.format(self.radius_passwd)
                     if 'eap' not in self.node.params or 'eap' in self.node.params and self.node.params['eap'] != "GTC":
@@ -556,12 +556,12 @@ class IntfWireless(Intf):
             else:
                 self.roam(ap_intf.mac)
             associated = 1
-        elif not ap_intf.encrypt:
+        elif not ap_intf.encrypt and '8021x' not in ap_intf.authmode:
             associated = 1
             self.iw_connect(ap_intf)
         else:
             if not self.associatedTo:
-                if 'wpa' in ap_intf.encrypt and (not self.encrypt or 'wpa' in self.encrypt):
+                if 'wpa' in ap_intf.encrypt and (not self.encrypt or 'wpa' in self.encrypt) or '8021x' in ap_intf.authmode:
                     self.wpa(ap_intf)
                     associated = 1
                 elif ap_intf.encrypt == 'wep':
@@ -855,10 +855,9 @@ class HostapdConfig(IntfWireless):
                     cmd += "\nwpa_key_mgmt=WPA-EAP"
                 if intf.encrypt:
                     cmd += "\nauth_algs={}".format(intf.auth_algs)
-                    if 'eap' in intf.node.params:
-                        cmd += "\nwpa=0"
-                    else:
-                        cmd += "\nwpa=2"
+                    cmd += "\nwpa=2"
+                if 'eap' in intf.node.params:
+                    cmd += "\nwpa=0"
                 cmd += '\neap_server=0'
                 cmd += '\neapol_version=2'
 
