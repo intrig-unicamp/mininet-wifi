@@ -556,12 +556,13 @@ class IntfWireless(Intf):
             else:
                 self.roam(ap_intf.mac)
             associated = 1
-        elif not ap_intf.encrypt and '8021x' not in ap_intf.authmode:
+        elif not ap_intf.encrypt and (ap_intf.authmode and '8021x' not in ap_intf.authmode):
             associated = 1
             self.iw_connect(ap_intf)
         else:
             if not self.associatedTo:
-                if 'wpa' in ap_intf.encrypt and (not self.encrypt or 'wpa' in self.encrypt) or '8021x' in ap_intf.authmode:
+                if ('wpa' in ap_intf.encrypt and (not self.encrypt or 'wpa' in self.encrypt) or
+                        (ap_intf.authmode and '8021x' in ap_intf.authmode)):
                     self.wpa(ap_intf)
                     associated = 1
                 elif ap_intf.encrypt == 'wep':
