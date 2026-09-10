@@ -26,6 +26,7 @@ class Topo(MN_TOPO):
         self.hopts = params.pop('hopts', {})
         self.sopts = params.pop('sopts', {})
         self.lopts = params.pop('lopts', {})
+        self.link_pairs = []
         # ports[src][dst][sport] is port on dst that connects to src
         self.ports = {}
         self.build(*args, **params)
@@ -127,6 +128,10 @@ class Topo(MN_TOPO):
            returns: list of hosts"""
         return [ n for n in self.nodes( sort ) if 'isHost' in self.g.node[ n ] ]
 
+    def pairs(self):
+        """Return a list of pairs. """
+        return self.link_pairs
+
 
 # Our idiom defines additional parameters in build(param...)
 # pylint: disable=arguments-differ
@@ -140,7 +145,7 @@ class SingleAPTopo(Topo):
         for h in irange(1, k):
             sta = self.addStation('sta%s' % h)
             self.addLink(sta, ap)
-
+            self.link_pairs.append((sta, ap))
 
 class MinimalWirelessTopo(SingleAPTopo):
     "Minimal wireless topology with two stations and one ap"
@@ -169,6 +174,7 @@ class LinearWirelessTopo(Topo):
             for j in irange(1, n):
                 sta = self.addStation(genStaName(i, j))
                 self.addLink(sta, ap)
+                self.link_pairs.append((sta, ap))
             # Connect accessPoint to previous
             if lastAP:
                 self.addLink(ap, lastAP)

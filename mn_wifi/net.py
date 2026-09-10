@@ -129,6 +129,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.stations = []
         self.aircrafts = []
         self.satellites = []
+        self.topo_config = []
         self.autoAssociation = autoAssociation  # does not include mobility
         self.allAutoAssociation = allAutoAssociation  # includes mobility
         self.draw = False
@@ -987,6 +988,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.configureNodes()
 
         super(Mininet_wifi, self).buildFromTopo(topo)
+        self.topo_config = topo
 
     def check_if_mob(self):
         if self.mob_model or self.mob_stop_time or self.roads:
@@ -1058,6 +1060,13 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         if self.allAutoAssociation:
             if self.autoAssociation and not self.configWiFiDirect:
                 self.auto_association()
+
+        if self.topo_config:
+            for node1_name, node2_name in self.topo_config.pairs():
+                node1 = self.nameToNode.get(node1_name)
+                node2 = self.nameToNode.get(node2_name)
+                if node1 and node2:
+                    self.configLinkStatus(node1.name, node2.name, "up")
 
         self.built = True
 
