@@ -6,7 +6,8 @@
                 Log-Distance Propagation Model
                 International Telecommunication Union (ITU) Propagation Model
             (Outdoors):
-                Two-Ray-Ground Propagation Model"""
+                Two-Ray-Ground Propagation Model
+                Nakagami-m Propagation Model"""
 
 import math
 from random import gauss, gammavariate
