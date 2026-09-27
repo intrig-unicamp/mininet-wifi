@@ -290,9 +290,8 @@ class SetSignalRange(object):
         txpower = int(intf.txpower)
         gain = int(intf.antennaGain)
         gains = txpower + (gain * 2)
-        gain_db = 10 * math.log10(gammavariate(ppm.m, 1.0 / ppm.m))
 
-        pl = self.path_loss(intf, ref_d) + ppm.xg - gain_db
+        pl = self.path_loss(intf, ref_d) + ppm.xg
         self.range = math.pow(10, ((-ppm.noise_th - pl + gains) /
                                    (10 * ppm.exp))) * ref_d
         return self.range
@@ -429,9 +428,8 @@ class GetPowerGivenRange(object):
         ref_d = 1
         dist = intf.range
         gain = intf.antennaGain
-        gain_db = 10 * math.log10(gammavariate(ppm.m, 1.0 / ppm.m))
 
-        pl = self.path_loss(intf, ref_d) + ppm.xg - gain_db
+        pl = self.path_loss(intf, ref_d) + ppm.xg
 
         self.txpower = 10 * ppm.exp * math.log10(dist / ref_d) + \
                        ppm.noise_th + pl - (gain * 2)
