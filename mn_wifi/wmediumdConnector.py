@@ -155,8 +155,8 @@ class set_interference(object):
                          (ppm.nFloors, ppm.lF, ppm.pL)
         elif ppm.model == 'logDistance':
             configstr += ');\n\tmodel_name = "log_distance";' \
-                         '\n\tpath_loss_exp = %.1f;\n\txg = 0.0;\n};' \
-                         % ppm.exp
+                         '\n\tpath_loss_exp = %.1f;\n\txg = %.1f;\n};' \
+                         % (ppm.exp, ppm.xg)
         elif ppm.model == 'twoRayGround':
             configstr += ');\n\tmodel_name = "two_ray_ground";' \
                          '\n\tsL = %d;\n};' % ppm.sL
@@ -164,6 +164,11 @@ class set_interference(object):
             configstr += ');\n\tmodel_name = "log_normal_shadowing";' \
                          '\n\tpath_loss_exp = %.1f;\n\tsL = %d;\n};' \
                          % (ppm.exp, ppm.sL)
+        elif ppm.model == 'nakagami':
+            configstr += ');\n\tmodel_name = "nakagami";' \
+                         '\n\tm = %.2f;\n\tpath_loss_exp = %.1f;' \
+                         '\n\txg = %.1f;\n};' \
+                         % (ppm.m, ppm.exp, ppm.xg)
         else:
             configstr += ');\n\tmodel_name = "free_space";\n\tsL = %d;\n};' \
                          % ppm.sL
