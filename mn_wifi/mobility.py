@@ -253,6 +253,7 @@ class model(Mobility):
 
     def __init__(self, **kwargs):
         self.mobStarted = False
+        self.animation = None
         self.start_thread(**kwargs)
 
     def start_thread(self, **kwargs):
@@ -272,9 +273,11 @@ class model(Mobility):
         n_groups = kwargs.get('n_groups', 1)
         self.stations, self.mobileNodes, self.aps = stations, stations, aps
 
+        min_z = kwargs.get('min_z', 0)
+        max_z = kwargs.get('max_z', 0)
         for node in mob_nodes:
-            args = {'min_x': 0, 'min_y': 0,
-                    'max_x': max_x, 'max_y': max_y,
+            args = {'min_x': 0, 'min_y': 0, 'min_z': min_z,
+                    'max_x': max_x, 'max_y': max_y, 'max_z': max_z,
                     'min_v': 10, 'max_v': 10}
             for key in args.keys():
                 setattr(node, key, node.params.get(key, args[key]))
@@ -286,7 +289,7 @@ class model(Mobility):
         # list/tuple/set args are allowed to be empty. Please raise an issue or add special handling
         # if necessary.
         model_args = dict()
-        model_arg_names = ['velocity_mean', 'alpha', 'variance', 'aggregation', 'g_velocity', 'ac_method', \
+        model_arg_names = ['velocity_mean', 'alpha', 'variance', 'time_step', 'aggregation', 'g_velocity', 'ac_method', \
                                 'pointlist', 'n_groups', 'aggregation_epoch', 'epoch', 'velocity']
         for argument in kwargs:
             if argument in model_arg_names:
@@ -301,6 +304,12 @@ class model(Mobility):
         if draw:
             nodes = mob_nodes + stat_nodes
             PlotGraph(nodes=nodes, max_x=max_x, max_y=max_y, **kwargs)
+        elif kwargs.get('animation'):
+            from mn_wifi.animation3d import Animation3D
+            animation_params = kwargs.get('animation_params', {})
+            self.animation = Animation3D(nodes=mob_nodes,
+                                         **animation_params)
+            self.animation.start()
 
         if not mob_nodes:
             if draw:
@@ -332,6 +341,14 @@ class model(Mobility):
             alpha = model_args.get("alpha", 0.99)
             variance = model_args.get("variance", 1.)
             mob = gauss_markov(mob_nodes, velocity_mean=velocity_mean, alpha=alpha, variance=variance)
+        elif mob_model == 'GaussMarkov3D':  # 3D Gauss-Markov model
+            velocity_mean = model_args.get("velocity_mean", 1.)
+            alpha = model_args.get("alpha", 0.85)
+            variance = model_args.get("variance", 1.)
+            time_step = model_args.get("time_step", kwargs.get("time_val", 1.))
+            mob = gauss_markov_3d(mob_nodes, velocity_mean=velocity_mean,
+                                  alpha=alpha, variance=variance,
+                                  time_step=time_step)
         elif mob_model == 'ReferencePoint':  # Reference Point Group model
             aggregation = model_args.get("aggregation", 0.5)
             velocity = model_args.get("velocity", (0.1, 1))
@@ -370,11 +387,20 @@ class model(Mobility):
         :param nodes: list of nodes
         """
         for xy in mob:
+            positions = []
             for idx, node in enumerate(nodes):
-                pos = round(xy[idx][0], 2), round(xy[idx][1], 2), 0.0
+                x, y = round(xy[idx][0], 2), round(xy[idx][1], 2)
+                z = round(xy[idx][2], 2) if len(xy[idx]) == 3 else 0.0
+                pos = x, y, z
+                positions.append(pos)
                 self.set_pos(node, pos)
                 if draw:
-                    node.update_2d()
+                    if getattr(PlotGraph, 'plot3d', False):
+                        node.update_3d()
+                    else:
+                        node.update_2d()
+            if self.animation:
+                self.animation.update(positions)
             if draw:
                 PlotGraph.pause()
             else:
@@ -420,11 +446,20 @@ class TimedModel(model):
         """
         next_tick_time = self.time_func() + self.tick_time
         for xy in mob:
+            positions = []
             for idx, node in enumerate(nodes):
-                pos = round(xy[idx][0], 2), round(xy[idx][1], 2), 0.0
+                x, y = round(xy[idx][0], 2), round(xy[idx][1], 2)
+                z = round(xy[idx][2], 2) if len(xy[idx]) == 3 else 0.0
+                pos = x, y, z
+                positions.append(pos)
                 self.set_pos(node, pos)
                 if draw:
-                    node.update_2d()
+                    if getattr(PlotGraph, 'plot3d', False):
+                        node.update_3d()
+                    else:
+                        node.update_2d()
+            if self.animation:
+                self.animation.update(positions)
             if draw:
                 PlotGraph.pause()
             if self.pause_simulation:
@@ -1330,6 +1365,128 @@ def gauss_markov(nodes, velocity_mean=1., alpha=0.99, variance=1.):
                  alpha3 * np.random.normal(0.0, 1.0, nr_nodes))
 
         yield np.dstack((x, y))[0]
+
+
+def gauss_markov_3d(nodes, velocity_mean=1., alpha=0.85, variance=1.,
+                    time_step=1.):
+    """
+    3D Gauss-Markov Mobility Model, as proposed in
+    "Design and analysis of a 3-D Gauss-Markov mobility model for
+    highly-dynamic airborne networks"
+    Broyles, Dan & Jabbar, Abdul & Sterbenz, James. (2010).
+    https://www.researchgate.net/publication/228568810
+    Implementation: Bruno Fernandes <bruno.fernandes@tum.de>
+    Required arguments:
+      *nodes*:
+        List of nodes. Each node must expose the min_x, max_x, min_y,
+        max_y, min_z and max_z bounds.
+    keyword arguments:
+      *velocity_mean*:
+        The mean velocity
+      *alpha*:
+        The tuning parameter used to vary the randomness
+      *variance*:
+        The randomness variance
+      *time_step*:
+        The simulated time elapsed per mobility step
+    """
+    nr_nodes = len(nodes)
+
+    MAX_X = np.array([node.max_x for node in nodes])
+    MIN_X = np.array([node.min_x for node in nodes])
+    MAX_Y = np.array([node.max_y for node in nodes])
+    MIN_Y = np.array([node.min_y for node in nodes])
+    MAX_Z = np.array([node.max_z for node in nodes])
+    MIN_Z = np.array([node.min_z for node in nodes])
+
+    # Initial positions (uniform random within bounds)
+    x = np.random.uniform(MIN_X, MAX_X, size=nr_nodes)
+    y = np.random.uniform(MIN_Y, MAX_Y, size=nr_nodes)
+    z = np.random.uniform(MIN_Z, MAX_Z, size=nr_nodes)
+
+    # Initial motion parameters
+    speed = np.ones(nr_nodes) * velocity_mean
+    direction = np.random.uniform(0, 2 * np.pi, nr_nodes)  # Azimuth
+    pitch = np.random.uniform(-np.pi / 2, np.pi / 2, nr_nodes)  # Elevation
+
+    # Mean values that will be updated (equation 5)
+    speed_mean = speed.copy()
+    direction_mean = direction.copy()
+    pitch_mean = pitch.copy()
+
+    # Precompute constants for the Gauss-Markov process
+    alpha_complement = 1.0 - alpha
+    noise_scale = np.sqrt(1.0 - alpha ** 2) * np.sqrt(variance)
+
+    while True:
+        # Velocity vector components (equation 3)
+        dx = speed * np.cos(direction) * np.cos(pitch) * time_step
+        dy = speed * np.sin(direction) * np.cos(pitch) * time_step
+        dz = speed * np.sin(pitch) * time_step
+
+        # Update positions
+        x += dx
+        y += dy
+        z += dz
+
+        # X-walls boundary reflection (bounce back)
+        bx = x < MIN_X
+        x[bx] = 2 * MIN_X[bx] - x[bx]
+        direction[bx] = np.mod(np.pi - direction[bx], 2 * np.pi)
+        direction_mean[bx] = np.mod(np.pi - direction_mean[bx], 2 * np.pi)
+
+        ax = x > MAX_X
+        x[ax] = 2 * MAX_X[ax] - x[ax]
+        direction[ax] = np.mod(np.pi - direction[ax], 2 * np.pi)
+        direction_mean[ax] = np.mod(np.pi - direction_mean[ax], 2 * np.pi)
+
+        # Y-walls boundary reflection (bounce back)
+        by = y < MIN_Y
+        y[by] = 2 * MIN_Y[by] - y[by]
+        direction[by] = np.mod(-direction[by], 2 * np.pi)
+        direction_mean[by] = np.mod(-direction_mean[by], 2 * np.pi)
+
+        ay = y > MAX_Y
+        y[ay] = 2 * MAX_Y[ay] - y[ay]
+        direction[ay] = np.mod(-direction[ay], 2 * np.pi)
+        direction_mean[ay] = np.mod(-direction_mean[ay], 2 * np.pi)
+
+        # Z-walls boundary reflection (bounce back)
+        bz = z < MIN_Z
+        z[bz] = 2 * MIN_Z[bz] - z[bz]
+        pitch[bz] = -pitch[bz]
+        pitch_mean[bz] = -pitch_mean[bz]
+
+        az = z > MAX_Z
+        z[az] = 2 * MAX_Z[az] - z[az]
+        pitch[az] = -pitch[az]
+        pitch_mean[az] = -pitch_mean[az]
+
+        # Update running mean values (equation 5)
+        speed_mean = alpha_complement * speed + alpha * speed_mean
+        direction_mean = alpha_complement * direction + alpha * direction_mean
+        pitch_mean = alpha_complement * pitch + alpha * pitch_mean
+
+        # Gauss-Markov updates with normalization (equation 4)
+        speed = np.abs(  # Speed must be positive
+            alpha * speed
+            + alpha_complement * velocity_mean
+            + noise_scale * np.random.randn(nr_nodes)
+        )
+        direction = np.mod(
+            alpha * direction
+            + alpha_complement * direction_mean
+            + noise_scale * np.random.randn(nr_nodes),
+            2 * np.pi
+        )
+        pitch = np.clip(
+            alpha * pitch
+            + alpha_complement * pitch_mean
+            + noise_scale * np.random.randn(nr_nodes),
+            -np.pi / 2, np.pi / 2
+        )
+
+        yield np.column_stack((x, y, z))
 
 
 def reference_point_group(nodes, n_groups, dimensions,
