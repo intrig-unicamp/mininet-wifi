@@ -6,10 +6,11 @@
                 Log-Distance Propagation Model
                 International Telecommunication Union (ITU) Propagation Model
             (Outdoors):
-                Two-Ray-Ground Propagation Model"""
+                Two-Ray-Ground Propagation Model
+                Nakagami-m Propagation Model"""
 
 import math
-from random import gauss
+from random import gauss, gammavariate
 from time import sleep
 
 
@@ -18,6 +19,8 @@ class PropagationModel(object):
     rssi = -62
     model = 'logDistance'  # default propagation model
     exp = 3  # Exponent
+    m = 1.0  # Nakagami fading parameter
+    xg = 0.0  # Shadowing/log-normal offset [dB]
     sL = 1  # System Loss
     lF = 0  # Floor penetration loss factor
     pL = 0  # Power Loss Coefficient
@@ -113,7 +116,29 @@ class PropagationModel(object):
         pl = self.path_loss(intf, ref_d)
         if dist == 0: dist = 0.1
 
-        pldb = 10 * self.exp * math.log10(dist / ref_d)
+        pldb = 10 * self.exp * math.log10(dist / ref_d) + self.xg
+        self.rssi = gains - (int(pl) + int(pldb))
+
+        return self.rssi
+
+    def nakagami(self, intf, ap_intf, dist):
+        """Nakagami-m Propagation Loss Model:
+        Log-distance path loss plus a Nakagami-m fading gain sampled from
+        Gamma(m, 1/m) (expected linear gain of 1).
+        m: Nakagami fading parameter
+        xg: shadowing/log-normal offset [dB]
+        (dist) is the distance between the transmitter and the receiver (m)"""
+        gr = intf.antennaGain
+        pt = ap_intf.txpower
+        gt = ap_intf.antennaGain
+        gains = pt + gt + gr
+        ref_d = 1
+
+        pl = self.path_loss(intf, ref_d)
+        if dist == 0: dist = 0.1
+
+        gain_db = 10 * math.log10(gammavariate(self.m, 1.0 / self.m))
+        pldb = 10 * self.exp * math.log10(dist / ref_d) + self.xg - gain_db
         self.rssi = gains - (int(pl) + int(pldb))
 
         return self.rssi
@@ -253,11 +278,24 @@ class SetSignalRange(object):
         gains = txpower + (gain * 2)
         ref_d = 1
 
-        pl = self.path_loss(intf, ref_d)
+        pl = self.path_loss(intf, ref_d) + ppm.xg
         self.range = math.pow(10, ((-ppm.noise_th - pl + gains) /
                                    (10 * ppm.exp))) * ref_d
         return self.range
-    
+
+    def nakagami(self, intf):
+        """Nakagami-m Propagation Loss Model:
+        distance is the range of the transmitter (m)"""
+        ref_d = 1
+        txpower = int(intf.txpower)
+        gain = int(intf.antennaGain)
+        gains = txpower + (gain * 2)
+
+        pl = self.path_loss(intf, ref_d) + ppm.xg
+        self.range = math.pow(10, ((-ppm.noise_th - pl + gains) /
+                                   (10 * ppm.exp))) * ref_d
+        return self.range
+
     def logNormalShadowing(self, intf):
         """Log-Normal Shadowing Propagation Loss Model"""
         from mn_wifi.wmediumdConnector import WmediumdGRandom, w_server, \
@@ -377,11 +415,26 @@ class GetPowerGivenRange(object):
         g_fixed = (gain * 2)
         ref_d = 1
         pl = self.path_loss(intf, ref_d)
-        numerator = math.pow(dist / ref_d, 10 * ppm.exp) * 10 ** pl
+        numerator = math.pow(dist / ref_d, 10 * ppm.exp) * 10 ** (pl + ppm.xg)
         denominator = 10 ** - ppm.noise_th
 
         self.txpower = math.ceil(math.log10(numerator / denominator) - g_fixed)
         if self.txpower < 0: self.txpower = 1
+        return self.txpower
+
+    def nakagami(self, intf):
+        """Nakagami-m Propagation Loss Model:
+        distance is the range of the transmitter (m)"""
+        ref_d = 1
+        dist = intf.range
+        gain = intf.antennaGain
+
+        pl = self.path_loss(intf, ref_d) + ppm.xg
+
+        self.txpower = 10 * ppm.exp * math.log10(dist / ref_d) + \
+                       ppm.noise_th + pl - (gain * 2)
+        if self.txpower < 0: self.txpower = 1
+
         return self.txpower
 
     def logNormalShadowing(self, intf):
