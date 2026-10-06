@@ -168,6 +168,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.wwan_module = wwan_module
         self.ifbIntf = 0
         self.mob_object = None
+        self.animation = False
+        self.animation_params = {}
         self.use_timed_model_mob = False
         self.timed_model_mob_tick = 1.0
         self.mob_start_time = 0
@@ -191,6 +193,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.velocity_mean = -1.
         self.alpha = -1.
         self.variance = -1.
+        self.time_step = -1.
         self.aggregation = -1.
         self.g_velocity = -1.
         self.aggregation_epoch = []
@@ -1494,7 +1497,13 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
             setattr(self, key, value)
         if kwargs.get('max_z', 0) != 0:
             self.plot = Plot3D
-        CleanupWifi.plot = self.plot
+        if kwargs.get('animation'):
+            from mn_wifi.animation3d import Animation3D
+            self.draw = False
+            self.animation_params = kwargs
+            CleanupWifi.plot = Animation3D
+        else:
+            CleanupWifi.plot = self.plot
 
     def check_dimension(self, nodes):
         try:
@@ -1555,13 +1564,13 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         float_args = ['min_x', 'min_y', 'min_z',
                       'max_x', 'max_y', 'max_z',
                       'min_v', 'max_v', 'min_wt', 'max_wt',
-                      'velocity_mean', 'alpha', 'variance', 'aggregation',
-                      'g_velocity', 'timed_model_mob_tick']
+                      'velocity_mean', 'alpha', 'variance', 'time_step',
+                      'aggregation', 'g_velocity', 'timed_model_mob_tick']
         args = ['stations', 'cars', 'aps', 'draw', 'seed',
                 'roads', 'mob_start_time', 'mob_stop_time',
                 'links', 'mob_model', 'mob_rep', 'reverse',
                 'ac_method', 'pointlist', 'n_groups', 'aggregation_epoch', 'epoch',
-                'velocity', 'use_timed_model_mob']
+                'velocity', 'use_timed_model_mob', 'animation', 'animation_params']
         args += float_args
         for arg in args:
             if arg in float_args:
