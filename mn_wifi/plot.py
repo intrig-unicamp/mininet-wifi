@@ -136,7 +136,7 @@ class Plot2D (object):
         for node in nodes:
             x, y, z = node.getxyz()
             self.instantiate_attrs(node)
-            node.plt_node.set_data(x, y)
+            node.plt_node.set_data([x], [y])
             node.set_text_pos(x, y)
             node.circle.center = x, y
             self.create_line(links)

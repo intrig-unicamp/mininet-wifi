@@ -267,7 +267,7 @@ class Node_wifi(Node):
     def update_2d(self):
         x, y, z = self.getxyz()
         self.set_text_pos(x, y)
-        self.plt_node.set_data(x, y)
+        self.plt_node.set_data([x], [y])
         self.circle.center = x, y
         # Enable the update of the wired links when the nodes have mobility
         self.updateLine()
