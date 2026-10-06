@@ -1060,6 +1060,9 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         if not self.mob_check:
             self.check_if_mob()
 
+        if self.link == wmediumd:
+            sleep(5)
+
         if self.allAutoAssociation:
             if self.autoAssociation and not self.configWiFiDirect:
                 self.auto_association()
