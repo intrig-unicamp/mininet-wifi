@@ -499,7 +499,10 @@ class IntfWireless(Intf):
 
     def wpa(self, ap_intf):
         self.wpaFile(ap_intf)
-        self.wpa_pexec()
+        if hasattr(self.node, 'position'):
+            self.wpa_pexec()
+        else:
+            self.wpa_cmd()
         self.setConnected(ap_intf)
 
     def update_client_params(self, ap_intf):
