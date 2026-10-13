@@ -39,11 +39,20 @@ CLUSTER_SIZE = (50.0, 50.0, 50.0)
 # Cluster origin offset within world (X_offset, Y_offset, Z_offset)
 CLUSTER_OFFSET = (25.0, 25.0, 25.0)
 
+# Animation and trace settings
+TRACE_CSV = 'positions.csv'
+STEPS_PER_SECOND = 10  # wall-clock mobility steps per second
+
+# Simulated seconds per wall-clock second. 1 = real time: nodes move at
+# velocity_mean m/s. The previous value (time_step 1.0 at 10 steps per
+# second) corresponds to 10.
+SPEED_FACTOR = 10
+
 # Mobility model settings
 MOBILITY_MODEL = 'GaussMarkov3D'
 MOBILITY_PARAMS = {
     'velocity_mean': 2.0, 'alpha': 0.85, 'variance': 1.0,
-    'time_step': 1.0,  # simulated seconds per mobility step
+    'time_step': SPEED_FACTOR / STEPS_PER_SECOND,  # simulated s per step
     'seed': 20,
     'ac_method': 'ssf',
 }
@@ -56,10 +65,6 @@ LINK_PARAMS = dict(
     ssid='adhocNet', proto=None, mode='g', channel=5,
     ht_cap='HT40+', bw=1, delay=5, loss=5
 )
-
-# Animation and trace settings
-TRACE_CSV = 'positions.csv'
-STEPS_PER_SECOND = 10  # wall-clock mobility steps per second
 
 
 def topology(mode='live'):

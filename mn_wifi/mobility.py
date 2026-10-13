@@ -254,6 +254,7 @@ class model(Mobility):
     def __init__(self, **kwargs):
         self.mobStarted = False
         self.animation = None
+        self.mob = None  # the running mobility model
         self.start_thread(**kwargs)
 
     def start_thread(self, **kwargs):
@@ -348,7 +349,9 @@ class model(Mobility):
             time_step = model_args.get("time_step", kwargs.get("time_val", 1.))
             mob = gauss_markov_3d(mob_nodes, velocity_mean=velocity_mean,
                                   alpha=alpha, variance=variance,
-                                  time_step=time_step)
+                                  time_step=time_step,
+                                  initial_state=kwargs.get('initial_state'),
+                                  rng=kwargs.get('rng'))
         elif mob_model == 'ReferencePoint':  # Reference Point Group model
             aggregation = model_args.get("aggregation", 0.5)
             velocity = model_args.get("velocity", (0.1, 1))
@@ -378,6 +381,7 @@ class model(Mobility):
         current_time = time()
         while (time() - current_time) < kwargs['mob_start_time']:
             pass
+        self.mob = mob
         self.set_mob_started()
         self.start_mob_mod(mob, mob_nodes, draw)
 
@@ -1367,126 +1371,202 @@ def gauss_markov(nodes, velocity_mean=1., alpha=0.99, variance=1.):
         yield np.dstack((x, y))[0]
 
 
-def gauss_markov_3d(nodes, velocity_mean=1., alpha=0.85, variance=1.,
-                    time_step=1.):
-    """
-    3D Gauss-Markov Mobility Model, as proposed in
-    "Design and analysis of a 3-D Gauss-Markov mobility model for
-    highly-dynamic airborne networks"
-    Broyles, Dan & Jabbar, Abdul & Sterbenz, James. (2010).
-    https://www.researchgate.net/publication/228568810
-    Implementation: Bruno Fernandes <bruno.fernandes@tum.de>
-    Required arguments:
-      *nodes*:
-        List of nodes. Each node must expose the min_x, max_x, min_y,
-        max_y, min_z and max_z bounds.
-    keyword arguments:
-      *velocity_mean*:
-        The mean velocity
-      *alpha*:
-        The tuning parameter used to vary the randomness
-      *variance*:
-        The randomness variance
-      *time_step*:
-        The simulated time elapsed per mobility step
-    """
-    nr_nodes = len(nodes)
+class GaussMarkov3D(object):
+    def __init__(self, nodes, velocity_mean=1., alpha=0.85, variance=1.,
+                 time_step=1., initial_state=None, rng=None):
+        """
+        3D Gauss-Markov Mobility Model, as proposed in
+        "Design and analysis of a 3-D Gauss-Markov mobility model for
+        highly-dynamic airborne networks"
+        Broyles, Dan & Jabbar, Abdul & Sterbenz, James. (2010).
+        https://www.researchgate.net/publication/228568810
+        Implementation: Bruno Fernandes <bruno.fernandes@tum.de>
+        Required arguments:
+          *nodes*:
+            List of nodes. Each node must expose the min_x, max_x, min_y,
+            max_y, min_z and max_z bounds.
+        keyword arguments:
+          *velocity_mean*:
+            The mean velocity
+          *alpha*:
+            The tuning parameter used to vary the randomness
+          *variance*:
+            The randomness variance
+          *time_step*:
+            The simulated time elapsed per mobility step
+          *initial_state*:
+            Optional starting state per node, keyed by node name:
+            {'sta1': {'position': (x, y, z), 'speed': s,
+                      'direction': azimuth, 'pitch': elevation}}.
+            Angles in radians. Any value not given is drawn as before
+            (speed defaults to velocity_mean).
+          *rng*:
+            Optional numpy.random.Generator (or integer seed) used only by
+            this instance. Without it, numpy's global random state is used
+            in the same order as before.
+        state() returns each node's current position and the speed,
+        direction and pitch of its next step; randomised lists, per node,
+        the starting values that were drawn at random.
+        """
+        self.nodes = nodes
+        self.nr_nodes = len(nodes)
+        self.velocity_mean = velocity_mean
+        self.alpha = alpha
+        self.variance = variance
+        self.time_step = time_step
 
-    MAX_X = np.array([node.max_x for node in nodes])
-    MIN_X = np.array([node.min_x for node in nodes])
-    MAX_Y = np.array([node.max_y for node in nodes])
-    MIN_Y = np.array([node.min_y for node in nodes])
-    MAX_Z = np.array([node.max_z for node in nodes])
-    MIN_Z = np.array([node.min_z for node in nodes])
+        if rng is None:
+            uniform, self.randn = np.random.uniform, np.random.randn
+        else:
+            if not isinstance(rng, np.random.Generator):
+                rng = np.random.default_rng(rng)
+            uniform, self.randn = rng.uniform, rng.standard_normal
 
-    # Initial positions (uniform random within bounds)
-    x = np.random.uniform(MIN_X, MAX_X, size=nr_nodes)
-    y = np.random.uniform(MIN_Y, MAX_Y, size=nr_nodes)
-    z = np.random.uniform(MIN_Z, MAX_Z, size=nr_nodes)
+        self.MAX_X = np.array([node.max_x for node in nodes])
+        self.MIN_X = np.array([node.min_x for node in nodes])
+        self.MAX_Y = np.array([node.max_y for node in nodes])
+        self.MIN_Y = np.array([node.min_y for node in nodes])
+        self.MAX_Z = np.array([node.max_z for node in nodes])
+        self.MIN_Z = np.array([node.min_z for node in nodes])
 
-    # Initial motion parameters
-    speed = np.ones(nr_nodes) * velocity_mean
-    direction = np.random.uniform(0, 2 * np.pi, nr_nodes)  # Azimuth
-    pitch = np.random.uniform(-np.pi / 2, np.pi / 2, nr_nodes)  # Elevation
+        # Initial positions (uniform random within bounds)
+        self.x = uniform(self.MIN_X, self.MAX_X, size=self.nr_nodes)
+        self.y = uniform(self.MIN_Y, self.MAX_Y, size=self.nr_nodes)
+        self.z = uniform(self.MIN_Z, self.MAX_Z, size=self.nr_nodes)
 
-    # Mean values that will be updated (equation 5)
-    speed_mean = speed.copy()
-    direction_mean = direction.copy()
-    pitch_mean = pitch.copy()
+        # Initial motion parameters
+        self.speed = np.ones(self.nr_nodes) * velocity_mean
+        self.direction = uniform(0, 2 * np.pi, self.nr_nodes)  # Azimuth
+        self.pitch = uniform(-np.pi / 2, np.pi / 2, self.nr_nodes)  # Elevation
 
-    # Precompute constants for the Gauss-Markov process
-    alpha_complement = 1.0 - alpha
-    noise_scale = np.sqrt(1.0 - alpha ** 2) * np.sqrt(variance)
+        # Given starting values replace the drawn ones; the draws above
+        # still happen, so the random sequence stays the same
+        initial_state = initial_state or {}
+        names = [node.name for node in nodes]
+        for name, state in initial_state.items():
+            unknown = set(state) - {'position', 'speed', 'direction', 'pitch'}
+            if name not in names or unknown:
+                raise ValueError('initial_state: unknown node %s or keys %s'
+                                 % (name, sorted(unknown)))
+        self.randomised = {}
+        for idx, node in enumerate(nodes):
+            state = initial_state.get(node.name, {})
+            if 'position' in state:
+                self.x[idx], self.y[idx], self.z[idx] = state['position']
+            for key in ('speed', 'direction', 'pitch'):
+                if key in state:
+                    getattr(self, key)[idx] = state[key]
+            self.randomised[node.name] = [key for key in ('position', 'direction', 'pitch')
+                                          if key not in state]
 
-    while True:
-        # Velocity vector components (equation 3)
-        dx = speed * np.cos(direction) * np.cos(pitch) * time_step
-        dy = speed * np.sin(direction) * np.cos(pitch) * time_step
-        dz = speed * np.sin(pitch) * time_step
+        self._gen = self._steps()
 
-        # Update positions
-        x += dx
-        y += dy
-        z += dz
+    def state(self):
+        "Current position, speed, direction and pitch of each node"
+        return {node.name: {'position': (float(self.x[idx]), float(self.y[idx]),
+                                         float(self.z[idx])),
+                            'speed': float(self.speed[idx]),
+                            'direction': float(self.direction[idx]),
+                            'pitch': float(self.pitch[idx])}
+                for idx, node in enumerate(self.nodes)}
 
-        # X-walls boundary reflection (bounce back)
-        bx = x < MIN_X
-        x[bx] = 2 * MIN_X[bx] - x[bx]
-        direction[bx] = np.mod(np.pi - direction[bx], 2 * np.pi)
-        direction_mean[bx] = np.mod(np.pi - direction_mean[bx], 2 * np.pi)
+    def __iter__(self):
+        return self
 
-        ax = x > MAX_X
-        x[ax] = 2 * MAX_X[ax] - x[ax]
-        direction[ax] = np.mod(np.pi - direction[ax], 2 * np.pi)
-        direction_mean[ax] = np.mod(np.pi - direction_mean[ax], 2 * np.pi)
+    def __next__(self):
+        return next(self._gen)
 
-        # Y-walls boundary reflection (bounce back)
-        by = y < MIN_Y
-        y[by] = 2 * MIN_Y[by] - y[by]
-        direction[by] = np.mod(-direction[by], 2 * np.pi)
-        direction_mean[by] = np.mod(-direction_mean[by], 2 * np.pi)
+    def _steps(self):
+        x, y, z = self.x, self.y, self.z
+        MIN_X, MAX_X = self.MIN_X, self.MAX_X
+        MIN_Y, MAX_Y = self.MIN_Y, self.MAX_Y
+        MIN_Z, MAX_Z = self.MIN_Z, self.MAX_Z
+        alpha, time_step, nr_nodes = self.alpha, self.time_step, self.nr_nodes
 
-        ay = y > MAX_Y
-        y[ay] = 2 * MAX_Y[ay] - y[ay]
-        direction[ay] = np.mod(-direction[ay], 2 * np.pi)
-        direction_mean[ay] = np.mod(-direction_mean[ay], 2 * np.pi)
+        # Mean values that will be updated (equation 5)
+        speed_mean = self.speed.copy()
+        direction_mean = self.direction.copy()
+        pitch_mean = self.pitch.copy()
 
-        # Z-walls boundary reflection (bounce back)
-        bz = z < MIN_Z
-        z[bz] = 2 * MIN_Z[bz] - z[bz]
-        pitch[bz] = -pitch[bz]
-        pitch_mean[bz] = -pitch_mean[bz]
+        # Precompute constants for the Gauss-Markov process
+        alpha_complement = 1.0 - alpha
+        noise_scale = np.sqrt(1.0 - alpha ** 2) * np.sqrt(self.variance)
 
-        az = z > MAX_Z
-        z[az] = 2 * MAX_Z[az] - z[az]
-        pitch[az] = -pitch[az]
-        pitch_mean[az] = -pitch_mean[az]
+        while True:
+            speed, direction, pitch = self.speed, self.direction, self.pitch
 
-        # Update running mean values (equation 5)
-        speed_mean = alpha_complement * speed + alpha * speed_mean
-        direction_mean = alpha_complement * direction + alpha * direction_mean
-        pitch_mean = alpha_complement * pitch + alpha * pitch_mean
+            # Velocity vector components (equation 3)
+            dx = speed * np.cos(direction) * np.cos(pitch) * time_step
+            dy = speed * np.sin(direction) * np.cos(pitch) * time_step
+            dz = speed * np.sin(pitch) * time_step
 
-        # Gauss-Markov updates with normalization (equation 4)
-        speed = np.abs(  # Speed must be positive
-            alpha * speed
-            + alpha_complement * velocity_mean
-            + noise_scale * np.random.randn(nr_nodes)
-        )
-        direction = np.mod(
-            alpha * direction
-            + alpha_complement * direction_mean
-            + noise_scale * np.random.randn(nr_nodes),
-            2 * np.pi
-        )
-        pitch = np.clip(
-            alpha * pitch
-            + alpha_complement * pitch_mean
-            + noise_scale * np.random.randn(nr_nodes),
-            -np.pi / 2, np.pi / 2
-        )
+            # Update positions
+            x += dx
+            y += dy
+            z += dz
 
-        yield np.column_stack((x, y, z))
+            # X-walls boundary reflection (bounce back)
+            bx = x < MIN_X
+            x[bx] = 2 * MIN_X[bx] - x[bx]
+            direction[bx] = np.mod(np.pi - direction[bx], 2 * np.pi)
+            direction_mean[bx] = np.mod(np.pi - direction_mean[bx], 2 * np.pi)
+
+            ax = x > MAX_X
+            x[ax] = 2 * MAX_X[ax] - x[ax]
+            direction[ax] = np.mod(np.pi - direction[ax], 2 * np.pi)
+            direction_mean[ax] = np.mod(np.pi - direction_mean[ax], 2 * np.pi)
+
+            # Y-walls boundary reflection (bounce back)
+            by = y < MIN_Y
+            y[by] = 2 * MIN_Y[by] - y[by]
+            direction[by] = np.mod(-direction[by], 2 * np.pi)
+            direction_mean[by] = np.mod(-direction_mean[by], 2 * np.pi)
+
+            ay = y > MAX_Y
+            y[ay] = 2 * MAX_Y[ay] - y[ay]
+            direction[ay] = np.mod(-direction[ay], 2 * np.pi)
+            direction_mean[ay] = np.mod(-direction_mean[ay], 2 * np.pi)
+
+            # Z-walls boundary reflection (bounce back)
+            bz = z < MIN_Z
+            z[bz] = 2 * MIN_Z[bz] - z[bz]
+            pitch[bz] = -pitch[bz]
+            pitch_mean[bz] = -pitch_mean[bz]
+
+            az = z > MAX_Z
+            z[az] = 2 * MAX_Z[az] - z[az]
+            pitch[az] = -pitch[az]
+            pitch_mean[az] = -pitch_mean[az]
+
+            # Update running mean values (equation 5)
+            speed_mean = alpha_complement * speed + alpha * speed_mean
+            direction_mean = alpha_complement * direction + alpha * direction_mean
+            pitch_mean = alpha_complement * pitch + alpha * pitch_mean
+
+            # Gauss-Markov updates with normalization (equation 4)
+            self.speed = np.abs(  # Speed must be positive
+                alpha * speed
+                + alpha_complement * self.velocity_mean
+                + noise_scale * self.randn(nr_nodes)
+            )
+            self.direction = np.mod(
+                alpha * direction
+                + alpha_complement * direction_mean
+                + noise_scale * self.randn(nr_nodes),
+                2 * np.pi
+            )
+            self.pitch = np.clip(
+                alpha * pitch
+                + alpha_complement * pitch_mean
+                + noise_scale * self.randn(nr_nodes),
+                -np.pi / 2, np.pi / 2
+            )
+
+            yield np.column_stack((x, y, z))
+
+
+def gauss_markov_3d(*args, **kwargs):
+    return iter(GaussMarkov3D(*args, **kwargs))
 
 
 def reference_point_group(nodes, n_groups, dimensions,
