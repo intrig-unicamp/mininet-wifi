@@ -52,5 +52,5 @@ setup(
     install_requires=[
         'setuptools', 'matplotlib'
     ],
-    scripts=scripts,
+    data_files=[('/usr/local/bin', ['bin/mn'])]
 )
