@@ -11,10 +11,12 @@ telemetry(nodes, **params)
 
 import time
 import warnings
-import math
 from PIL import Image
 from subprocess import check_output as co, PIPE
 import numpy as np
+
+import matplotlib
+matplotlib.use('TkAgg')
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
