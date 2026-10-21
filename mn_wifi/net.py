@@ -170,6 +170,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
         self.mob_object = None
         self.animation = False
         self.animation_params = {}
+        self.initial_state = None
+        self.rng = None
         self.use_timed_model_mob = False
         self.timed_model_mob_tick = 1.0
         self.mob_start_time = 0
@@ -1573,7 +1575,8 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN, Mininet_btvirt):
                 'roads', 'mob_start_time', 'mob_stop_time',
                 'links', 'mob_model', 'mob_rep', 'reverse',
                 'ac_method', 'pointlist', 'n_groups', 'aggregation_epoch', 'epoch',
-                'velocity', 'use_timed_model_mob', 'animation', 'animation_params']
+                'velocity', 'use_timed_model_mob', 'animation', 'animation_params',
+                'initial_state', 'rng']
         args += float_args
         for arg in args:
             if arg in float_args:
