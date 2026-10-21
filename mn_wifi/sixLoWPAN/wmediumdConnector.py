@@ -12,7 +12,7 @@ import tempfile
 from sys import version_info as py_version_info
 from time import sleep
 
-import pkg_resources
+import importlib.resources
 from mininet.log import info, debug
 
 
@@ -318,9 +318,8 @@ class WStarter(object):
             if wmediumd_mode.mode is w_cst.SNR_MODE \
                     or wmediumd_mode.mode is w_cst.INTERFERENCE_MODE:
                 cmdline.append("-x")
-                per_data_file = \
-                    pkg_resources.resource_filename(
-                        'mn_wifi', 'data/signal_table_ieee80211')
+                ref = importlib.resources.files('mn_wifi') / 'data/signal_table_ieee80211'
+                per_data_file = str(ref)
                 cmdline.append(per_data_file)
         cmdline[1:1] = kwargs['parameters']
         WStarter.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_',
